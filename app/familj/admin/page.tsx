@@ -33,6 +33,7 @@ export default function FamilyAdminPage() {
   const [familyName, setFamilyName] = useState("Familjen");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [allowed, setAllowed] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState("familj");
@@ -124,6 +125,30 @@ export default function FamilyAdminPage() {
     setSaving(false);
   }
 
+  async function handleRemove(member: Member) {
+    const confirmed = window.confirm(
+      `Ta bort ${member.display_name} från familjen? Personen tas bort från familjen men ett eventuellt inloggningskonto raderas inte.`,
+    );
+
+    if (!confirmed) return;
+
+    setRemovingId(member.id);
+    setMessage("");
+
+    const { error } = await supabase.rpc("delete_family_member_for_current_user", {
+      target_member_id: member.id,
+    });
+
+    if (error) {
+      setMessage(error.message);
+      setRemovingId(null);
+      return;
+    }
+
+    await load();
+    setRemovingId(null);
+  }
+
   if (loading) {
     return <main className="section-shell"><p className="muted">Laddar familjen...</p></main>;
   }
@@ -178,7 +203,25 @@ export default function FamilyAdminPage() {
                 <p>{member.role === "förälder" ? "Förälder" : member.role === "barn" ? "Barn" : member.role === "familj" ? "Familj" : "Admin"}</p>
               </div>
             </div>
-            <span className="tag blue">{member.user_id ? "Konto kopplat" : "Familjemedlem"}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="tag blue">{member.user_id ? "Konto kopplat" : "Familjemedlem"}</span>
+              <button
+                type="button"
+                onClick={() => handleRemove(member)}
+                disabled={removingId === member.id}
+                style={{
+                  border: "1px solid var(--line)",
+                  borderRadius: 8,
+                  padding: "7px 10px",
+                  background: "white",
+                  color: "var(--text)",
+                  fontWeight: 700,
+                  cursor: removingId === member.id ? "wait" : "pointer",
+                }}
+              >
+                {removingId === member.id ? "Tar bort..." : "Ta bort"}
+              </button>
+            </div>
           </div>
         ))}
 
