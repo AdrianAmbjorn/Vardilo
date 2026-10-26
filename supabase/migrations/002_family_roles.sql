@@ -12,20 +12,10 @@ alter table public.family_members
   check (
     family_role is null
     or family_role in (
-      'mamma',
-      'pappa',
-      'bonusmamma',
-      'bonuspappa',
-      'mormor',
-      'morfar',
-      'farmor',
-      'farfar',
-      'moster',
-      'morbror',
-      'faster',
-      'farbror',
-      'kusin',
-      'annan_nara_familj'
+      'mamma', 'pappa', 'bonusmamma', 'bonuspappa',
+      'mormor', 'morfar', 'farmor', 'farfar',
+      'moster', 'morbror', 'faster', 'farbror',
+      'kusin', 'annan_nara_familj'
     )
   );
 
