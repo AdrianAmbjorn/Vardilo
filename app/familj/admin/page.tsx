@@ -1,267 +1,219 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type Member = {
+type FamilyMember = {
   id: string;
   display_name: string;
   role: string;
+  family_role: string | null;
   user_id: string | null;
 };
 
-const roles = [
-  ["förälder", "Förälder"],
-  ["barn", "Barn"],
-  ["familj", "Familj"],
+const familyRelationships = [
+  ["mamma", "Mamma"],
+  ["pappa", "Pappa"],
+  ["bonusmamma", "Bonusmamma"],
+  ["bonuspappa", "Bonuspappa"],
+  ["mormor", "Mormor"],
+  ["morfar", "Morfar"],
+  ["farmor", "Farmor"],
+  ["farfar", "Farfar"],
+  ["moster", "Moster"],
+  ["morbror", "Morbror"],
+  ["faster", "Faster"],
+  ["farbror", "Farbror"],
+  ["kusin", "Kusin"],
+  ["annan_nara_familj", "Annan nära familj"],
 ] as const;
-
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 export default function FamilyAdminPage() {
   const supabase = createClient();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [familyName, setFamilyName] = useState("Familjen");
+  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [familyName, setFamilyName] = useState("");
+  const [memberName, setMemberName] = useState("");
+  const [memberRole, setMemberRole] = useState("familj");
+  const [familyRelationship, setFamilyRelationship] = useState("mormor");
+  const [canManageMembers, setCanManageMembers] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [allowed, setAllowed] = useState(false);
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("familj");
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  async function load() {
-    setLoading(true);
-    setMessage("");
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
+  async function loadFamily() {
+    setError("");
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+    if (!user) return;
 
     const { data: currentMember } = await supabase
       .from("family_members")
-      .select("id, family_id, display_name")
+      .select("id, family_id")
       .eq("user_id", user.id)
-      .order("created_at", { ascending: true })
+      .order("created_at")
       .limit(1)
       .maybeSingle();
 
-    if (!currentMember) {
-      window.location.href = "/familj";
+    if (!currentMember) return;
+
+    const [{ data: family }, { data: permissions }, { data: familyMembers, error: membersError }] =
+      await Promise.all([
+        supabase.from("families").select("name").eq("id", currentMember.family_id).single(),
+        supabase.from("family_permissions").select("can_manage_members").eq("family_member_id", currentMember.id).single(),
+        supabase
+          .from("family_members")
+          .select("id, display_name, role, family_role, user_id")
+          .eq("family_id", currentMember.family_id)
+          .order("created_at"),
+      ]);
+
+    if (membersError) {
+      setError(membersError.message);
       return;
     }
 
-    const { data: permission } = await supabase
-      .from("family_permissions")
-      .select("can_manage_members")
-      .eq("family_member_id", currentMember.id)
-      .maybeSingle();
-
-    if (!permission?.can_manage_members) {
-      setAllowed(false);
-      setLoading(false);
-      return;
-    }
-
-    setAllowed(true);
-
-    const [{ data: family }, { data: familyMembers, error }] = await Promise.all([
-      supabase
-        .from("families")
-        .select("name")
-        .eq("id", currentMember.family_id)
-        .maybeSingle(),
-      supabase
-        .from("family_members")
-        .select("id, display_name, role, user_id")
-        .eq("family_id", currentMember.family_id)
-        .order("created_at", { ascending: true }),
-    ]);
-
-    if (family?.name) setFamilyName(family.name);
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMembers((familyMembers ?? []) as Member[]);
-    }
-
-    setLoading(false);
+    setFamilyName(family?.name ?? "");
+    setCanManageMembers(Boolean(permissions?.can_manage_members));
+    setMembers((familyMembers ?? []) as FamilyMember[]);
   }
 
   useEffect(() => {
-    load();
+    loadFamily().finally(() => setLoading(false));
   }, []);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function addMember() {
+    if (!memberName.trim()) return;
     setSaving(true);
-    setMessage("");
+    setError("");
 
-    const { error } = await supabase.rpc("add_family_member_for_current_user", {
-      member_name: name,
-      member_role: role,
+    const { error: rpcError } = await supabase.rpc("add_family_member_for_current_user", {
+      member_name: memberName.trim(),
+      member_role: memberRole,
+      member_family_role: memberRole === "familj" ? familyRelationship : null,
     });
 
-    if (error) {
-      setMessage(error.message);
-      setSaving(false);
-      return;
+    if (rpcError) {
+      setError(rpcError.message);
+    } else {
+      setMemberName("");
+      await loadFamily();
     }
 
-    setName("");
-    setRole("familj");
-    await load();
     setSaving(false);
   }
 
-  async function handleRemove(member: Member) {
-    const confirmed = window.confirm(
-      `Ta bort ${member.display_name} från familjen? Personen tas bort från familjen men ett eventuellt inloggningskonto raderas inte.`,
-    );
-
-    if (!confirmed) return;
+  async function removeMember(member: FamilyMember) {
+    if (!window.confirm(`Ta bort ${member.display_name} från familjen?`)) return;
 
     setRemovingId(member.id);
-    setMessage("");
-
-    const { error } = await supabase.rpc("delete_family_member_for_current_user", {
+    setError("");
+    const { error: rpcError } = await supabase.rpc("delete_family_member_for_current_user", {
       target_member_id: member.id,
     });
 
-    if (error) {
-      setMessage(error.message);
-      setRemovingId(null);
-      return;
-    }
-
-    await load();
+    if (rpcError) setError(rpcError.message);
+    else await loadFamily();
     setRemovingId(null);
   }
 
-  if (loading) {
-    return <main className="section-shell"><p className="muted">Laddar familjen...</p></main>;
-  }
-
-  if (!allowed) {
-    return (
-      <main className="section-shell">
-        <div className="section-header">
-          <Link href="/" className="back-link">← Hem</Link>
-          <div>
-            <p className="eyebrow">FAMILJ</p>
-            <h1>Ingen åtkomst</h1>
-          </div>
-        </div>
-        <section className="section-card">
-          <div className="section-row">
-            <div>
-              <strong>Du saknar behörighet att hantera familjemedlemmar.</strong>
-              <p>Be en familjeadmin att ge dig rätt behörighet.</p>
-            </div>
-          </div>
-        </section>
-      </main>
-    );
-  }
+  if (loading) return <main className="p-8">Laddar...</main>;
 
   return (
-    <main className="section-shell">
-      <div className="section-header">
-        <Link href="/" className="back-link">← Hem</Link>
-        <div>
-          <p className="eyebrow">FAMILJEN</p>
-          <h1>{familyName}</h1>
-        </div>
-      </div>
-
-      <section className="section-card">
-        <div className="section-row">
-          <div>
-            <strong>Familjemedlemmar</strong>
-            <p>Här ser du vilka som ingår i familjen och deras roll.</p>
-          </div>
-          <span>{members.length} medlemmar</span>
+    <main className="min-h-screen bg-white p-6 text-slate-900 md:p-8">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-8">
+          <p className="text-sm font-medium text-red-600">Familj</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{familyName || "Familjeinställningar"}</h1>
+          <p className="mt-2 text-slate-500">Hantera vilka som hör till familjen och deras relation.</p>
         </div>
 
-        {members.map((member) => (
-          <div className="section-row" key={member.id}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span className="avatar">{initials(member.display_name)}</span>
-              <div>
-                <strong>{member.display_name}</strong>
-                <p>{member.role === "förälder" ? "Förälder" : member.role === "barn" ? "Barn" : member.role === "familj" ? "Familj" : "Admin"}</p>
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="tag blue">{member.user_id ? "Konto kopplat" : "Familjemedlem"}</span>
+        {canManageMembers && (
+          <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold">Lägg till familjemedlem</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_220px_auto] md:items-end">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Namn</span>
+                <input
+                  value={memberName}
+                  onChange={(event) => setMemberName(event.target.value)}
+                  placeholder="T.ex. Mormor"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-red-500"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-slate-700">Kategori</span>
+                <select
+                  value={memberRole}
+                  onChange={(event) => setMemberRole(event.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
+                >
+                  <option value="förälder">Förälder</option>
+                  <option value="barn">Barn</option>
+                  <option value="familj">Familj</option>
+                </select>
+              </label>
+              {memberRole === "familj" ? (
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-slate-700">Relation</span>
+                  <select
+                    value={familyRelationship}
+                    onChange={(event) => setFamilyRelationship(event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
+                  >
+                    {familyRelationships.map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+              ) : <div />}
               <button
                 type="button"
-                onClick={() => handleRemove(member)}
-                disabled={removingId === member.id}
-                style={{
-                  border: "1px solid var(--line)",
-                  borderRadius: 8,
-                  padding: "7px 10px",
-                  background: "white",
-                  color: "var(--text)",
-                  fontWeight: 700,
-                  cursor: removingId === member.id ? "wait" : "pointer",
-                }}
+                onClick={addMember}
+                disabled={saving || !memberName.trim()}
+                className="rounded-xl bg-red-600 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {removingId === member.id ? "Tar bort..." : "Ta bort"}
+                {saving ? "Lägger till..." : "Lägg till"}
               </button>
             </div>
+            <p className="mt-3 text-xs text-slate-500">Relationen används för att göra familjen mer personlig. Den kan ändras senare.</p>
+          </section>
+        )}
+
+        {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5 py-4">
+            <h2 className="font-semibold">Familjemedlemmar</h2>
           </div>
-        ))}
-
-        <div className="section-row" style={{ display: "block" }}>
-          <div style={{ marginBottom: 14 }}>
-            <strong>Lägg till familjemedlem</strong>
-            <p>Lägg först till personen i familjen. Konto och inloggning kopplas på i nästa steg.</p>
+          <div className="divide-y divide-slate-100">
+            {members.map((member) => {
+              const relationship = familyRelationships.find(([value]) => value === member.family_role)?.[1];
+              return (
+                <div key={member.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                  <div>
+                    <p className="font-medium">{member.display_name}</p>
+                    <p className="text-sm text-slate-500">
+                      {member.role === "familj" ? relationship ?? "Familj" : member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                      {member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
+                    </p>
+                  </div>
+                  {canManageMembers && (
+                    <button
+                      type="button"
+                      onClick={() => removeMember(member)}
+                      disabled={removingId === member.id}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {removingId === member.id ? "Tar bort..." : "Ta bort"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-
-          <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 180px auto", gap: 10, alignItems: "end" }}>
-            <label className="auth-form" style={{ gap: 7 }}>
-              <span style={{ fontSize: 12, fontWeight: 700 }}>Namn</span>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Till exempel Malin"
-                required
-                style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "11px 12px", background: "#fbfcfd", color: "var(--text)" }}
-              />
-            </label>
-
-            <label className="auth-form" style={{ gap: 7 }}>
-              <span style={{ fontSize: 12, fontWeight: 700 }}>Roll</span>
-              <select
-                value={role}
-                onChange={(event) => setRole(event.target.value)}
-                style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "11px 12px", background: "#fbfcfd", color: "var(--text)" }}
-              >
-                {roles.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-              </select>
-            </label>
-
-            <button className="primary" type="submit" disabled={saving}>
-              {saving ? "Lägger till..." : "Lägg till"}
-            </button>
-          </form>
-
-          {message && <p className="auth-message" style={{ marginTop: 12 }}>{message}</p>}
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
