@@ -117,49 +117,63 @@ export default function FamilyAdminPage() {
     setRemovingId(null);
   }
 
-  if (loading) return <main className="p-8">Laddar...</main>;
+  if (loading) {
+    return <main className="section-shell">Laddar...</main>;
+  }
 
   return (
-    <main className="min-h-screen bg-white p-6 text-slate-900 md:p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
-          <p className="text-sm font-medium text-red-600">Familj</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">{familyName || "Familjeinställningar"}</h1>
-          <p className="mt-2 text-slate-500">Hantera vilka som hör till familjen och deras relation.</p>
+    <main className="section-shell">
+      <div className="section-header">
+        <a href="/" className="back-link">← Hem</a>
+        <div>
+          <p className="eyebrow">FAMILJ</p>
+          <h1>{familyName || "Familjeinställningar"}</h1>
+          <p className="muted" style={{ marginTop: 8 }}>
+            Hantera vilka som hör till familjen och deras relation.
+          </p>
         </div>
+      </div>
 
+      {error && <p className="family-admin-error" style={{ maxWidth: 1050, margin: "0 auto 16px" }}>{error}</p>}
+
+      <section className="section-card">
         {canManageMembers && (
-          <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">Lägg till familjemedlem</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px_220px_auto] md:items-end">
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Namn</span>
+          <div className="family-admin-form">
+            <div className="card-heading">
+              <h3>Lägg till familjemedlem</h3>
+            </div>
+
+            <div
+              className="family-admin-fields"
+              style={{ gridTemplateColumns: "minmax(220px, 1fr) 170px 220px auto" }}
+            >
+              <label className="family-admin-field">
+                <span>Namn</span>
                 <input
                   value={memberName}
                   onChange={(event) => setMemberName(event.target.value)}
                   placeholder="T.ex. Mormor"
-                  className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-red-500"
                 />
               </label>
-              <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-700">Kategori</span>
+
+              <label className="family-admin-field">
+                <span>Kategori</span>
                 <select
                   value={memberRole}
                   onChange={(event) => setMemberRole(event.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
                 >
                   <option value="förälder">Förälder</option>
                   <option value="barn">Barn</option>
                   <option value="familj">Familj</option>
                 </select>
               </label>
+
               {memberRole === "familj" ? (
-                <label className="block">
-                  <span className="mb-1 block text-sm font-medium text-slate-700">Relation</span>
+                <label className="family-admin-field">
+                  <span>Relation</span>
                   <select
                     value={familyRelationship}
                     onChange={(event) => setFamilyRelationship(event.target.value)}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5"
                   >
                     {familyRelationships.map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>
@@ -167,53 +181,59 @@ export default function FamilyAdminPage() {
                   </select>
                 </label>
               ) : <div />}
+
               <button
                 type="button"
                 onClick={addMember}
                 disabled={saving || !memberName.trim()}
-                className="rounded-xl bg-red-600 px-5 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="primary"
+                style={{ border: 0, cursor: saving || !memberName.trim() ? "not-allowed" : "pointer", opacity: saving || !memberName.trim() ? 0.55 : 1 }}
               >
                 {saving ? "Lägger till..." : "Lägg till"}
               </button>
             </div>
-            <p className="mt-3 text-xs text-slate-500">Relationen används för att göra familjen mer personlig. Den kan ändras senare.</p>
-          </section>
+
+            <p className="family-admin-help">
+              Relationen gör familjen mer personlig och kan ändras senare.
+            </p>
+          </div>
         )}
 
-        {error && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <div className="family-admin-list">
+          <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
+            <h3>Familjemedlemmar</h3>
+          </div>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="font-semibold">Familjemedlemmar</h2>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {members.map((member) => {
-              const relationship = familyRelationships.find(([value]) => value === member.family_role)?.[1];
-              return (
-                <div key={member.id} className="flex items-center justify-between gap-4 px-5 py-4">
-                  <div>
-                    <p className="font-medium">{member.display_name}</p>
-                    <p className="text-sm text-slate-500">
-                      {member.role === "familj" ? relationship ?? "Familj" : member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                      {member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
-                    </p>
+          {members.map((member) => {
+            const relationship = familyRelationships.find(([value]) => value === member.family_role)?.[1];
+            const roleLabel = member.role === "familj"
+              ? relationship ?? "Familj"
+              : member.role.charAt(0).toUpperCase() + member.role.slice(1);
+
+            return (
+              <div key={member.id} className="family-admin-member">
+                <div>
+                  <div className="family-admin-member-name">{member.display_name}</div>
+                  <div className="family-admin-member-meta">
+                    {roleLabel}{member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
                   </div>
-                  {canManageMembers && (
-                    <button
-                      type="button"
-                      onClick={() => removeMember(member)}
-                      disabled={removingId === member.id}
-                      className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      {removingId === member.id ? "Tar bort..." : "Ta bort"}
-                    </button>
-                  )}
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      </div>
+
+                {canManageMembers && (
+                  <button
+                    type="button"
+                    onClick={() => removeMember(member)}
+                    disabled={removingId === member.id}
+                    className="family-admin-remove"
+                  >
+                    {removingId === member.id ? "Tar bort..." : "Ta bort"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </main>
   );
 }
