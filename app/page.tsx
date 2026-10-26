@@ -23,6 +23,15 @@ const family = [
   { name: "Farfar", role: "Familj", initials: "F" },
 ];
 
+function HouseIcon() {
+  return (
+    <svg className="house-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3.5 10.7 12 3.8l8.5 6.9v8.1a1.2 1.2 0 0 1-1.2 1.2H4.7a1.2 1.2 0 0 1-1.2-1.2v-8.1Z" fill="currentColor" />
+      <path d="M9.1 20v-5.2h5.8V20" fill="white" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const [showAdd, setShowAdd] = useState(false);
   const [helpTaken, setHelpTaken] = useState(false);
@@ -31,7 +40,7 @@ export default function Home() {
     <main className="shell">
       <aside className="sidebar">
         <Link href="/" className="brand">
-          <div className="brand-mark" aria-label="Vardilo">V</div>
+          <div className="brand-mark" aria-label="Vardilo"><HouseIcon /></div>
           <div>
             <strong>VARDILO</strong>
             <span>Family life, together.</span>
