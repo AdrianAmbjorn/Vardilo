@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   ["Hem", "Överblick", "/"],
@@ -33,8 +35,21 @@ function HouseIcon() {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [helpTaken, setHelpTaken] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleSignOut() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
 
   return (
     <main className="shell">
@@ -76,7 +91,28 @@ export default function Home() {
             <p className="eyebrow">Måndag 26 oktober</p>
             <h1>God kväll, <span className="red-text">Adrian.</span></h1>
           </div>
-          <button className="profile" type="button" aria-label="Öppna profil">A</button>
+          <div className="profile-wrap">
+            <button
+              className="profile"
+              type="button"
+              aria-label="Öppna profilmeny"
+              aria-expanded={showProfile}
+              onClick={() => setShowProfile((value) => !value)}
+            >
+              A
+            </button>
+            {showProfile && (
+              <div className="profile-menu" role="menu">
+                <div className="profile-menu-name">
+                  <strong>Adrian</strong>
+                  <span>Admin</span>
+                </div>
+                <button type="button" onClick={handleSignOut} disabled={loggingOut}>
+                  {loggingOut ? "Loggar ut..." : "Logga ut"}
+                </button>
+              </div>
+            )}
+          </div>
         </header>
 
         <section className="hero-card">
