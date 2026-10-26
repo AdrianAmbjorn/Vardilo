@@ -29,11 +29,13 @@ export default function LoginPage() {
     setMessage("");
 
     if (mode === "signup") {
+      const redirectTo = `${window.location.origin}/auth/confirm?next=/familj`;
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { display_name: name },
+          emailRedirectTo: redirectTo,
         },
       });
 
