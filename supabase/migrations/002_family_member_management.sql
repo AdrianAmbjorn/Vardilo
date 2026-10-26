@@ -1,9 +1,26 @@
 alter table public.family_members
   alter column user_id drop not null;
 
+alter table public.family_members
+  add column if not exists family_role text;
+
+alter table public.family_members
+  drop constraint if exists family_members_family_role_check;
+
+alter table public.family_members
+  add constraint family_members_family_role_check check (
+    family_role is null or family_role in (
+      'mamma', 'pappa', 'bonusmamma', 'bonuspappa',
+      'mormor', 'morfar', 'farmor', 'farfar',
+      'moster', 'morbror', 'faster', 'farbror',
+      'kusin', 'annan_nara_familj'
+    )
+  );
+
 create or replace function public.add_family_member_for_current_user(
   member_name text,
-  member_role text
+  member_role text,
+  member_family_role text default null
 )
 returns uuid
 language plpgsql
@@ -16,6 +33,7 @@ declare
   current_member_id uuid;
   new_member_id uuid;
   normalized_role text := lower(trim(member_role));
+  normalized_family_role text := nullif(lower(trim(member_family_role)), '');
 begin
   if current_user_id is null then
     raise exception 'Not authenticated';
@@ -27,6 +45,14 @@ begin
 
   if normalized_role not in ('admin', 'förälder', 'barn', 'familj') then
     raise exception 'Invalid member role';
+  end if;
+
+  if normalized_role = 'familj' and normalized_family_role is null then
+    raise exception 'Family relationship is required';
+  end if;
+
+  if normalized_role <> 'familj' then
+    normalized_family_role := null;
   end if;
 
   select fm.id, fm.family_id
@@ -53,13 +79,15 @@ begin
     family_id,
     user_id,
     display_name,
-    role
+    role,
+    family_role
   )
   values (
     current_family_id,
     null,
     trim(member_name),
-    normalized_role
+    normalized_role,
+    normalized_family_role
   )
   returning id into new_member_id;
 
@@ -92,4 +120,4 @@ begin
 end;
 $$;
 
-grant execute on function public.add_family_member_for_current_user(text, text) to authenticated;
+grant execute on function public.add_family_member_for_current_user(text, text, text) to authenticated;
