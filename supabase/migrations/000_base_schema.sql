@@ -12,8 +12,17 @@ create table if not exists public.family_members (
   user_id uuid references auth.users(id) on delete set null,
   display_name text not null,
   role text not null default 'familj',
+  family_role text,
   created_at timestamptz not null default now(),
-  constraint family_members_role_check check (role in ('admin', 'förälder', 'barn', 'familj'))
+  constraint family_members_role_check check (role in ('admin', 'förälder', 'barn', 'familj')),
+  constraint family_members_family_role_check check (
+    family_role is null or family_role in (
+      'mamma', 'pappa', 'bonusmamma', 'bonuspappa',
+      'mormor', 'morfar', 'farmor', 'farfar',
+      'moster', 'morbror', 'faster', 'farbror',
+      'kusin', 'annan_nara_familj'
+    )
+  )
 );
 
 create index if not exists family_members_family_id_idx
