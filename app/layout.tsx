@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./vardilo-theme.css";
 
 export const metadata: Metadata = {
   title: "Vardilo — Family life, together.",
