@@ -1,12 +1,17 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
 const navItems = [
-  ["Hem", "Överblick"],
-  ["Kalender", "Familjens vecka"],
-  ["Uppgifter", "Ansvar & XP"],
-  ["Hjälp", "Jag kan"],
-  ["Listor", "Gemensamt"],
-  ["Önskelistor", "Presenter"],
-  ["Chat", "Familjen"],
-  ["Galleri", "Minnen"],
+  ["Hem", "Överblick", "/"],
+  ["Kalender", "Familjens vecka", "/kalender"],
+  ["Uppgifter", "Ansvar & XP", "/uppgifter"],
+  ["Hjälp", "Jag kan", "/hjalp"],
+  ["Listor", "Gemensamt", "/listor"],
+  ["Önskelistor", "Presenter", "/onskelistor"],
+  ["Chat", "Familjen", "/chat"],
+  ["Galleri", "Minnen", "/galleri"],
 ];
 
 const family = [
@@ -14,26 +19,31 @@ const family = [
   { name: "Malin", role: "Förälder", initials: "M" },
   { name: "Oliwer", role: "Barn", initials: "O" },
   { name: "Alicia", role: "Barn", initials: "A" },
+  { name: "Farmor", role: "Familj", initials: "F" },
+  { name: "Farfar", role: "Familj", initials: "F" },
 ];
 
 export default function Home() {
+  const [showAdd, setShowAdd] = useState(false);
+  const [helpTaken, setHelpTaken] = useState(false);
+
   return (
     <main className="shell">
       <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">V</div>
+        <Link href="/" className="brand">
+          <div className="brand-mark" aria-label="Vardilo">V</div>
           <div>
             <strong>VARDILO</strong>
             <span>Family life, together.</span>
           </div>
-        </div>
+        </Link>
 
         <nav aria-label="Huvudmeny">
-          {navItems.map(([title, subtitle], index) => (
-            <a className={index === 0 ? "nav-item active" : "nav-item"} href="#" key={title}>
+          {navItems.map(([title, subtitle, href], index) => (
+            <Link className={index === 0 ? "nav-item active" : "nav-item"} href={href} key={title}>
               <span>{title}</span>
               <small>{subtitle}</small>
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -55,9 +65,9 @@ export default function Home() {
         <header className="topbar">
           <div>
             <p className="eyebrow">Måndag 26 oktober</p>
-            <h1>God kväll, Adrian.</h1>
+            <h1>God kväll, <span className="red-text">Adrian.</span></h1>
           </div>
-          <button className="profile">A</button>
+          <button className="profile" type="button" aria-label="Öppna profil">A</button>
         </header>
 
         <section className="hero-card">
@@ -67,10 +77,22 @@ export default function Home() {
             <p className="muted">Vardilo samlar kalender, ansvar, listor och familjens små saker på ett ställe.</p>
           </div>
           <div className="hero-actions">
-            <button className="primary">+ Lägg till</button>
-            <button className="secondary">Jag kan hjälpa till</button>
+            <button className="primary" type="button" onClick={() => setShowAdd((value) => !value)}>+ Lägg till</button>
+            <Link className="secondary" href="/hjalp">Jag kan hjälpa till</Link>
           </div>
         </section>
+
+        {showAdd && (
+          <div className="quick-add" role="dialog" aria-label="Lägg till">
+            <strong>Vad vill du lägga till?</strong>
+            <div>
+              <Link href="/kalender">Händelse</Link>
+              <Link href="/uppgifter">Uppgift</Link>
+              <Link href="/hjalp">Hjälp</Link>
+              <Link href="/listor">Listpunkt</Link>
+            </div>
+          </div>
+        )}
 
         <div className="grid">
           <section className="card today">
@@ -81,9 +103,12 @@ export default function Home() {
           </section>
 
           <section className="card help">
-            <div className="card-heading"><h3>Jag kan</h3><span>2 öppna</span></div>
-            <div className="help-request"><div><strong>Kan någon skjutsa Oliwer?</strong><p>Idag · 17:30</p></div><button>Jag tar den</button></div>
-            <div className="help-request"><div><strong>Hämta paket på vägen hem</strong><p>Senast 18:00</p></div><button>Jag kan</button></div>
+            <div className="card-heading"><h3><span className="red-dot">●</span> Jag kan</h3><span>{helpTaken ? "1 öppen" : "2 öppna"}</span></div>
+            <div className="help-request">
+              <div><strong>{helpTaken ? "Skjutsen är bekräftad" : "Kan någon skjutsa Oliwer?"}</strong><p>Idag · 17:30</p></div>
+              <button type="button" onClick={() => setHelpTaken(true)}>{helpTaken ? "✓ Jag tar den" : "Jag tar den"}</button>
+            </div>
+            <div className="help-request"><div><strong>Hämta paket på vägen hem</strong><p>Senast 18:00</p></div><Link href="/hjalp">Jag kan</Link></div>
           </section>
         </div>
 
@@ -97,7 +122,7 @@ export default function Home() {
           </section>
 
           <section className="card chat">
-            <div className="card-heading"><h3>Familjechat</h3><span>Nu</span></div>
+            <div className="card-heading"><h3>Familjechat</h3><Link href="/chat">Öppna</Link></div>
             <div className="message"><span className="avatar small">M</span><div><strong>Malin</strong><p>Glöm inte att vi behöver mjölk.</p><small>♡ Gilla</small></div></div>
             <div className="message"><span className="avatar small">F</span><div><strong>Farmor</strong><p>Jag kan skjutsa Oliwer om ni behöver.</p><small>♥ 1 gilla</small></div></div>
           </section>
