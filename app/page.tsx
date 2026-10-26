@@ -14,6 +14,7 @@ const navItems = [
   ["Önskelistor", "Presenter", "/onskelistor"],
   ["Chat", "Familjen", "/chat"],
   ["Galleri", "Minnen", "/galleri"],
+  ["Familj", "Medlemmar & roller", "/familj/admin"],
 ];
 
 const family = [
