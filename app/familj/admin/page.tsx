@@ -9,6 +9,7 @@ type FamilyMember = {
   role: string;
   family_role: string | null;
   user_id: string | null;
+  color: string;
 };
 
 const familyRelationships = [
@@ -28,6 +29,28 @@ const familyRelationships = [
   ["annan_nara_familj", "Annan nära familj"],
 ] as const;
 
+const colors = [
+  ["red", "Röd"],
+  ["yellow", "Gul"],
+  ["blue", "Blå"],
+  ["green", "Grön"],
+  ["purple", "Lila"],
+  ["orange", "Orange"],
+  ["teal", "Turkos"],
+  ["pink", "Rosa"],
+] as const;
+
+const colorHex: Record<string, string> = {
+  red: "#c62828",
+  yellow: "#f2c94c",
+  blue: "#2f6f9f",
+  green: "#3f7d4a",
+  purple: "#7652a8",
+  orange: "#d97828",
+  teal: "#2f8f8f",
+  pink: "#c45a83",
+};
+
 export default function FamilyAdminPage() {
   const supabase = createClient();
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -39,6 +62,7 @@ export default function FamilyAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [savingColorId, setSavingColorId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function loadFamily() {
@@ -63,7 +87,7 @@ export default function FamilyAdminPage() {
         supabase.from("family_permissions").select("can_manage_members").eq("family_member_id", currentMember.id).single(),
         supabase
           .from("family_members")
-          .select("id, display_name, role, family_role, user_id")
+          .select("id, display_name, role, family_role, user_id, color")
           .eq("family_id", currentMember.family_id)
           .order("created_at"),
       ]);
@@ -103,6 +127,18 @@ export default function FamilyAdminPage() {
     setSaving(false);
   }
 
+  async function changeColor(memberId: string, color: string) {
+    setSavingColorId(memberId);
+    setError("");
+    const { error: rpcError } = await supabase.rpc("set_family_member_color_for_current_user", {
+      target_member_id: memberId,
+      member_color: color,
+    });
+    if (rpcError) setError(rpcError.message);
+    else setMembers((current) => current.map((member) => member.id === memberId ? { ...member, color } : member));
+    setSavingColorId(null);
+  }
+
   async function removeMember(member: FamilyMember) {
     if (!window.confirm(`Ta bort ${member.display_name} från familjen?`)) return;
 
@@ -129,7 +165,7 @@ export default function FamilyAdminPage() {
           <p className="eyebrow">FAMILJ</p>
           <h1>{familyName || "Familjeinställningar"}</h1>
           <p className="muted" style={{ marginTop: 8 }}>
-            Hantera vilka som hör till familjen och deras relation.
+            Hantera vilka som hör till familjen, deras relation och färg.
           </p>
         </div>
       </div>
@@ -194,7 +230,7 @@ export default function FamilyAdminPage() {
             </div>
 
             <p className="family-admin-help">
-              Relationen gör familjen mer personlig och kan ändras senare.
+              Relationen gör familjen mer personlig. Färgen används genom hela Vardilo.
             </p>
           </div>
         )}
@@ -212,23 +248,37 @@ export default function FamilyAdminPage() {
 
             return (
               <div key={member.id} className="family-admin-member">
-                <div>
-                  <div className="family-admin-member-name">{member.display_name}</div>
-                  <div className="family-admin-member-meta">
-                    {roleLabel}{member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span
+                    aria-hidden="true"
+                    style={{ width: 18, height: 18, borderRadius: "50%", background: colorHex[member.color] ?? colorHex.blue, display: "inline-block", flex: "0 0 auto", border: "2px solid #ffffff", boxShadow: "0 0 0 1px #dbe3ea" }}
+                  />
+                  <div>
+                    <div className="family-admin-member-name">{member.display_name}</div>
+                    <div className="family-admin-member-meta">
+                      {roleLabel}{member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
+                    </div>
                   </div>
                 </div>
 
-                {canManageMembers && (
-                  <button
-                    type="button"
-                    onClick={() => removeMember(member)}
-                    disabled={removingId === member.id}
-                    className="family-admin-remove"
-                  >
-                    {removingId === member.id ? "Tar bort..." : "Ta bort"}
-                  </button>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <label className="family-admin-field" style={{ margin: 0 }}>
+                    <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>Färg</span>
+                    <select value={member.color} onChange={(event) => changeColor(member.id, event.target.value)} disabled={savingColorId === member.id} aria-label={`Färg för ${member.display_name}`}>
+                      {colors.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </label>
+                  {canManageMembers && (
+                    <button
+                      type="button"
+                      onClick={() => removeMember(member)}
+                      disabled={removingId === member.id}
+                      className="family-admin-remove"
+                    >
+                      {removingId === member.id ? "Tar bort..." : "Ta bort"}
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
