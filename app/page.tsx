@@ -172,6 +172,7 @@ export default function Home() {
 
   return (
     <main className="shell">
+      <style>{`:root { --accent: #c62828; --accent-soft: #fbeaea; } input, select, textarea { color: #c62828 !important; caret-color: #c62828; } input::placeholder, textarea::placeholder { color: #6b7b8c !important; opacity: 1; }`}</style>
       <aside className="sidebar">
         <Link href="/" className="brand">
           <div className="brand-mark" aria-label="Vardilo" style={{ background: "#c62828", borderRadius: "50%", width: 40, height: 40, minWidth: 40, padding: 0, display: "grid", placeItems: "center", overflow: "hidden", boxShadow: "none", position: "relative", zIndex: 1 }}>
@@ -229,7 +230,7 @@ export default function Home() {
           <div className="card-heading"><h3>Veckans mat</h3>{canEditMenu && <button type="button" className="secondary" onClick={() => setShowMenuEditor((value) => !value)}>{showMenuEditor ? "Stäng" : "Redigera meny"}</button>}</div>
           {!menuEnabled && !showMenuEditor ? <div><p className="muted">Ingen matmeny är upplagd ännu.</p>{canEditMenu && <button type="button" className="primary" onClick={() => setShowMenuEditor(true)}>Lägg till veckans meny</button>}</div> : showMenuEditor ? (
             <div className="family-admin-form">
-              {weekDays.map((day, index) => <label className="family-admin-field" key={day}><span>{day}</span><input value={menuDraft[index]} onChange={(event) => setMenuDraft((draft) => draft.map((value, i) => i === index ? event.target.value : value))} placeholder="T.ex. tacos" /></label>)}
+              {weekDays.map((day, index) => <label className="family-admin-field" key={day}><span>{day}</span><input style={{ color: "var(--red)" }} value={menuDraft[index]} onChange={(event) => setMenuDraft((draft) => draft.map((value, i) => i === index ? event.target.value : value))} placeholder="T.ex. tacos" /></label>)}
               <div className="hero-actions"><button className="primary" type="button" onClick={saveMenu} disabled={savingMenu}>{savingMenu ? "Sparar..." : "Spara veckans meny"}</button><button className="secondary" type="button" onClick={() => setShowMenuEditor(false)}>Avbryt</button></div>
             </div>
           ) : (
