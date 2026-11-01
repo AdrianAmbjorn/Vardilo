@@ -124,10 +124,10 @@ export default function CalendarPage() {
     <main className="section-shell">
       <header className="section-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></header>
       <section className="calendar-card">
-        <div className="calendar-toolbar">
+        <div className="calendar-toolbar" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 14 }}>
           <div className="calendar-navigation"><button type="button" onClick={() => movePeriod(-1)}>‹</button><button type="button" onClick={goToday}>Idag</button><button type="button" onClick={() => movePeriod(1)}>›</button></div>
-          <h2>{view === "month" ? monthLabel(currentMonth) : `${currentWeek[0].getDate()}–${currentWeek[6].getDate()} ${new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(currentWeek[6])}`}</h2>
-          <div className="calendar-view-switch" style={{ display: "flex", gap: 6, alignItems: "center" }}><button type="button" style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button><button type="button" style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button></div>
+          <h2 style={{ margin: 0, color: "#102a43", fontSize: 20, lineHeight: 1.2, textAlign: "center", minWidth: 180, whiteSpace: "nowrap", display: "block", visibility: "visible" }}>{view === "month" ? monthLabel(currentMonth) : `${currentWeek[0].getDate()}–${currentWeek[6].getDate()} ${new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(currentWeek[6])}`}</h2>
+          <div className="calendar-view-switch" style={{ display: "flex", gap: 6, alignItems: "center", justifySelf: "end" }}><button type="button" style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button><button type="button" style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button></div>
         </div>
         {view === "month" ? <>
           <div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div>
