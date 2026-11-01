@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type FamilyMember = { id: string; display_name: string };
+type FamilyMember = { id: string; display_name: string; color: string };
 type CalendarEvent = {
   id: string;
   title: string;
@@ -14,13 +14,14 @@ type CalendarEvent = {
   ends_at: string | null;
   all_day: boolean;
   responsible_member_id: string | null;
-  applies_to_member_id: string | null;
+  target_member_id: string | null;
   category: string;
   reminder_minutes: number | null;
 };
 type CalendarBreak = { id: string; title: string; break_type: string; starts_on: string; ends_on: string };
 
 const weekdays = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
+const categories = ["familj", "skola", "träning", "annat"];
 const breakTypes = ["lov", "studiedag", "annat"];
 const reminderOptions = [
   { value: "", label: "Ingen påminnelse" },
@@ -29,6 +30,16 @@ const reminderOptions = [
   { value: "60", label: "1 timme före" },
   { value: "1440", label: "1 dag före" },
 ];
+const memberColors: Record<string, { background: string; text: string }> = {
+  red: { background: "#c62828", text: "#ffffff" },
+  yellow: { background: "#f2c94c", text: "#102a43" },
+  blue: { background: "#2f6f9f", text: "#ffffff" },
+  green: { background: "#3f7d4a", text: "#ffffff" },
+  purple: { background: "#7652a8", text: "#ffffff" },
+  orange: { background: "#d97828", text: "#ffffff" },
+  teal: { background: "#2f8f8f", text: "#ffffff" },
+  pink: { background: "#c45a83", text: "#ffffff" },
+};
 
 function monthLabel(date: Date) { return new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(date); }
 function dateKey(date: Date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
@@ -57,8 +68,9 @@ function formValues(event?: CalendarEvent, date?: Date) {
     time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
     location: event?.location ?? "",
     description: event?.description ?? "",
+    category: event?.category ?? "familj",
+    target_member_id: event?.target_member_id ?? "",
     responsible_member_id: event?.responsible_member_id ?? "",
-    applies_to_member_id: event?.applies_to_member_id ?? "",
     reminder_minutes: event?.reminder_minutes == null ? "" : String(event.reminder_minutes),
   };
 }
@@ -91,8 +103,8 @@ export default function CalendarPage() {
     if (membershipError || !membership) { setError("Kunde inte hitta familjen för ditt konto."); return; }
     setFamilyId(membership.family_id);
     const [eventResult, memberResult, breakResult] = await Promise.all([
-      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,responsible_member_id,applies_to_member_id,category,reminder_minutes").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
-      supabase.from("family_members").select("id,display_name").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
+      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,responsible_member_id,target_member_id,category,reminder_minutes").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
+      supabase.from("family_members").select("id,display_name,color").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
     if (eventResult.error) setError(eventResult.error.message); else setEvents((eventResult.data ?? []) as CalendarEvent[]);
@@ -106,6 +118,19 @@ export default function CalendarPage() {
   const eventMap = new Map<string, CalendarEvent[]>();
   events.forEach((event) => { const key = dateKey(new Date(event.starts_at)); const list = eventMap.get(key) ?? []; list.push(event); eventMap.set(key, list); });
   const breaksForDate = (date: Date) => breaks.filter((item) => dateKey(date) >= item.starts_on && dateKey(date) <= item.ends_on);
+  const memberById = new Map(members.map((member) => [member.id, member]));
+  const eventStyle = (item: CalendarEvent): React.CSSProperties => {
+    const target = item.target_member_id ? memberById.get(item.target_member_id) : null;
+    const responsible = item.responsible_member_id ? memberById.get(item.responsible_member_id) : null;
+    const targetColor = target ? memberColors[target.color] ?? memberColors.blue : { background: "#0b2d4d", text: "#ffffff" };
+    const responsibleColor = responsible ? memberColors[responsible.color] ?? memberColors.blue : null;
+    return {
+      background: targetColor.background,
+      color: targetColor.text,
+      borderLeft: responsibleColor ? `6px solid ${responsibleColor.background}` : undefined,
+      boxShadow: responsibleColor ? `inset -5px 0 0 ${responsibleColor.background}` : undefined,
+    };
+  };
 
   function openAdd(date?: Date) { setEditingEvent(null); setForm(formValues(undefined, date)); setError(""); setShowForm(true); }
   function openEdit(event: CalendarEvent) { setEditingEvent(event); setForm(formValues(event)); setError(""); setShowForm(true); }
@@ -124,9 +149,8 @@ export default function CalendarPage() {
     const startsAt = new Date(`${form.date}T${form.time}:00`).toISOString();
     const payload = {
       title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null,
-      starts_at: startsAt, responsible_member_id: form.responsible_member_id || null,
-      applies_to_member_id: form.applies_to_member_id || null,
-      category: "familj", reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
+      starts_at: startsAt, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null, category: form.category,
+      reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
     };
     const result = editingEvent
       ? await supabase.from("calendar_events").update(payload).eq("id", editingEvent.id).eq("family_id", familyId)
@@ -181,7 +205,7 @@ export default function CalendarPage() {
         <h2 style={{ margin: 0, color: "#102a43", fontSize: 20, lineHeight: 1.2, textAlign: "center", minWidth: 180, whiteSpace: "nowrap" }}>{view === "month" ? monthLabel(currentMonth) : `${currentWeek[0].getDate()}–${currentWeek[6].getDate()} ${new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(currentWeek[6])}`}</h2>
         <div style={{ display: "flex", gap: 6, alignItems: "center", justifySelf: "end" }}><button type="button" style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button><button type="button" style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button></div>
       </div>
-      {view === "month" ? <><div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div><div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); const outside = day.getMonth() !== currentMonth.getMonth(); return <div key={key} className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)} aria-label={`Lägg till aktivitet ${key}`}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "4px 5px", marginBottom: 4, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} key={item.id} onClick={() => openEdit(item)}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}</button>)}{dayEvents.length > 3 && <span className="calendar-more">+ {dayEvents.length - 3} till</span>}</span></div>; })}</div></> : <><div className="calendar-weekdays">{currentWeek.map((day, i) => <div key={dateKey(day)}>{weekdays[i]} {day.getDate()}</div>)}</div><div className="calendar-week-grid" style={weekGridStyle}>{currentWeek.map((day, index) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); return <div key={key} className={`calendar-week-day ${key === todayKey ? "today" : ""}`} style={{ ...weekDayStyle, ...(index === 6 ? { borderRight: 0 } : {}) }}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "5px 6px", marginBottom: 6, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} key={item.id} onClick={() => openEdit(item)}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}</button>)}</span></div>; })}</div></>}
+      {view === "month" ? <><div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div><div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); const outside = day.getMonth() !== currentMonth.getMonth(); return <div key={key} className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)} aria-label={`Lägg till aktivitet ${key}`}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "4px 5px", marginBottom: 4, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} style={eventStyle(item)} key={item.id} onClick={() => openEdit(item)}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}</button>)}{dayEvents.length > 3 && <span className="calendar-more">+ {dayEvents.length - 3} till</span>}</span></div>; })}</div></> : <><div className="calendar-weekdays">{currentWeek.map((day, i) => <div key={dateKey(day)}>{weekdays[i]} {day.getDate()}</div>)}</div><div className="calendar-week-grid" style={weekGridStyle}>{currentWeek.map((day, index) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); return <div key={key} className={`calendar-week-day ${key === todayKey ? "today" : ""}`} style={{ ...weekDayStyle, ...(index === 6 ? { borderRight: 0 } : {}) }}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "5px 6px", marginBottom: 6, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} style={eventStyle(item)} key={item.id} onClick={() => openEdit(item)}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}</button>)}</span></div>; })}</div></>}
     </section>
 
     {showForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSave}><div className="calendar-modal-heading"><div><p className="eyebrow">{editingEvent ? "AKTIVITET" : "NY AKTIVITET"}</p><h2>{editingEvent ? "Redigera aktivitet" : "Lägg till i kalendern"}</h2></div><button type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}
@@ -189,9 +213,10 @@ export default function CalendarPage() {
       <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div>
       <label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label>
       <label className="calendar-field"><span>Beskrivning</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Valfri information" rows={3} /></label>
-      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller</span><select value={form.applies_to_member_id} onChange={(e) => setForm({ ...form, applies_to_member_id: e.target.value })}><option value="">Hela familjen</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Ansvarig</span><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
+      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller</span><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">Hela familjen</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Ansvarig</span><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
+      <label className="calendar-field"><span>Kategori</span><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label>
       <label className="calendar-field"><span>Påminnelse</span><select value={form.reminder_minutes} onChange={(e) => setForm({ ...form, reminder_minutes: e.target.value })}>{reminderOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-      <div style={{ marginTop: -4, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Gäller talar om vem aktiviteten gäller. Ansvarig talar om vem som ska göra det och kan senare behöva acceptera ansvaret.</div>
+      <div style={{ marginTop: -4, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Färg i kalendern följer den som aktiviteten gäller. En färgad markering på kanten visar vem som är ansvarig.</div>
       <div className="calendar-modal-actions">{editingEvent && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={saving || deleting}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
     </form></div>}
 
