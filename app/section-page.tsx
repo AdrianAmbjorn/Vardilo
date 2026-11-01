@@ -24,9 +24,12 @@ export default function SectionPage({
 }) {
   return (
     <main className="section-shell">
-      <Link href="/" aria-label="Till Vardilo hem" style={{ position: "fixed", top: 20, left: 22, zIndex: 30, display: "flex", alignItems: "center", gap: 8, padding: "8px 11px", borderRadius: 10, background: "#c62828", color: "#ffffff", textDecoration: "none", fontSize: 11, fontWeight: 800, letterSpacing: ".08em", boxShadow: "0 5px 18px rgba(16,42,67,.14)" }}>
+      <Link
+        href="/"
+        aria-label="Till Vardilo hem"
+        className="section-home-logo"
+      >
         <HouseIcon />
-        <span>VARDILO</span>
       </Link>
       <header className="section-header">
         <Link href="/" className="back-link">← Hem</Link>
