@@ -14,13 +14,13 @@ type CalendarEvent = {
   ends_at: string | null;
   all_day: boolean;
   responsible_member_id: string | null;
+  applies_to_member_id: string | null;
   category: string;
   reminder_minutes: number | null;
 };
 type CalendarBreak = { id: string; title: string; break_type: string; starts_on: string; ends_on: string };
 
 const weekdays = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
-const categories = ["familj", "skola", "träning", "annat"];
 const breakTypes = ["lov", "studiedag", "annat"];
 const reminderOptions = [
   { value: "", label: "Ingen påminnelse" },
@@ -57,8 +57,8 @@ function formValues(event?: CalendarEvent, date?: Date) {
     time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
     location: event?.location ?? "",
     description: event?.description ?? "",
-    category: event?.category ?? "familj",
     responsible_member_id: event?.responsible_member_id ?? "",
+    applies_to_member_id: event?.applies_to_member_id ?? "",
     reminder_minutes: event?.reminder_minutes == null ? "" : String(event.reminder_minutes),
   };
 }
@@ -91,7 +91,7 @@ export default function CalendarPage() {
     if (membershipError || !membership) { setError("Kunde inte hitta familjen för ditt konto."); return; }
     setFamilyId(membership.family_id);
     const [eventResult, memberResult, breakResult] = await Promise.all([
-      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,responsible_member_id,category,reminder_minutes").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
+      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,responsible_member_id,applies_to_member_id,category,reminder_minutes").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
       supabase.from("family_members").select("id,display_name").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
@@ -124,8 +124,9 @@ export default function CalendarPage() {
     const startsAt = new Date(`${form.date}T${form.time}:00`).toISOString();
     const payload = {
       title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null,
-      starts_at: startsAt, responsible_member_id: form.responsible_member_id || null, category: form.category,
-      reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
+      starts_at: startsAt, responsible_member_id: form.responsible_member_id || null,
+      applies_to_member_id: form.applies_to_member_id || null,
+      category: "familj", reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
     };
     const result = editingEvent
       ? await supabase.from("calendar_events").update(payload).eq("id", editingEvent.id).eq("family_id", familyId)
@@ -188,9 +189,9 @@ export default function CalendarPage() {
       <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div>
       <label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label>
       <label className="calendar-field"><span>Beskrivning</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Valfri information" rows={3} /></label>
-      <div className="calendar-form-row"><label className="calendar-field"><span>Kategori</span><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label><label className="calendar-field"><span>Ansvarig</span><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
+      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller</span><select value={form.applies_to_member_id} onChange={(e) => setForm({ ...form, applies_to_member_id: e.target.value })}><option value="">Hela familjen</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Ansvarig</span><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
       <label className="calendar-field"><span>Påminnelse</span><select value={form.reminder_minutes} onChange={(e) => setForm({ ...form, reminder_minutes: e.target.value })}>{reminderOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-      <div style={{ marginTop: -4, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Påminnelsen kopplas till aktiviteten och den ansvariga personen. Själva pushnotisen kopplar vi på i nästa steg.</div>
+      <div style={{ marginTop: -4, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Gäller talar om vem aktiviteten gäller. Ansvarig talar om vem som ska göra det och kan senare behöva acceptera ansvaret.</div>
       <div className="calendar-modal-actions">{editingEvent && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={saving || deleting}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
     </form></div>}
 
