@@ -23,7 +23,7 @@ const family = [
   { name: "Oliwer", role: "Barn", initials: "O" },
   { name: "Alicia", role: "Barn", initials: "A" },
   { name: "Farmor", role: "Familj", initials: "F" },
-  { name: "Farfar", role: "Familj", initials: "F" },
+  { name: "Mormor", role: "Familj", initials: "M" },
 ];
 
 function HouseIcon() {
@@ -56,7 +56,7 @@ export default function Home() {
     <main className="shell">
       <aside className="sidebar">
         <Link href="/" className="brand">
-          <div className="brand-mark" aria-label="Vardilo"><HouseIcon /></div>
+          <div className="brand-mark" aria-label="Vardilo" style={{ background: "#c62828", borderRadius: "50%", width: 40, height: 40 }}><HouseIcon /></div>
           <div>
             <strong>VARDILO</strong>
             <span>Family life, together.</span>
@@ -93,24 +93,11 @@ export default function Home() {
             <h1>God kväll, <span className="red-text">Adrian.</span></h1>
           </div>
           <div className="profile-wrap">
-            <button
-              className="profile"
-              type="button"
-              aria-label="Öppna profilmeny"
-              aria-expanded={showProfile}
-              onClick={() => setShowProfile((value) => !value)}
-            >
-              A
-            </button>
+            <button className="profile" type="button" aria-label="Öppna profilmeny" aria-expanded={showProfile} onClick={() => setShowProfile((value) => !value)}>A</button>
             {showProfile && (
               <div className="profile-menu" role="menu">
-                <div className="profile-menu-name">
-                  <strong>Adrian</strong>
-                  <span>Admin</span>
-                </div>
-                <button type="button" onClick={handleSignOut} disabled={loggingOut}>
-                  {loggingOut ? "Loggar ut..." : "Logga ut"}
-                </button>
+                <div className="profile-menu-name"><strong>Adrian</strong><span>Admin</span></div>
+                <button type="button" onClick={handleSignOut} disabled={loggingOut}>{loggingOut ? "Loggar ut..." : "Logga ut"}</button>
               </div>
             )}
           </div>
@@ -132,10 +119,7 @@ export default function Home() {
           <div className="quick-add" role="dialog" aria-label="Lägg till">
             <strong>Vad vill du lägga till?</strong>
             <div>
-              <Link href="/kalender">Händelse</Link>
-              <Link href="/uppgifter">Uppgift</Link>
-              <Link href="/hjalp">Hjälp</Link>
-              <Link href="/listor">Listpunkt</Link>
+              <Link href="/kalender">Händelse</Link><Link href="/uppgifter">Uppgift</Link><Link href="/hjalp">Hjälp</Link><Link href="/listor">Listpunkt</Link>
             </div>
           </div>
         )}
@@ -150,10 +134,7 @@ export default function Home() {
 
           <section className="card help">
             <div className="card-heading"><h3><span className="red-dot">●</span> Jag kan</h3><span>{helpTaken ? "1 öppen" : "2 öppna"}</span></div>
-            <div className="help-request">
-              <div><strong>{helpTaken ? "Skjutsen är bekräftad" : "Kan någon skjutsa Oliwer?"}</strong><p>Idag · 17:30</p></div>
-              <button type="button" onClick={() => setHelpTaken(true)}>{helpTaken ? "✓ Jag tar den" : "Jag tar den"}</button>
-            </div>
+            <div className="help-request"><div><strong>{helpTaken ? "Skjutsen är bekräftad" : "Kan någon skjutsa Oliwer?"}</strong><p>Idag · 17:30</p></div><button type="button" onClick={() => setHelpTaken(true)}>{helpTaken ? "✓ Jag tar den" : "Jag tar den"}</button></div>
             <div className="help-request"><div><strong>Hämta paket på vägen hem</strong><p>Senast 18:00</p></div><Link href="/hjalp">Jag kan</Link></div>
           </section>
         </div>
