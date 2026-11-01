@@ -56,7 +56,26 @@ export default function Home() {
     <main className="shell">
       <aside className="sidebar">
         <Link href="/" className="brand">
-          <div className="brand-mark" aria-label="Vardilo" style={{ background: "#c62828", borderRadius: "50%", width: 40, height: 40 }}><HouseIcon /></div>
+          <div
+            className="brand-mark"
+            aria-label="Vardilo"
+            style={{
+              background: "#c62828",
+              borderRadius: "50%",
+              width: 40,
+              height: 40,
+              minWidth: 40,
+              padding: 0,
+              display: "grid",
+              placeItems: "center",
+              overflow: "hidden",
+              boxShadow: "none",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            <HouseIcon />
+          </div>
           <div>
             <strong>VARDILO</strong>
             <span>Family life, together.</span>
