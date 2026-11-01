@@ -2,15 +2,6 @@ import Link from "next/link";
 
 type Item = { title: string; meta: string; action?: string };
 
-function HouseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 20, height: 20, display: "block" }}>
-      <path d="M3.5 10.7 12 3.8l8.5 6.9v8.1a1.2 1.2 0 0 1-1.2 1.2H4.7a1.2 1.2 0 0 1-1.2-1.2v-8.1Z" fill="currentColor" />
-      <path d="M9.1 20v-5.2h5.8V20" fill="white" />
-    </svg>
-  );
-}
-
 export default function SectionPage({
   title,
   subtitle,
@@ -24,13 +15,6 @@ export default function SectionPage({
 }) {
   return (
     <main className="section-shell">
-      <Link
-        href="/"
-        aria-label="Till Vardilo hem"
-        className="section-home-logo"
-      >
-        <HouseIcon />
-      </Link>
       <header className="section-header">
         <Link href="/" className="back-link">← Hem</Link>
         <div>
