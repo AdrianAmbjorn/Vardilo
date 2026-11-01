@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 const navItems = [
   ["Hem", "Överblick", "/"],
   ["Kalender", "Familjens vecka", "/kalender"],
+  ["Check-in", "Var är jag?", "/check-in"],
   ["Uppgifter", "Ansvar & XP", "/uppgifter"],
   ["Hjälp", "Jag kan", "/hjalp"],
   ["Listor", "Gemensamt", "/listor"],
