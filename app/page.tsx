@@ -225,7 +225,7 @@ export default function Home() {
           </section>
         </div>
 
-        <section className="card meal-menu" style={{ marginTop: 18 }}>
+        <section className="card meal-menu" style={{ marginTop: 18, color: "var(--red)" }}>
           <div className="card-heading"><h3>Veckans mat</h3>{canEditMenu && <button type="button" className="secondary" onClick={() => setShowMenuEditor((value) => !value)}>{showMenuEditor ? "Stäng" : "Redigera meny"}</button>}</div>
           {!menuEnabled && !showMenuEditor ? <div><p className="muted">Ingen matmeny är upplagd ännu.</p>{canEditMenu && <button type="button" className="primary" onClick={() => setShowMenuEditor(true)}>Lägg till veckans meny</button>}</div> : showMenuEditor ? (
             <div className="family-admin-form">
