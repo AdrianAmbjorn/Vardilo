@@ -240,7 +240,7 @@ export default function Home() {
         </section>
 
         <div className="grid lower">
-          <section className="card tasks"><div className="card-heading"><h3>Uppgifter</h3><span>320 XP totalt</span></div><div className="progress"><span style={{ width: "68%" }} /></div><p className="muted">Familjens mål: 500 XP till lördagsbelöningen</p><div className="task-row"><span className="check">✓</span><div><strong>Plocka undan efter middag</strong><p>Oliwer · +20 XP</p></div></div><div className="task-row"><span className="check">✓</span><div><strong>Vika tvätt</strong><p>Alicia · +30 XP</p></div></section>
+          <section className="card tasks"><div className="card-heading"><h3>Uppgifter</h3><span>320 XP totalt</span></div><div className="progress"><span style={{ width: "68%" }} /></div><p className="muted">Familjens mål: 500 XP till lördagsbelöningen</p><div className="task-row"><span className="check">✓</span><div><strong>Plocka undan efter middag</strong><p>Oliwer · +20 XP</p></div></div><div className="task-row"><span className="check">✓</span><div><strong>Vika tvätt</strong><p>Alicia · +30 XP</p></div></div></section>
           <section className="card chat"><div className="card-heading"><h3>Familjechat</h3><Link href="/chat">Öppna</Link></div><div className="message"><span className="avatar small">M</span><div><strong>Malin</strong><p>Glöm inte att vi behöver mjölk.</p><small>♡ Gilla</small></div></div><div className="message"><span className="avatar small">F</span><div><strong>Farmor</strong><p>Jag kan skjutsa Oliwer om ni behöver.</p><small>♥ 1 gilla</small></div></div></section>
         </div>
       </section>
