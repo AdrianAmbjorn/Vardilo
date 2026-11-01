@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HomeMark from "./components/home-mark";
 
 type Item = { title: string; meta: string; action?: string };
 
@@ -16,7 +17,9 @@ export default function SectionPage({
   return (
     <main className="section-shell">
       <header className="section-header">
-        <Link href="/" className="back-link">← Hem</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <HomeMark />
+        </div>
         <div>
           <p className="eyebrow">VARDILO</p>
           <h1>{title}</h1>
