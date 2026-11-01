@@ -27,6 +27,13 @@ function monthDays(date: Date) {
   return cells;
 }
 function timeLabel(value: string) { return new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
+function formValues(event?: CalendarEvent, date?: Date) {
+  const target = event ? new Date(event.starts_at) : (date ?? new Date());
+  return {
+    title: event?.title ?? "", date: dateKey(target), time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
+    location: event?.location ?? "", description: event?.description ?? "", category: event?.category ?? "familj", responsible_member_id: event?.responsible_member_id ?? ""
+  };
+}
 
 export default function CalendarPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -35,9 +42,11 @@ export default function CalendarPage() {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", date: dateKey(new Date()), time: "18:00", location: "", category: "familj", responsible_member_id: "" });
+  const [form, setForm] = useState(() => formValues());
 
   async function loadCalendar() {
     setError("");
@@ -60,18 +69,32 @@ export default function CalendarPage() {
   events.forEach((event) => { const key = dateKey(new Date(event.starts_at)); const list = eventMap.get(key) ?? []; list.push(event); eventMap.set(key, list); });
 
   function openAdd(date?: Date) {
-    const target = date ?? new Date();
-    setForm({ title: "", date: dateKey(target), time: "18:00", location: "", category: "familj", responsible_member_id: "" });
-    setError(""); setShowForm(true);
+    setEditingEvent(null); setForm(formValues(undefined, date)); setError(""); setShowForm(true);
+  }
+
+  function openEdit(event: CalendarEvent) {
+    setEditingEvent(event); setForm(formValues(event)); setError(""); setShowForm(true);
   }
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault(); if (!familyId || !form.title.trim()) return;
     setSaving(true); setError("");
     const startsAt = new Date(`${form.date}T${form.time}:00`).toISOString();
-    const { error: insertError } = await supabase.from("calendar_events").insert({ family_id: familyId, title: form.title.trim(), location: form.location.trim() || null, starts_at: startsAt, responsible_member_id: form.responsible_member_id || null, category: form.category });
-    if (insertError) setError(insertError.message); else { setShowForm(false); await loadCalendar(); }
+    const payload = { title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null, starts_at: startsAt, responsible_member_id: form.responsible_member_id || null, category: form.category };
+    const result = editingEvent
+      ? await supabase.from("calendar_events").update(payload).eq("id", editingEvent.id).eq("family_id", familyId)
+      : await supabase.from("calendar_events").insert({ ...payload, family_id: familyId });
+    if (result.error) setError(result.error.message); else { setShowForm(false); setEditingEvent(null); await loadCalendar(); }
     setSaving(false);
+  }
+
+  async function handleDelete() {
+    if (!editingEvent || !familyId) return;
+    if (!window.confirm(`Ta bort "${editingEvent.title}" från kalendern?`)) return;
+    setDeleting(true); setError("");
+    const { error: deleteError } = await supabase.from("calendar_events").delete().eq("id", editingEvent.id).eq("family_id", familyId);
+    if (deleteError) setError(deleteError.message); else { setShowForm(false); setEditingEvent(null); await loadCalendar(); }
+    setDeleting(false);
   }
 
   const todayKey = dateKey(new Date());
@@ -81,9 +104,9 @@ export default function CalendarPage() {
       <section className="calendar-card">
         <div className="calendar-toolbar"><div className="calendar-navigation"><button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}>‹</button><button type="button" onClick={() => setCurrentMonth(new Date())}>Idag</button><button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}>›</button></div><h2>{monthLabel(currentMonth)}</h2></div>
         <div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div>
-        <div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const outside = day.getMonth() !== currentMonth.getMonth(); return <button key={key} type="button" className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`} onClick={() => openAdd(day)}><span className="calendar-day-number">{day.getDate()}</span><span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <span className={`calendar-event-pill category-${item.category}`} key={item.id}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}</span>)}{dayEvents.length > 3 && <span className="calendar-more">+ {dayEvents.length - 3} till</span>}</span></button>; })}</div>
+        <div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const outside = day.getMonth() !== currentMonth.getMonth(); return <button key={key} type="button" className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`} onClick={() => openAdd(day)}><span className="calendar-day-number">{day.getDate()}</span><span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <span className={`calendar-event-pill category-${item.category}`} key={item.id} onClick={(e) => { e.stopPropagation(); openEdit(item); }}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}</span>)}{dayEvents.length > 3 && <span className="calendar-more">+ {dayEvents.length - 3} till</span>}</span></button>; })}</div>
       </section>
-      {showForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSave}><div className="calendar-modal-heading"><div><p className="eyebrow">NY AKTIVITET</p><h2>Lägg till i kalendern</h2></div><button type="button" onClick={() => setShowForm(false)}>×</button></div>{error && <p className="family-admin-error">{error}</p>}<label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label><div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div><label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label><div className="calendar-form-row"><label className="calendar-field"><span>Kategori</span><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label><label className="calendar-field"><span>Ansvarig</span><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div><div className="calendar-modal-actions"><button className="secondary" type="button" onClick={() => setShowForm(false)}>Avbryt</button><button className="primary" type="submit" disabled={saving}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div></form></div>}
+      {showForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSave}><div className="calendar-modal-heading"><div><p className="eyebrow">{editingEvent ? "AKTIVITET" : "NY AKTIVITET"}</p><h2>{editingEvent ? "Redigera aktivitet" : "Lägg till i kalendern"}</h2></div><button type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}<label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label><div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div><label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label><label className="calendar-field"><span>Beskrivning</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Valfri information" rows={3} /></label><div className="calendar-form-row"><label className="calendar-field"><span>Kategori</span><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label><label className="calendar-field"><span>Ansvarig</span><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div><div className="calendar-modal-actions">{editingEvent && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={saving || deleting}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div></form></div>}
     </main>
   );
 }
