@@ -225,7 +225,7 @@ export default function Home() {
           </section>
         </div>
 
-        <section className="card meal-menu" style={{ marginTop: 18, color: "var(--red)" }}>
+        <section className="card meal-menu" style={{ marginTop: 18 }}>
           <div className="card-heading"><h3>Veckans mat</h3>{canEditMenu && <button type="button" className="secondary" onClick={() => setShowMenuEditor((value) => !value)}>{showMenuEditor ? "Stäng" : "Redigera meny"}</button>}</div>
           {!menuEnabled && !showMenuEditor ? <div><p className="muted">Ingen matmeny är upplagd ännu.</p>{canEditMenu && <button type="button" className="primary" onClick={() => setShowMenuEditor(true)}>Lägg till veckans meny</button>}</div> : showMenuEditor ? (
             <div className="family-admin-form">
@@ -234,7 +234,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid" style={{ gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-              {weekDays.map((day, index) => <div className="event" key={day}><div className="time">{day.slice(0, 3)}</div><div><strong>{menuDraft[index] || "–"}</strong><p>{index === today.getDay() - 1 ? "Idag" : ""}</p></div></div>)}
+              {weekDays.map((day, index) => <div className="event" key={day}><div className="time">{day.slice(0, 3)}</div><div><strong style={{ color: "var(--red)" }}>{menuDraft[index] || "–"}</strong><p>{index === today.getDay() - 1 ? "Idag" : ""}</p></div></div>)}
             </div>
           )}
         </section>
