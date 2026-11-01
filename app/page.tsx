@@ -103,7 +103,7 @@ export default function Home() {
 
       const [{ data: familyMembers }, { data: events }, { data: menuRows }] = await Promise.all([
         supabase.from("family_members").select("id, family_id, display_name, role").eq("family_id", currentMember.family_id).order("created_at"),
-        supabase.from("calendar_events").select("id, title, starts_at, location, target_member_id, responsible_member_id").eq("family_id", currentMember.family_id).gte("starts_at", now).lte("starts_at", end.toISOString()).order("starts_at").limit(1),
+        supabase.from("calendar_events").select("id, title, starts_at, location, target_member_id, responsible_member_id").eq("family_id", currentMember.family_id).or(`target_member_id.is.null,target_member_id.eq.${currentMember.id},responsible_member_id.eq.${currentMember.id}`).gte("starts_at", now).lte("starts_at", end.toISOString()).order("starts_at").limit(1),
         supabase.from("family_meal_menu").select("id, menu_date, meal").eq("family_id", currentMember.family_id).gte("menu_date", dateKey(weekStart)).lte("menu_date", dateKey(weekDates[6])).order("menu_date"),
       ]);
 
@@ -215,7 +215,7 @@ export default function Home() {
         <div className="grid">
           <section className="card today">
             <div className="card-heading"><h3>Nästa händelse</h3><Link href="/kalender">Kalender</Link></div>
-            {loading ? <p className="muted">Laddar...</p> : nextEvent ? <div className="event"><div className="time">{formatEventTime(nextEvent.starts_at)}</div><div><strong>{nextEvent.title}</strong><p>{nextEventTarget?.display_name ?? "Familjen"}{nextEvent.location ? ` · ${nextEvent.location}` : ""}</p></div><span className="tag green">Kalender</span></div> : <p className="muted">Inga kommande aktiviteter hittades.</p>}
+            {loading ? <p className="muted">Laddar...</p> : nextEvent ? <div className="event"><div className="time">{formatEventTime(nextEvent.starts_at)}</div><div><strong>{nextEvent.title}</strong><p>{nextEvent.target_member_id === member?.id ? "För dig" : nextEvent.responsible_member_id === member?.id ? "Ditt ansvar" : nextEventTarget?.display_name ?? "Familjen"}{nextEvent.location ? ` · ${nextEvent.location}` : ""}</p></div><span className="tag green">Kalender</span></div> : <p className="muted">Inga kommande aktiviteter hittades.</p>}
           </section>
 
           <section className="card help">
