@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "Vardilo samlar familjens vardag på ett ställe.",
 };
 
+// Keep the root layout free of floating navigation/logo overlays.
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sv">
