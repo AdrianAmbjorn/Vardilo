@@ -15,6 +15,13 @@ type CheckIn = {
   note: string | null;
   created_at: string;
 };
+type KnownPlace = {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  check_in_type: CheckIn["check_in_type"];
+};
 
 const typeLabels: Record<CheckIn["check_in_type"], string> = {
   hem: "Hemma",
@@ -37,8 +44,10 @@ export default function CheckInPage() {
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const [knownPlaces, setKnownPlaces] = useState<KnownPlace[]>([]);
   const [type, setType] = useState<CheckIn["check_in_type"]>("hem");
   const [placeName, setPlaceName] = useState("");
+  const [selectedKnownPlaceId, setSelectedKnownPlaceId] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,15 +75,18 @@ export default function CheckInPage() {
     setFamilyId(membership.family_id);
     setCurrentMember(membership as Member);
 
-    const [memberResult, checkInResult] = await Promise.all([
+    const [memberResult, checkInResult, knownPlaceResult] = await Promise.all([
       supabase.from("family_members").select("id,display_name,role").eq("family_id", membership.family_id).order("display_name"),
       supabase.from("check_ins").select("id,member_id,check_in_type,place_name,latitude,longitude,note,created_at").eq("family_id", membership.family_id).order("created_at", { ascending: false }).limit(30),
+      supabase.from("check_in_known_places").select("id,name,latitude,longitude,check_in_type").eq("family_id", membership.family_id).order("name"),
     ]);
 
     if (memberResult.error) setError(memberResult.error.message);
     else setMembers((memberResult.data ?? []) as Member[]);
     if (checkInResult.error) setError(checkInResult.error.message);
     else setCheckIns((checkInResult.data ?? []) as CheckIn[]);
+    if (knownPlaceResult.error) setError(knownPlaceResult.error.message);
+    else setKnownPlaces((knownPlaceResult.data ?? []) as KnownPlace[]);
     setLoading(false);
   }
 
@@ -86,6 +98,15 @@ export default function CheckInPage() {
   const visibleCheckIns = checkIns.filter((item) => currentMember?.role === "admin" || currentMember?.role === "förälder" || item.member_id === currentMember?.id);
   const latest = visibleCheckIns[0];
 
+  function selectKnownPlace(placeId: string) {
+    setSelectedKnownPlaceId(placeId);
+    if (!placeId) return;
+    const place = knownPlaces.find((item) => item.id === placeId);
+    if (!place) return;
+    setPlaceName(place.name);
+    setType(place.check_in_type);
+  }
+
   async function handleCheckIn() {
     if (!familyId || !currentMember) return;
     if (!navigator.geolocation) {
@@ -96,18 +117,36 @@ export default function CheckInPage() {
     setError("");
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const cleanPlaceName = placeName.trim();
         const { error: insertError } = await supabase.from("check_ins").insert({
           family_id: familyId,
           member_id: currentMember.id,
           check_in_type: type,
-          place_name: placeName.trim() || null,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          place_name: cleanPlaceName || null,
+          latitude,
+          longitude,
           note: note.trim() || null,
         });
-        if (insertError) setError(insertError.message);
-        else {
+
+        if (insertError) {
+          setError(insertError.message);
+        } else {
+          if (cleanPlaceName) {
+            const { error: knownPlaceError } = await supabase.from("check_in_known_places").upsert({
+              family_id: familyId,
+              name: cleanPlaceName,
+              latitude,
+              longitude,
+              check_in_type: type,
+              created_by: (await supabase.auth.getUser()).data.user?.id ?? null,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "family_id,name" });
+            if (knownPlaceError) setError(knownPlaceError.message);
+          }
           setPlaceName("");
+          setSelectedKnownPlaceId("");
           setNote("");
           await load();
         }
@@ -160,14 +199,24 @@ export default function CheckInPage() {
         <div className="grid">
           <section className="card">
             <div className="card-heading"><h3>Checka in</h3><span>{currentMember?.display_name ?? ""}</span></div>
-            <label className="family-admin-field"><span>Var är du?</span><select value={type} onChange={(event) => setType(event.target.value as CheckIn["check_in_type"])}><option value="hem">Hemma</option><option value="skola">Skola</option><option value="hos_van">Hos en vän</option><option value="annan">Annan plats</option></select></label>
-            <label className="family-admin-field"><span>Platsnamn <small>(valfritt)</small></span><input value={placeName} onChange={(event) => setPlaceName(event.target.value)} placeholder="t.ex. Kista IP eller hos Leo" /></label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <label className="family-admin-field"><span>Var är du?</span><select value={type} onChange={(event) => { setType(event.target.value as CheckIn["check_in_type"]); setSelectedKnownPlaceId(""); }}><option value="hem">Hemma</option><option value="skola">Skola</option><option value="hos_van">Hos en vän</option><option value="annan">Annan plats</option></select></label>
+              <label className="family-admin-field"><span>Känd plats <small>(valfritt)</small></span><select value={selectedKnownPlaceId} onChange={(event) => selectKnownPlace(event.target.value)}><option value="">Välj plats...</option>{knownPlaces.map((place) => <option key={place.id} value={place.id}>{place.name}</option>)}</select></label>
+            </div>
+            <label className="family-admin-field"><span>Platsnamn <small>(sparas som känd plats)</small></span><input value={placeName} onChange={(event) => { setPlaceName(event.target.value); setSelectedKnownPlaceId(""); }} placeholder="t.ex. Hos Matteo" /></label>
             <label className="family-admin-field"><span>Meddelande <small>(valfritt)</small></span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="t.ex. Jag går hem 17:30" /></label>
             <button className="primary" type="button" onClick={handleCheckIn} disabled={saving}>{saving ? "Hämtar plats..." : "Checka in här"}</button>
             {error && <p className="error-text">{error}</p>}
-            <p className="muted" style={{ marginTop: 12 }}>Vardilo sparar bara positionen vid själva check-in. Ingen kontinuerlig GPS-spårning.</p>
+            <p className="muted" style={{ marginTop: 12 }}>När du använder ett nytt platsnamn sparas platsen automatiskt som en känd plats. Nästa gång kan du bara välja den i menyn.</p>
           </section>
 
+          <section className="card">
+            <div className="card-heading"><h3>Kända platser</h3><span>{knownPlaces.length} sparade</span></div>
+            {knownPlaces.length === 0 ? <p className="muted">Inga kända platser ännu. Den första du checkar in på med ett platsnamn sparas automatiskt.</p> : knownPlaces.map((place) => <div className="event" key={place.id}><div className="time">⌖</div><div><strong>{place.name}</strong><p>{typeLabels[place.check_in_type]}</p></div><span className="tag blue">Snabbval</span></div>)}
+          </section>
+        </div>
+
+        <div className="grid" style={{ marginTop: 20 }}>
           <section className="card">
             <div className="card-heading"><h3>Senaste platser</h3><span>{loading ? "Laddar..." : `${latestByMember.size} familjemedlemmar`}</span></div>
             {Array.from(latestByMember.values()).map((item) => {
