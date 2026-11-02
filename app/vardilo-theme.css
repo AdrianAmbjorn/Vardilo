@@ -42,6 +42,7 @@ body { background: var(--bg); }
 .quick-add { color: var(--text); }
 .quick-add a { background: var(--accent-soft); color: var(--accent); }
 .section-shell { background: var(--bg); color: var(--text); }
+.section-header { grid-template-columns: 1fr auto; }
 .section-header h1, .section-header h2 { color: var(--text); }
 .back-link { color: var(--text); }
 .auth-shell { background: var(--bg); }
