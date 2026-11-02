@@ -1,0 +1,17 @@
+"use client";
+import Link from "next/link";
+import {useEffect,useMemo,useState} from "react";
+import {useRouter} from "next/navigation";
+import {createClient} from "@/lib/supabase/client";
+
+type Notification={id:string;type:string;title:string;body:string|null;href:string|null;read_at:string|null;created_at:string};
+const labels:Record<string,string>={calendar:"Kalender",task:"Uppgift",help:"Hjälp",check_in:"Check-in",chat:"Chat",system:"Vardilo"};
+function formatDate(v:string){return new Intl.DateTimeFormat("sv-SE",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(new Date(v))}
+export default function NotificationsPage(){const supabase=useMemo(()=>createClient(),[]);const router=useRouter();const [notifications,setNotifications]=useState<Notification[]>([]);const [loading,setLoading]=useState(true);const [memberId,setMemberId]=useState<string|null>(null);
+async function load(){const {data:u}=await supabase.auth.getUser();if(!u.user){router.replace("/login");return}const {data:m}=await supabase.from("family_members").select("id").eq("user_id",u.user.id).maybeSingle();if(!m)return;setMemberId(m.id);const {data}=await supabase.from("notifications").select("id,type,title,body,href,read_at,created_at").eq("recipient_member_id",m.id).order("created_at",{ascending:false}).limit(50);setNotifications(data??[]);setLoading(false)}
+useEffect(()=>{load()},[supabase]);
+useEffect(()=>{if(!memberId)return;const c=supabase.channel(`notifications-${memberId}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications",filter:`recipient_member_id=eq.${memberId}`},p=>setNotifications(n=>[p.new as Notification,...n].slice(0,50))).subscribe();return()=>{supabase.removeChannel(c)}},[memberId,supabase]);
+async function markRead(id:string){await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("id",id).eq("recipient_member_id",memberId);setNotifications(n=>n.map(x=>x.id===id?{...x,read_at:new Date().toISOString()}:x))}
+async function markAllRead(){if(!memberId)return;await supabase.from("notifications").update({read_at:new Date().toISOString()}).eq("recipient_member_id",memberId).is("read_at",null);setNotifications(n=>n.map(x=>({...x,read_at:x.read_at??new Date().toISOString()})))}
+const unread=notifications.filter(n=>!n.read_at).length;
+return <main className="section-shell"><header className="section-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">VARDILO</p><h1>Notiser</h1><p className="muted">Det senaste som hänt i familjen.</p></div><button className="secondary" onClick={markAllRead} disabled={!unread}>Markera alla lästa</button></header><section className="section-card">{loading?<div className="section-row"><p className="muted">Laddar...</p></div>:notifications.length?notifications.map(n=><div className="section-row" key={n.id} style={{background:n.read_at?"white":"var(--red-soft)",cursor:n.href?"pointer":"default"}} onClick={async()=>{if(!n.read_at)await markRead(n.id);if(n.href)router.push(n.href)}}><div><div style={{display:"flex",gap:8,alignItems:"center"}}><strong>{n.title}</strong>{!n.read_at&&<span className="tag" style={{background:"var(--red)",color:"white"}}>NY</span>}</div>{n.body&&<p>{n.body}</p>}<p>{labels[n.type]??"Vardilo"} · {formatDate(n.created_at)}</p></div></div>):<div className="section-row"><p className="muted">Inga notiser ännu.</p></div>}</section></main>}
