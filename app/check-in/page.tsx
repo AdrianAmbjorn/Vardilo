@@ -186,6 +186,7 @@ export default function CheckInPage() {
       <section className="content">
         <header className="topbar">
           <div><p className="eyebrow">CHECK-IN</p><h1>Var är familjen?</h1></div>
+          <Link className="secondary" href="/">Hem</Link>
         </header>
 
         <section className="hero-card">
