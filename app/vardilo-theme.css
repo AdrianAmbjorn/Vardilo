@@ -28,8 +28,8 @@ body { background: var(--bg); }
 .member strong { color: #ffffff; }
 .member small { color: #9eb0c2; }
 .avatar { background: #edf2f6; color: var(--accent); }
-.content { color: #ffffff; }
-.topbar h1 { color: #ffffff; }
+.content { color: var(--text); }
+.topbar h1 { color: var(--text); }
 .eyebrow { color: #ff5a5a; }
 .red-text { color: #ff5a5a; }
 .profile { background: #ffffff; color: var(--accent); }
@@ -41,9 +41,9 @@ body { background: var(--bg); }
 .secondary { background: #ffffff; color: var(--accent); border-color: #d9e1e8; }
 .quick-add { color: var(--text); }
 .quick-add a { background: var(--accent-soft); color: var(--accent); }
-.section-shell { background: var(--bg); color: #ffffff; }
-.section-header h1, .section-header h2 { color: #ffffff; }
-.back-link { color: #ffffff; }
+.section-shell { background: var(--bg); color: var(--text); }
+.section-header h1, .section-header h2 { color: var(--text); }
+.back-link { color: var(--text); }
 .auth-shell { background: var(--bg); }
 .auth-brand .brand { color: #ffffff; }
 .auth-card h1, .auth-card h2 { color: var(--text); }
