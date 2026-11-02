@@ -213,7 +213,7 @@ export default function CheckInPage() {
 
           <section className="card">
             <div className="card-heading"><h3>Kända platser</h3><span>{knownPlaces.length} sparade</span></div>
-            {knownPlaces.length === 0 ? <p className="muted">Inga kända platser ännu. Den första du checkar in på med ett platsnamn sparas automatiskt.</p> : knownPlaces.map((place) => <div className="event" key={place.id}><div className="time">⌖</div><div><strong>{place.name}</strong><p>{typeLabels[place.check_in_type]}</p></div><span className="tag blue">Snabbval</span></div>)}
+            {knownPlaces.length === 0 ? <p className="muted">Inga kända platser ännu. Den första du checkar in på med ett platsnamn sparas automatiskt.</p> : knownPlaces.map((place) => <div className="event" key={place.id}><div className="time" style={{ color: "#2f6f9f" }}>⌖</div><div><strong style={{ color: "#2f6f9f", WebkitTextFillColor: "#2f6f9f" }}>{place.name}</strong><p style={{ color: "#2f6f9f", WebkitTextFillColor: "#2f6f9f" }}>{typeLabels[place.check_in_type]}</p></div><span className="tag blue">Snabbval</span></div>)}
           </section>
         </div>
 
@@ -224,7 +224,14 @@ export default function CheckInPage() {
               const member = memberById.get(item.member_id);
               if (!member) return null;
               if (!(currentMember?.role === "admin" || currentMember?.role === "förälder" || item.member_id === currentMember?.id)) return null;
-              return <div className="event" key={item.id}><div className="time">{formatTime(item.created_at)}</div><div><strong>{member.display_name}</strong><p>{typeLabels[item.check_in_type]}{item.place_name ? ` · ${item.place_name}` : ""}</p></div><span className="tag green">Check-in</span></div>;
+              return <div className="event" key={item.id}>
+                <div className="time" style={{ color: "#2f6f9f", WebkitTextFillColor: "#2f6f9f" }}>{formatTime(item.created_at)}</div>
+                <div>
+                  <strong style={{ color: "#2f6f9f", WebkitTextFillColor: "#2f6f9f" }}>{member.display_name}</strong>
+                  <p style={{ color: "#2f6f9f", WebkitTextFillColor: "#2f6f9f" }}>{typeLabels[item.check_in_type]}{item.place_name ? ` · ${item.place_name}` : ""}</p>
+                </div>
+                <span className="tag green">Check-in</span>
+              </div>;
             })}
           </section>
         </div>
