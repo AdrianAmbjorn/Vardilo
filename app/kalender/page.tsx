@@ -225,6 +225,7 @@ export default function CalendarPage() {
     return result;
   }, [events]);
   const query = search.trim().toLocaleLowerCase("sv-SE");
+  const hasFilters = Boolean(query || categoryFilter || memberFilter);
   const eventMap = new Map<string, CalendarEvent[]>();
   for (const day of view === "month" ? cells : currentWeek) {
     const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
@@ -479,9 +480,19 @@ export default function CalendarPage() {
             ))}
           </select>
         </label>
+        {hasFilters && (
+          <button
+            type="button"
+            className="secondary"
+            style={{ alignSelf: "end" }}
+            onClick={() => { setSearch(""); setCategoryFilter(""); setMemberFilter(""); }}
+          >
+            Rensa filter
+          </button>
+        )}
       </div>
       <div className="calendar-toolbar" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 14 }}><div className="calendar-navigation"><button type="button" onClick={() => movePeriod(-1)}>‹</button><button type="button" onClick={goToday}>Idag</button><button type="button" onClick={() => movePeriod(1)}>›</button></div><h2 style={{ margin: 0, color: "#102a43", fontSize: 20, lineHeight: 1.2, textAlign: "center", minWidth: 180, whiteSpace: "nowrap" }}>{view === "month" ? monthLabel(currentMonth) : `${currentWeek[0].getDate()}–${currentWeek[6].getDate()} ${new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(currentWeek[6])}`}</h2><div style={{ display: "flex", gap: 6, alignItems: "center", justifySelf: "end" }}><button type="button" style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button><button type="button" style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button></div></div>
-      {query && !eventMap.size && <p role="status" className="muted" style={{ margin: "12px 16px" }}>Inga aktiviteter matchar sökningen i den här vyn.</p>}
+      {hasFilters && !eventMap.size && <p role="status" className="muted" style={{ margin: "12px 16px" }}>Inga aktiviteter matchar dina val i den här vyn.</p>}
       {view === "month" ? <><div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div><div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); const outside = day.getMonth() !== currentMonth.getMonth(); return <div key={key} className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)} aria-label={`Lägg till aktivitet ${key}`}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "4px 5px", marginBottom: 4, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} style={eventStyle(item)} key={item.id} onClick={() => openEdit(item)}>{item.all_day || dateKey(new Date(item.starts_at)) !== key ? "" : `${timeLabel(item.starts_at)} `}<VisibilityMark event={item} /><MemberInitial member={item.target_member_id ? memberById.get(item.target_member_id) : undefined} />{item.title}{item.responsible_member_id && <span style={assignmentIconStyle(item)} title={assignmentLabel(item)}>{assignmentIcon(item)}</span>}</button>)}{dayEvents.length > 3 && <button
   type="button"
   className="calendar-more"
