@@ -5,7 +5,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-type FamilyList = { id: string; name: string };
+const categories = ["Mathandling", "Storhelg", "Fest", "Övrigt"] as const;
+type Category = typeof categories[number];
+type FamilyList = { id: string; name: string; category: Category };
+
+function categoryOptions() {
+  return categories.map(category => <option key={category}>{category}</option>);
+}
 type ListItem = { id: string; text: string; completed: boolean };
 type OpenList = FamilyList & { items: ListItem[] };
 type Member = { id: string; family_id: string; userId: string };
@@ -18,6 +24,7 @@ export default function ListsPage() {
   const [lists, setLists] = useState<FamilyList[]>([]);
   const [selected, setSelected] = useState<OpenList | null>(null);
   const [name, setName] = useState("");
+  const [category, setCategory] = useState<Category>("Övrigt");
   const [item, setItem] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -43,7 +50,7 @@ export default function ListsPage() {
         return;
       }
       const { data, error } = await supabase.from("family_lists")
-        .select("id,name").eq("family_id", profile.family_id).order("created_at");
+        .select("id,name,category").eq("family_id", profile.family_id).order("created_at");
       if (error) throw error;
       setMember({ ...profile, userId: auth.user.id });
       setLists(data ?? []);
@@ -76,11 +83,12 @@ export default function ListsPage() {
     if (!member || !name.trim()) return;
     void run(async () => {
       const { data, error } = await supabase.from("family_lists")
-        .insert({ family_id: member.family_id, name: name.trim(), created_by: member.userId })
-        .select("id,name").single();
+        .insert({ family_id: member.family_id, name: name.trim(), category, created_by: member.userId })
+        .select("id,name,category").single();
       if (error) throw error;
       setLists(current => [...current, data]);
       setName("");
+      setCategory("Övrigt");
     }, "Kunde inte skapa listan. Försök igen.");
   }
 
@@ -92,6 +100,18 @@ export default function ListsPage() {
       setSelected({ ...list, items: data ?? [] });
       if (selected?.id !== list.id) setItem("");
     }, "Kunde inte öppna listan. Försök igen.");
+  }
+
+  function changeCategory(list: OpenList, category: Category) {
+    if (list.category === category) return;
+    void run(async () => {
+      const { data, error } = await supabase.from("family_lists")
+        .update({ category }).eq("id", list.id)
+        .select("id,name,category").single();
+      if (error) throw error;
+      setLists(current => current.map(entry => entry.id === data.id ? data : entry));
+      setSelected({ ...list, ...data });
+    }, "Kunde inte ändra kategori. Försök igen.");
   }
 
   function addItem(event: FormEvent<HTMLFormElement>) {
@@ -142,18 +162,41 @@ export default function ListsPage() {
               <span>Ny lista</span>
               <input style={typedText} value={name} onChange={event => setName(event.target.value)} placeholder="T.ex. Matbutiken" disabled={busy} />
             </label>
+            <label className="family-admin-field">
+              <span>Kategori</span>
+              <select style={typedText} value={category} onChange={event => setCategory(event.target.value as Category)} disabled={busy}>
+                {categoryOptions()}
+              </select>
+            </label>
             <button className="primary" disabled={busy || !name.trim()}>+ Skapa lista</button>
           </form>
         )}
         {error && <div className="section-row"><p role="alert">{error}</p></div>}
-        {lists.map(list => (
-          <div className="section-row" key={list.id}>
-            <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
-          </div>
-        ))}
+        {categories.map(group => {
+          const groupLists = lists.filter(list => list.category === group);
+          if (!groupLists.length) return null;
+          return (
+            <section key={group} aria-label={group}>
+              <div className="card-heading"><h2>{group}</h2></div>
+              {groupLists.map(list => (
+                <div className="section-row" key={list.id}>
+                  <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
+                </div>
+              ))}
+            </section>
+          );
+        })}
         {selected && (
           <div style={{ marginTop: 24 }}>
             <div className="card-heading"><h3>{selected.name}</h3></div>
+            <div className="family-admin-form">
+              <label className="family-admin-field">
+                <span>Byt kategori</span>
+                <select style={typedText} value={selected.category} onChange={event => changeCategory(selected, event.target.value as Category)} disabled={busy}>
+                  {categoryOptions()}
+                </select>
+              </label>
+            </div>
             <form className="family-admin-form" onSubmit={addItem}>
               <input aria-label="Ny listpunkt" style={typedText} value={item} onChange={event => setItem(event.target.value)} placeholder="Lägg till listpunkt" disabled={busy} />
               <button className="primary" disabled={busy || !item.trim()}>+ Lägg till</button>
