@@ -35,6 +35,7 @@ export default function ListsPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category | "">("");
   const [item, setItem] = useState("");
+  const [listName, setListName] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -107,8 +108,24 @@ export default function ListsPage() {
         .select("id,text,completed").eq("list_id", list.id).order("created_at");
       if (error) throw error;
       setSelected({ ...list, items: data ?? [] });
+      setListName(list.name);
       if (selected?.id !== list.id) setItem("");
     }, "Kunde inte öppna listan. Försök igen.");
+  }
+
+  function renameList(event: FormEvent<HTMLFormElement>, list: OpenList) {
+    event.preventDefault();
+    const name = listName.trim();
+    if (!member || !name || name === list.name) return;
+    void run(async () => {
+      const { data, error } = await supabase.from("family_lists")
+        .update({ name }).eq("id", list.id).eq("family_id", member.family_id)
+        .select("id,name,category").single();
+      if (error) throw error;
+      setLists(current => current.map(entry => entry.id === data.id ? data : entry));
+      setSelected({ ...list, ...data });
+      setListName(data.name);
+    }, "Kunde inte byta namn på listan. Försök igen.");
   }
 
   function changeCategory(list: OpenList, category: Category) {
@@ -221,6 +238,15 @@ export default function ListsPage() {
         {selected && (
           <div style={{ marginTop: 24 }}>
             <div className="card-heading"><h3>{selected.name}</h3></div>
+            <form className="family-admin-form" onSubmit={event => renameList(event, selected)}>
+              <label className="family-admin-field">
+                <span>Listans namn</span>
+                <input style={typedText} value={listName} onChange={event => setListName(event.target.value)} disabled={busy} />
+              </label>
+              <button className="secondary" disabled={busy || !listName.trim() || listName.trim() === selected.name}>
+                Spara namn
+              </button>
+            </form>
             <div className="family-admin-form">
               <label className="family-admin-field">
                 <span>Byt kategori</span>
