@@ -29,7 +29,7 @@ body { background: var(--bg); }
 .member small { color: #9eb0c2; }
 .avatar { background: #edf2f6; color: var(--accent); }
 .content { color: var(--text); }
-.topbar h1 { color: var(--text); }
+.topbar h1 { color: #ffffff; }
 .eyebrow { color: #ff5a5a; }
 .red-text { color: #ff5a5a; }
 .profile { background: #ffffff; color: var(--accent); }
@@ -42,9 +42,14 @@ body { background: var(--bg); }
 .quick-add { color: var(--text); }
 .quick-add a { background: var(--accent-soft); color: var(--accent); }
 .section-shell { background: var(--bg); color: var(--text); }
-.section-header { grid-template-columns: 1fr auto; }
-.section-header h1, .section-header h2 { color: var(--text); }
-.back-link { color: var(--text); }
+.section-header { grid-template-columns: minmax(0, 1fr) auto; }
+.section-header > .back-link { justify-self: start; }
+.section-header > .secondary { justify-self: end; }
+@media (max-width: 850px) { .section-header { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; } .section-header > .back-link { grid-column: 1 / -1; } }
+/* Dark text is inherited inside light surfaces, while headings remain legible on navy. */
+.hero-card, .card, .quick-add, .section-card, .auth-card, .calendar-card, .calendar-modal, .profile-menu { color: var(--text); }
+.section-header h1, .section-header h2 { color: #ffffff; }
+.back-link { color: #ffffff; }
 .auth-shell { background: var(--bg); }
 .auth-brand .brand { color: #ffffff; }
 .auth-card h1, .auth-card h2 { color: var(--text); }
