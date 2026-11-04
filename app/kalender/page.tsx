@@ -17,6 +17,7 @@ type CalendarEvent = {
   visible_to_children: boolean;
   audience_member_ids: string[] | null;
   created_by: string | null;
+  import_batch_id: string | null;
   responsible_member_id: string | null;
   target_member_id: string | null;
   category: string;
@@ -143,6 +144,8 @@ export default function CalendarPage() {
   const [saving, setSaving] = useState(false);
   const [savingBreak, setSavingBreak] = useState(false);
   const [responding, setResponding] = useState(false);
+  const [showDeleteChoices, setShowDeleteChoices] = useState(false);
+  const [deleteNotice, setDeleteNotice] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deletingBreak, setDeletingBreak] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -166,7 +169,7 @@ export default function CalendarPage() {
     setFamilyId(membership.family_id);
     setCurrentMemberId(membership.id);
     const [eventResult, memberResult, breakResult] = await Promise.all([
-      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,audience_member_ids,created_by,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
+      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,audience_member_ids,created_by,import_batch_id,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
       supabase.from("family_members").select("id,display_name,color,role").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
@@ -256,8 +259,9 @@ export default function CalendarPage() {
     return { background: targetColor.background, color: targetColor.text, borderLeft: responsibleColor ? `6px solid ${responsibleColor.background}` : undefined, boxShadow: responsibleColor ? `inset -5px 0 0 ${responsibleColor.background}` : undefined };
   };
 
-  function openAdd(date?: Date) { setCopyingEvent(false); setEditingEvent(null); setForm(formValues(undefined, date)); setError(""); setShowForm(true); }
+  function openAdd(date?: Date) { setShowDeleteChoices(false); setCopyingEvent(false); setEditingEvent(null); setForm(formValues(undefined, date)); setError(""); setShowForm(true); }
   function openEdit(event: CalendarEvent) {
+    setShowDeleteChoices(false);
     setCopyingEvent(false);
     const original = events.find((item) => event.id.startsWith(`${item.id}-`) || item.id === event.id) ?? event;
     setEditingEvent(original);
@@ -283,9 +287,11 @@ export default function CalendarPage() {
       const { rows, skipped, omittedReminders } = parseCalendarFile(await calendarFile.text());
       if (!rows.length) throw new Error("Filen innehåller inga aktiviteter som kan importeras.");
       if (rows.length > 500) throw new Error("Exportera högst 500 aktiviteter per fil.");
+      const importBatchId = crypto.randomUUID();
       const payload = await Promise.all([...new Map(rows.map(row => [row.uid, row])).values()].map(async ({ uid, ...row }) => ({
         ...row,
         id: await calendarImportId(familyId, uid),
+        import_batch_id: importBatchId,
         family_id: familyId,
         category: "annat",
         responsible_member_id: row.reminder_minutes === null ? null : currentMemberId,
@@ -334,6 +340,7 @@ export default function CalendarPage() {
       recurrence_end_date: "",
     });
     setEditingEvent(null);
+    setShowDeleteChoices(false);
     setCopyingEvent(true);
     setError("");
   }
@@ -424,13 +431,41 @@ export default function CalendarPage() {
     setResponding(false);
   }
 
-  async function handleDelete() {
-    if (!editingEvent || !familyId) return;
-    if (!window.confirm(`Ta bort "${editingEvent.title}" från kalendern?`)) return;
-    setDeleting(true); setError("");
-    const { error: deleteError } = await supabase.from("calendar_events").delete().eq("id", editingEvent.id).eq("family_id", familyId);
-    if (deleteError) setError(deleteError.message); else { setShowForm(false); setEditingEvent(null); await loadCalendar(); }
-    setDeleting(false);
+  function requestDelete() {
+    if (!editingEvent || readOnly || deleting) return;
+    if (editingEvent.import_batch_id) {
+      setShowDeleteChoices(true);
+    } else if (window.confirm(`Ta bort "${editingEvent.title}" från kalendern?`)) {
+      void handleDelete("single");
+    }
+  }
+
+  async function handleDelete(scope: "single" | "batch") {
+    if (!editingEvent || !familyId || readOnly || deleting) return;
+    const batchId = editingEvent.import_batch_id;
+    if (scope === "batch" && !batchId) return;
+    setDeleting(true);
+    setError("");
+    setDeleteNotice("");
+    try {
+      const deletion = supabase.from("calendar_events").delete().eq("family_id", familyId);
+      const { data, error } = await (scope === "batch"
+        ? deletion.eq("import_batch_id", batchId)
+        : deletion.eq("id", editingEvent.id)).select("id");
+      if (error || !data.length) {
+        setError("Kunde inte ta bort aktiviteten. Uppdatera kalendern och försök igen.");
+        return;
+      }
+      setShowDeleteChoices(false);
+      setShowForm(false);
+      setEditingEvent(null);
+      setDeleteNotice(scope === "batch" ? `${data.length} aktiviteter togs bort från importen.` : "Aktiviteten togs bort.");
+      await loadCalendar();
+    } catch {
+      setError("Kunde inte ta bort aktiviteten. Försök igen.");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function handleSaveBreak(event: React.FormEvent) {
@@ -486,6 +521,7 @@ export default function CalendarPage() {
       }
     `}</style>
     <header className="section-header calendar-page-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div className="calendar-header-actions"><button className="secondary" type="button" disabled={!familyId} onClick={() => { setImportError(""); setCalendarFile(null); setShowImport(true); }}>Importera kalender</button><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
+    {deleteNotice && <p role="status" className="section-row">{deleteNotice}</p>}
     {importResult && <p role="status" className="section-row">{importResult}</p>}
     {showImport && (
       <div className="calendar-modal-backdrop">
@@ -652,13 +688,24 @@ export default function CalendarPage() {
       <div style={{ marginTop: 8, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Färg i kalendern följer den som aktiviteten gäller. En färgad markering på kanten visar vem som är ansvarig.</div>
       </fieldset>
       {editingEvent?.responsible_member_id && <div style={{ border: "1px solid #dbe3ea", borderRadius: 10, padding: "10px 12px", marginBottom: 10, background: "#f8fafb" }}><strong>Ansvar:</strong> {memberById.get(editingEvent.responsible_member_id)?.display_name ?? "Familjemedlem"}<div style={{ marginTop: 3, color: "#6b7b8c", fontSize: 12 }}>{assignmentLabel(editingEvent)}.</div>{editingEvent.assignment_status === "pending" && editingEvent.responsible_member_id === currentMemberId && <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button type="button" className="secondary" onClick={() => void respondToAssignment("declined")} disabled={responding}>{responding ? "Sparar..." : "Avböj"}</button><button type="button" className="primary" onClick={() => void respondToAssignment("accepted")} disabled={responding}>{responding ? "Sparar..." : "Acceptera"}</button></div>}</div>}
+      {showDeleteChoices && editingEvent?.import_batch_id && (
+        <fieldset disabled={deleting} style={{ border: "1px solid var(--line)", borderRadius: 10, margin: "12px 0", padding: 12 }}>
+          <legend>Vad vill du ta bort?</legend>
+          <p className="muted">Du kan ta bort bara den här aktiviteten eller alla från samma import som du har rätt att ta bort.</p>
+          <div className="calendar-modal-actions">
+            <button className="secondary" type="button" onClick={() => setShowDeleteChoices(false)}>Avbryt</button>
+            <button className="secondary" type="button" onClick={() => void handleDelete("single")}>Bara den här aktiviteten</button>
+            <button className="primary" type="button" onClick={() => void handleDelete("batch")}>Alla från samma import</button>
+          </div>
+        </fieldset>
+      )}
       <div className="calendar-modal-actions">
         {editingEvent && !readOnly && (
           <button className="secondary" type="button" onClick={copyActivity} disabled={deleting || saving || responding}>
             Kopiera aktivitet
           </button>
         )}
-        {editingEvent && !readOnly && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving || responding}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={readOnly || saving || deleting || responding}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
+        {editingEvent && !readOnly && <button className="secondary" type="button" onClick={requestDelete} disabled={deleting || saving || responding || showDeleteChoices}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={readOnly || saving || deleting || responding}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
     </form></div>}
 
     {showBreakForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSaveBreak}><div className="calendar-modal-heading"><div><p className="eyebrow">LOV & STUDIEDAGAR</p><h2>{editingBreak ? "Redigera ledighet" : "Markera ledighet"}</h2></div><button type="button" onClick={() => { setShowBreakForm(false); setEditingBreak(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}<p className="muted" style={{ marginBottom: 16 }}>Markera en hel vecka eller flera dagar på en gång. Detta blir en tydlig markering i familjens kalender.</p><label className="calendar-field"><span>Namn</span><input autoFocus required value={breakForm.title} onChange={(e) => setBreakForm({ ...breakForm, title: e.target.value })} placeholder="T.ex. Höstlov" /></label><label className="calendar-field"><span>Typ</span><select value={breakForm.break_type} onChange={(e) => setBreakForm({ ...breakForm, break_type: e.target.value })}>{breakTypes.map((type) => <option key={type} value={type}>{type === "lov" ? "Lov" : type === "studiedag" ? "Studiedag" : "Annat"}</option>)}</select></label><div className="calendar-form-row"><label className="calendar-field"><span>Från</span><input type="date" required value={breakForm.starts_on} onChange={(e) => setBreakForm({ ...breakForm, starts_on: e.target.value })} /></label><label className="calendar-field"><span>Till</span><input type="date" required value={breakForm.ends_on} onChange={(e) => setBreakForm({ ...breakForm, ends_on: e.target.value })} /></label></div><div className="calendar-modal-actions">{editingBreak && <button className="secondary" type="button" onClick={handleDeleteBreak} disabled={deletingBreak || savingBreak}>{deletingBreak ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowBreakForm(false); setEditingBreak(null); }}>Avbryt</button><button className="primary" type="submit" disabled={savingBreak || deletingBreak}>{savingBreak ? "Sparar..." : editingBreak ? "Spara ändringar" : "Spara ledighet"}</button></div></form></div>}
