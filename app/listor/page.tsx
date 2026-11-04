@@ -127,6 +127,28 @@ export default function ListsPage() {
     }, "Kunde inte lägga till listpunkten. Försök igen.");
   }
 
+  function removeList(list: OpenList) {
+    if (!member || !window.confirm(`Ta bort listan ”${list.name}” och alla dess punkter permanent?`)) return;
+    void run(async () => {
+      const { error } = await supabase.from("family_lists").delete()
+        .eq("id", list.id).eq("family_id", member.family_id).select("id").single();
+      if (error) throw error;
+      setLists(current => current.filter(entry => entry.id !== list.id));
+      setSelected(null);
+      setItem("");
+    }, "Kunde inte ta bort listan. Försök igen.");
+  }
+
+  function removeItem(list: OpenList, entry: ListItem) {
+    if (!window.confirm(`Ta bort ”${entry.text}” permanent?`)) return;
+    void run(async () => {
+      const { error } = await supabase.from("family_list_items").delete()
+        .eq("id", entry.id).eq("list_id", list.id).select("id").single();
+      if (error) throw error;
+      setSelected({ ...list, items: list.items.filter(item => item.id !== entry.id) });
+    }, "Kunde inte ta bort listpunkten. Försök igen.");
+  }
+
   function toggle(entry: ListItem) {
     if (!selected) return;
     void run(async () => {
@@ -196,6 +218,9 @@ export default function ListsPage() {
                   {categoryOptions()}
                 </select>
               </label>
+              <button className="secondary" onClick={() => removeList(selected)} disabled={busy}>
+                Ta bort listan
+              </button>
             </div>
             <form className="family-admin-form" onSubmit={addItem}>
               <input aria-label="Ny listpunkt" style={typedText} value={item} onChange={event => setItem(event.target.value)} placeholder="Lägg till listpunkt" disabled={busy} />
@@ -213,6 +238,15 @@ export default function ListsPage() {
                   style={{ accentColor: "#334155", width: 18, height: 18, margin: 0, flexShrink: 0 }}
                 />
                 <strong style={{ ...typedText, textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
+                <button
+                  className="secondary"
+                  aria-label={`Ta bort ${entry.text}`}
+                  onClick={() => removeItem(selected, entry)}
+                  disabled={busy}
+                  style={{ marginLeft: "auto" }}
+                >
+                  Ta bort
+                </button>
               </div>
             ))}
           </div>
