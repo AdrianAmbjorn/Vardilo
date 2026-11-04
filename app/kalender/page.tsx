@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { calendarImportId, parseCalendarFile } from "@/lib/calendar-import";
 import { createClient } from "@/lib/supabase/client";
 
@@ -115,6 +115,7 @@ export default function CalendarPage() {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const audienceSelect = useRef<HTMLSelectElement>(null);
   const [canSetVisibility, setCanSetVisibility] = useState(false);
   const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -334,7 +335,10 @@ export default function CalendarPage() {
     const wasFamilySurprise = editingEvent?.category === "överraskning" &&
       editingEvent.visible_to_children && !editingEvent.audience_member_ids;
     if (form.category === "överraskning" && form.visibility === "family" && !wasFamilySurprise &&
-        !window.confirm("Hela familjen kan se överraskningen. Vill du spara den så?")) return;
+        !window.confirm("Hela familjen kan se överraskningen. Vill du spara den så?")) {
+      audienceSelect.current?.focus();
+      return;
+    }
     setSaving(true); setError("");
     const responsibleChanged = editingEvent ? editingEvent.responsible_member_id !== (form.responsible_member_id || null) : true;
     const payload: Record<string, unknown> = {
@@ -476,7 +480,7 @@ export default function CalendarPage() {
       {canSetVisibility && (
         <label className="calendar-field">
           <span>Vem kan se aktiviteten?</span>
-          <select value={form.visibility} onChange={event => setAudience(event.target.value, form.audience_member_ids)}>
+          <select ref={audienceSelect} value={form.visibility} onChange={event => setAudience(event.target.value, form.audience_member_ids)}>
             <option value="family">Hela familjen</option>
             <option value="adults">Bara vuxna</option>
             <option value="selected">Valda personer</option>
