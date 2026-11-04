@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from "react";
 import Link from "next/link";
 import {createClient} from "@/lib/supabase/client";
 
-type Member={id:string;display_name:string};
+type Member={id:string;display_name:string;role:string;xp_goal:number;xp_reward:string|null};
 type Task={id:string;title:string;assigned_member_id:string|null;xp:number;due_at:string|null;completed_at:string|null};
 function dateLabel(value:string){return new Intl.DateTimeFormat("sv-SE",{day:"numeric",month:"short",year:"numeric"}).format(new Date(value))}
 function localDate(value:string){const d=new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
@@ -12,6 +12,11 @@ export default function TasksPage(){
  const supabase=useMemo(()=>createClient(),[]);
  const [member,setMember]=useState<{id:string;family_id:string;role:string}|null>(null);
  const [members,setMembers]=useState<Member[]>([]);
+ const [canManageGoals,setCanManageGoals]=useState(false);
+ const [editingGoalId,setEditingGoalId]=useState<string|null>(null);
+ const [goalDraft,setGoalDraft]=useState("500");
+ const [rewardDraft,setRewardDraft]=useState("");
+ const [savingGoal,setSavingGoal]=useState(false);
  const [tasks,setTasks]=useState<Task[]>([]);
  const [title,setTitle]=useState("");
  const [assigned,setAssigned]=useState("");
@@ -35,10 +40,12 @@ export default function TasksPage(){
   const {data:m,error:memberError}=await supabase.from("family_members").select("id,family_id,role").eq("user_id",u.user.id).maybeSingle();
   if(memberError||!m){setError("Kunde inte hitta din familj.");setLoading(false);return}
   setMember(m);
-  const [ms,ts]=await Promise.all([
-   supabase.from("family_members").select("id,display_name").eq("family_id",m.family_id).order("created_at"),
-   supabase.from("family_tasks").select("id,title,assigned_member_id,xp,due_at,completed_at").eq("family_id",m.family_id).order("created_at",{ascending:false})
+  const [ms,ts,permissions]=await Promise.all([
+   supabase.from("family_members").select("id,display_name,role,xp_goal,xp_reward").eq("family_id",m.family_id).order("created_at"),
+   supabase.from("family_tasks").select("id,title,assigned_member_id,xp,due_at,completed_at").eq("family_id",m.family_id).order("created_at",{ascending:false}),
+   supabase.from("family_permissions").select("can_manage_tasks").eq("family_member_id",m.id).maybeSingle()
   ]);
+  setCanManageGoals(permissions.data?.can_manage_tasks===true);
   if(ms.error||ts.error)setError(ms.error?.message??ts.error?.message??"Kunde inte läsa uppgifterna.");
   else{setMembers(ms.data??[]);setTasks(ts.data??[]);setError("")}
   setLoading(false);
@@ -68,6 +75,7 @@ export default function TasksPage(){
  }
  function beginEdit(t:Task){setEditingId(t.id);setEditTitle(t.title);setEditAssigned(t.assigned_member_id??"");setEditXp(String(t.xp));setEditDue(t.due_at?localDate(t.due_at):"");setError("")}
  async function saveEdit(){if(!editingId||!member||!editTitle.trim()||workingId)return;setWorkingId(editingId);setError("");const {error:e}=await supabase.from("family_tasks").update({title:editTitle.trim(),assigned_member_id:editAssigned||null,xp:Math.max(0,Math.floor(Number(editXp)||0)),due_at:editDue?new Date(`${editDue}T12:00:00`).toISOString():null,updated_at:new Date().toISOString()}).eq("id",editingId).eq("family_id",member.family_id);if(e)setError("Kunde inte spara ändringarna: "+e.message);else{setEditingId(null);await load()}setWorkingId(null)}
+ async function saveGoal(){if(!editingGoalId||savingGoal)return;const value=Number(goalDraft);if(!Number.isInteger(value)||value<1||value>100000){setError("Målet måste vara mellan 1 och 100 000 XP.");return}setSavingGoal(true);setError("");const {error:e}=await supabase.rpc("set_child_xp_goal",{p_member_id:editingGoalId,p_goal:value,p_reward:rewardDraft.trim()});if(e)setError("Kunde inte spara målet: "+e.message);else{setEditingGoalId(null);await load()}setSavingGoal(false)}
  const visible=tasks.filter(t=>(showCompleted||!t.completed_at)&&(filterMember==="all"||(filterMember==="family"?t.assigned_member_id===null:t.assigned_member_id===filterMember))).sort((a,b)=>{
   if(Boolean(a.completed_at)!==Boolean(b.completed_at))return a.completed_at?1:-1;
   if(a.due_at&&!b.due_at)return -1;
@@ -76,13 +84,14 @@ export default function TasksPage(){
  });
  const myXp=tasks.filter(t=>t.completed_at&&t.assigned_member_id===member?.id).reduce((s,t)=>s+t.xp,0);
  const myOpen=tasks.filter(t=>!t.completed_at&&t.assigned_member_id===member?.id).length;
- const myGoal=500;
+ const myGoal=members.find(m=>m.id===member?.id)?.xp_goal??500;
+ const myReward=members.find(m=>m.id===member?.id)?.xp_reward;
  const total=tasks.reduce((s,t)=>s+(t.completed_at?t.xp:0),0);
  const completed=tasks.filter(t=>t.completed_at).length;
  const leaderboard=members.map(m=>({id:m.id,name:m.display_name,xp:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).reduce((sum,t)=>sum+t.xp,0),done:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).length,open:tasks.filter(t=>!t.completed_at&&t.assigned_member_id===m.id).length})).sort((a,b)=>b.xp-a.xp||a.name.localeCompare(b.name,"sv"));
  return <main className="section-shell"><header className="section-header"><div><p className="eyebrow">VARDILO</p><h1>Uppgifter</h1><p className="muted">Ansvar, uppgifter och XP för familjen.</p></div><Link className="secondary" href="/">Hem</Link></header>
  <section className="section-card">
- {member?.role==="barn"&&<div style={{padding:"22px",background:"#edf7ef",color:"#102a43",borderBottom:"1px solid var(--line)"}}><h2 style={{fontSize:20,margin:0,color:"#102a43"}}>Mina XP</h2><p style={{fontSize:30,fontWeight:800,margin:"8px 0",color:"#102a43"}}>{myXp} / {myGoal} XP</p><div role="progressbar" aria-label="Mitt XP-mål" aria-valuemin={0} aria-valuemax={myGoal} aria-valuenow={Math.min(myXp,myGoal)} style={{height:12,background:"#d5e4da",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,myXp/myGoal*100)}%`,background:"#3f7d4a",borderRadius:20}}/></div><p style={{fontSize:13,margin:"10px 0 0",color:"#102a43"}}>{myXp>=myGoal?"Du har nått ditt mål!":`${myGoal-myXp} XP kvar till målet`} · {myOpen} uppgifter kvar</p></div>}
+ {member?.role==="barn"&&<div style={{padding:"22px",background:"#edf7ef",color:"#102a43",borderBottom:"1px solid var(--line)"}}><h2 style={{fontSize:20,margin:0,color:"#102a43"}}>Mina XP</h2><p style={{fontSize:30,fontWeight:800,margin:"8px 0",color:"#102a43"}}>{myXp} / {myGoal} XP</p><div role="progressbar" aria-label="Mitt XP-mål" aria-valuemin={0} aria-valuemax={myGoal} aria-valuenow={Math.min(myXp,myGoal)} style={{height:12,background:"#d5e4da",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,myXp/myGoal*100)}%`,background:"#3f7d4a",borderRadius:20}}/></div><p style={{fontSize:13,margin:"10px 0 0",color:"#102a43"}}>{myXp>=myGoal?"Du har nått ditt mål!":`${myGoal-myXp} XP kvar till målet`} · {myOpen} uppgifter kvar</p>{myReward&&<p style={{fontSize:13,color:"#102a43"}}>Min belöning: <strong>{myReward}</strong></p>}</div>}
  <div className="family-admin-form" style={{display:"grid",gap:12}}>
   <label className="family-admin-field"><span>Ny uppgift</span><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="T.ex. Plocka undan efter middag"/></label>
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
@@ -94,6 +103,7 @@ export default function TasksPage(){
   {error&&<p role="alert" style={{color:"#b42318",fontSize:13}}>{error}</p>}
  </div>
  <div style={{padding:"20px 22px 4px"}}><h3 style={{color:"var(--text)",marginBottom:12}}>XP per familjemedlem</h3><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10}}>{leaderboard.map(person=><div key={person.id} style={{border:"1px solid var(--line)",borderRadius:12,padding:12,background:"#edf7ef",color:"var(--text)"}}><strong style={{display:"block",color:"var(--text)",fontSize:13}}>{person.name}</strong><strong style={{display:"block",fontSize:22,color:"var(--text)",marginTop:5}}>{person.xp} XP</strong><small style={{color:"var(--muted)"}}>{person.done} klara · {person.open} kvar</small></div>)}</div></div>
+ {canManageGoals&&<div style={{padding:"18px 22px",borderBottom:"1px solid var(--line)"}}><h3 style={{color:"var(--text)",marginBottom:12}}>Barnens XP-mål och belöningar</h3><div style={{display:"grid",gap:10}}>{members.filter(m=>m.role==="barn").map(child=><div key={child.id} style={{padding:12,border:"1px solid var(--line)",borderRadius:10,background:"#edf7ef",color:"#102a43"}}><strong>{child.display_name}</strong>{editingGoalId===child.id?<div style={{display:"grid",gap:9,marginTop:10}}><label className="family-admin-field"><span>XP-mål</span><input type="number" min="1" max="100000" value={goalDraft} onChange={e=>setGoalDraft(e.target.value)}/></label><label className="family-admin-field"><span>Belöning (valfri)</span><input maxLength={200} value={rewardDraft} onChange={e=>setRewardDraft(e.target.value)} placeholder="T.ex. Välja fredagsfilm"/></label><div style={{display:"flex",gap:8}}><button className="primary" type="button" disabled={savingGoal} onClick={()=>void saveGoal()}>{savingGoal?"Sparar...":"Spara"}</button><button className="secondary" type="button" onClick={()=>setEditingGoalId(null)}>Avbryt</button></div></div>:<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginTop:6}}><span>{child.xp_goal} XP{child.xp_reward?` · ${child.xp_reward}`:""}</span><button className="secondary" type="button" onClick={()=>{setEditingGoalId(child.id);setGoalDraft(String(child.xp_goal));setRewardDraft(child.xp_reward??"")}}>Ändra mål</button></div>}</div>)}</div></div>}
  <div className="card-heading" style={{margin:"24px 22px 12px",gap:12,flexWrap:"wrap"}}><div><h3>Familjens uppgifter</h3><p className="muted">{completed} av {tasks.length} klara · {total} XP intjänade</p></div><div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}><label style={{display:"grid",gap:4,fontSize:12,color:"var(--text)"}}>Visa uppgifter för<select aria-label="Filtrera uppgifter efter person" value={filterMember} onChange={e=>setFilterMember(e.target.value)} style={{border:"1px solid var(--line)",borderRadius:8,padding:"7px 10px",background:"white",color:"var(--text)"}}><option value="all">Alla</option><option value="family">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label><label style={{display:"flex",alignItems:"center",gap:7,fontSize:12,color:"var(--text)"}}><input type="checkbox" checked={showCompleted} onChange={e=>setShowCompleted(e.target.checked)}/> Visa klara</label></div></div>
  {loading?<p className="muted" style={{padding:22}}>Laddar uppgifter...</p>:visible.map(t=>{
   const who=members.find(m=>m.id===t.assigned_member_id);
