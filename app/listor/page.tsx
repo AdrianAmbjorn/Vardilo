@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const categories = ["Mathandling", "Storhelg", "Fest"] as const;
+const categories = ["Mathandling", "Storhelg", "Fest", "Hemmet"] as const;
 type Category = typeof categories[number];
 type FamilyList = { id: string; name: string; category: Category | "Övrigt" };
 
