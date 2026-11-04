@@ -5,11 +5,24 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 async function resizePhoto(file: File) {
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 12_000_000) {
-    throw new Error("Välj en JPEG-, PNG- eller WebP-bild på högst 12 MB.");
+  const heic = ["image/heic", "image/heif"].includes(file.type) || /\.hei[cf]$/i.test(file.name);
+  const standard = ["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+    (!file.type && /\.(jpe?g|png|webp)$/i.test(file.name));
+  if ((!standard && !heic) || file.size > 12_000_000) {
+    throw new Error("Välj en JPEG-, PNG-, WebP-, HEIC- eller HEIF-bild på högst 12 MB.");
   }
 
-  const url = URL.createObjectURL(file);
+  let source: Blob = file;
+  if (heic) {
+    try {
+      const { heicTo } = await import("heic-to");
+      source = await heicTo({ blob: file, type: "image/jpeg", quality: 0.9 });
+    } catch {
+      throw new Error("Kunde inte läsa HEIC-bilden. Prova en annan bild.");
+    }
+  }
+
+  const url = URL.createObjectURL(source);
   try {
     const image = new Image();
     image.src = url;
@@ -151,7 +164,7 @@ export default function ProfilePage() {
             {preparing && <p role="status">Förbereder förhandsvisning…</p>}
             <p className="muted">Bilden visas för familjen och beskärs till en kvadrat.</p>
             <form onSubmit={save} onReset={() => chooseFile(null)} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-              <input type="file" aria-label="Välj profilbild" accept="image/jpeg,image/png,image/webp" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
+              <input type="file" aria-label="Välj profilbild" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
               <button className="primary" type="submit" disabled={!draft || preparing || busy}>Spara profilbild</button>
               {file && <button className="secondary" type="reset" disabled={busy}>Avbryt bildval</button>}
               {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>Ta bort bild</button>}
