@@ -9,8 +9,17 @@ const categories = ["Mathandling", "Storhelg", "Fest", "Hemmet"] as const;
 type Category = typeof categories[number];
 type FamilyList = { id: string; name: string; category: Category | "Övrigt" };
 
+const categoryEmoji: Record<Category, string> = {
+  Mathandling: "🛒",
+  Storhelg: "🎄",
+  Fest: "🎉",
+  Hemmet: "🏠",
+};
+
 function categoryOptions() {
-  return categories.map(category => <option key={category}>{category}</option>);
+  return categories.map(category => (
+    <option key={category} value={category}>{categoryEmoji[category]} {category}</option>
+  ));
 }
 type ListItem = { id: string; text: string; completed: boolean };
 type OpenList = FamilyList & { items: ListItem[] };
@@ -195,12 +204,12 @@ export default function ListsPage() {
           </form>
         )}
         {error && <div className="section-row"><p role="alert">{error}</p></div>}
-        {[...categories, "Övrigt"].map(group => {
+        {([...categories, "Övrigt"] as const).map(group => {
           const groupLists = lists.filter(list => list.category === group);
           if (!groupLists.length) return null;
           return (
             <section key={group} aria-label={group === "Övrigt" ? "Listor utan kategori" : group}>
-              {group !== "Övrigt" && <div className="card-heading"><h2>{group}</h2></div>}
+              {group !== "Övrigt" && <div className="card-heading"><h2><span aria-hidden="true">{categoryEmoji[group]}</span> {group}</h2></div>}
               {groupLists.map(list => (
                 <div className="section-row" key={list.id}>
                   <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
