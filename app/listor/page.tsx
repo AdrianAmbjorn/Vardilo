@@ -5,9 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const categories = ["Mathandling", "Storhelg", "Fest", "Övrigt"] as const;
+const categories = ["Mathandling", "Storhelg", "Fest"] as const;
 type Category = typeof categories[number];
-type FamilyList = { id: string; name: string; category: Category };
+type FamilyList = { id: string; name: string; category: Category | "Övrigt" };
 
 function categoryOptions() {
   return categories.map(category => <option key={category}>{category}</option>);
@@ -24,7 +24,7 @@ export default function ListsPage() {
   const [lists, setLists] = useState<FamilyList[]>([]);
   const [selected, setSelected] = useState<OpenList | null>(null);
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>("Övrigt");
+  const [category, setCategory] = useState<Category | "">("");
   const [item, setItem] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -80,7 +80,7 @@ export default function ListsPage() {
 
   function addList(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!member || !name.trim()) return;
+    if (!member || !name.trim() || !category) return;
     void run(async () => {
       const { data, error } = await supabase.from("family_lists")
         .insert({ family_id: member.family_id, name: name.trim(), category, created_by: member.userId })
@@ -88,7 +88,7 @@ export default function ListsPage() {
       if (error) throw error;
       setLists(current => [...current, data]);
       setName("");
-      setCategory("Övrigt");
+      setCategory("");
     }, "Kunde inte skapa listan. Försök igen.");
   }
 
@@ -186,20 +186,21 @@ export default function ListsPage() {
             </label>
             <label className="family-admin-field">
               <span>Kategori</span>
-              <select style={typedText} value={category} onChange={event => setCategory(event.target.value as Category)} disabled={busy}>
+              <select style={typedText} value={category} onChange={event => setCategory(event.target.value as Category | "")} disabled={busy} required>
+                <option value="" disabled>Välj kategori</option>
                 {categoryOptions()}
               </select>
             </label>
-            <button className="primary" disabled={busy || !name.trim()}>+ Skapa lista</button>
+            <button className="primary" disabled={busy || !name.trim() || !category}>+ Skapa lista</button>
           </form>
         )}
         {error && <div className="section-row"><p role="alert">{error}</p></div>}
-        {categories.map(group => {
+        {[...categories, "Övrigt"].map(group => {
           const groupLists = lists.filter(list => list.category === group);
           if (!groupLists.length) return null;
           return (
-            <section key={group} aria-label={group}>
-              <div className="card-heading"><h2>{group}</h2></div>
+            <section key={group} aria-label={group === "Övrigt" ? "Listor utan kategori" : group}>
+              {group !== "Övrigt" && <div className="card-heading"><h2>{group}</h2></div>}
               {groupLists.map(list => (
                 <div className="section-row" key={list.id}>
                   <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
@@ -214,7 +215,8 @@ export default function ListsPage() {
             <div className="family-admin-form">
               <label className="family-admin-field">
                 <span>Byt kategori</span>
-                <select style={typedText} value={selected.category} onChange={event => changeCategory(selected, event.target.value as Category)} disabled={busy}>
+                <select style={typedText} value={selected.category === "Övrigt" ? "" : selected.category} onChange={event => changeCategory(selected, event.target.value as Category)} disabled={busy}>
+                  <option value="" disabled>Välj kategori</option>
                   {categoryOptions()}
                 </select>
               </label>
