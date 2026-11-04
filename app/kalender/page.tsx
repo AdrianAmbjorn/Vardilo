@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { calendarImportId, parseCalendarFile } from "@/lib/calendar-import";
 import { createClient } from "@/lib/supabase/client";
 
 type FamilyMember = { id: string; display_name: string; color: string };
@@ -102,6 +103,11 @@ export default function CalendarPage() {
   const [responding, setResponding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingBreak, setDeletingBreak] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [calendarFile, setCalendarFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importResult, setImportResult] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(() => formValues());
   const [breakForm, setBreakForm] = useState({ title: "", break_type: "lov", starts_on: dateKey(new Date()), ends_on: dateKey(new Date()) });
@@ -177,6 +183,41 @@ export default function CalendarPage() {
   }
   function movePeriod(direction: number) { if (view === "month") setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + direction, 1)); else { const next = new Date(currentMonth); next.setDate(next.getDate() + direction * 7); setCurrentMonth(next); } }
   function goToday() { setCurrentMonth(new Date()); }
+
+  async function importCalendar(event: React.FormEvent) {
+    event.preventDefault();
+    if (!calendarFile || !familyId || !currentMemberId || importing) return;
+    setImporting(true);
+    setImportError("");
+    setImportResult("");
+    try {
+      if (calendarFile.size > 2_000_000) throw new Error("Kalenderfilen får vara högst 2 MB.");
+      const { rows, skipped, omittedReminders } = parseCalendarFile(await calendarFile.text());
+      if (!rows.length) throw new Error("Filen innehåller inga aktiviteter som kan importeras.");
+      if (rows.length > 500) throw new Error("Exportera högst 500 aktiviteter per fil.");
+      const payload = await Promise.all([...new Map(rows.map(row => [row.uid, row])).values()].map(async ({ uid, ...row }) => ({
+        ...row,
+        id: await calendarImportId(familyId, uid),
+        family_id: familyId,
+        category: "annat",
+        responsible_member_id: row.reminder_minutes === null ? null : currentMemberId,
+        assignment_status: row.reminder_minutes === null ? "pending" : "accepted",
+      })));
+      const { data, error } = await supabase.from("calendar_events")
+        .upsert(payload, { onConflict: "id", ignoreDuplicates: true }).select("id,starts_at");
+      if (error) throw new Error("Kunde inte spara importen. Försök igen.");
+      const imported = data?.length ?? 0;
+      setImportResult(`Importerade ${imported} aktiviteter. ${rows.length - imported} dubbletter hoppades över. ${skipped} aktiviteter och extra eller osparbara påminnelser för ${omittedReminders} aktiviteter hoppades över.`);
+      setShowImport(false);
+      setCalendarFile(null);
+      await loadCalendar();
+      if (data?.length) setCurrentMonth(new Date(data[0].starts_at));
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Kunde inte läsa kalenderfilen.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
@@ -254,7 +295,26 @@ export default function CalendarPage() {
   const toggleDay = (day: number) => setForm({ ...form, recurrence_days: form.recurrence_days.includes(day) ? form.recurrence_days.filter((item) => item !== day) : [...form.recurrence_days, day].sort((a, b) => a - b) });
 
   return <main className="section-shell">
-    <header className="section-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div style={{ display: "flex", gap: 8 }}><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
+    <header className="section-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="secondary" type="button" disabled={!familyId} onClick={() => { setImportError(""); setCalendarFile(null); setShowImport(true); }}>Importera kalender</button><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
+    {importResult && <p role="status" className="section-row">{importResult}</p>}
+    {showImport && (
+      <div className="calendar-modal-backdrop">
+        <form className="calendar-modal" onSubmit={importCalendar}>
+          <h2>Importera kalender</h2>
+          <p>Välj en .ics-fil. Aktiviteterna blir synliga för familjen. Stödda påminnelser kopplas till dig.</p>
+          <p className="muted">Importen är en engångskopia. Återkommande aktiviteter hoppas över.</p>
+          <label className="calendar-field">
+            <span>Kalenderfil (.ics)</span>
+            <input type="file" accept=".ics,text/calendar" required disabled={importing} onChange={event => setCalendarFile(event.target.files?.[0] ?? null)} />
+          </label>
+          {importError && <p role="alert" className="family-admin-error">{importError}</p>}
+          <div className="calendar-modal-actions">
+            <button type="button" className="secondary" disabled={importing} onClick={() => setShowImport(false)}>Avbryt</button>
+            <button type="submit" className="primary" disabled={!calendarFile || importing}>{importing ? "Importerar..." : "Importera"}</button>
+          </div>
+        </form>
+      </div>
+    )}
     <section className="calendar-card">
       <div className="calendar-toolbar" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 14 }}><div className="calendar-navigation"><button type="button" onClick={() => movePeriod(-1)}>‹</button><button type="button" onClick={goToday}>Idag</button><button type="button" onClick={() => movePeriod(1)}>›</button></div><h2 style={{ margin: 0, color: "#102a43", fontSize: 20, lineHeight: 1.2, textAlign: "center", minWidth: 180, whiteSpace: "nowrap" }}>{view === "month" ? monthLabel(currentMonth) : `${currentWeek[0].getDate()}–${currentWeek[6].getDate()} ${new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(currentWeek[6])}`}</h2><div style={{ display: "flex", gap: 6, alignItems: "center", justifySelf: "end" }}><button type="button" style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button><button type="button" style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button></div></div>
       {view === "month" ? <><div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div><div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); const outside = day.getMonth() !== currentMonth.getMonth(); return <div key={key} className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)} aria-label={`Lägg till aktivitet ${key}`}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "4px 5px", marginBottom: 4, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} style={eventStyle(item)} key={item.id} onClick={() => openEdit(item)}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}{item.responsible_member_id && <span style={assignmentIconStyle(item)} title={assignmentLabel(item)}>{assignmentIcon(item)}</span>}</button>)}{dayEvents.length > 3 && <span className="calendar-more">+ {dayEvents.length - 3} till</span>}</span></div>; })}</div></> : <><div className="calendar-weekdays">{currentWeek.map((day, i) => <div key={dateKey(day)}>{weekdays[i]} {day.getDate()}</div>)}</div><div className="calendar-week-grid" style={weekGridStyle}>{currentWeek.map((day, index) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); return <div key={key} className={`calendar-week-day ${key === todayKey ? "today" : ""}`} style={{ ...weekDayStyle, ...(index === 6 ? { borderRight: 0 } : {}) }}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "5px 6px", marginBottom: 6, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.map((item) => <button type="button" className="calendar-event-pill" style={eventStyle(item)} key={item.id} onClick={() => openEdit(item)}>{item.all_day ? "" : `${timeLabel(item.starts_at)} `}{item.title}{item.responsible_member_id && <span style={assignmentIconStyle(item)} title={assignmentLabel(item)}>{assignmentIcon(item)}</span>}</button>)}</span></div>; })}</div></>}
