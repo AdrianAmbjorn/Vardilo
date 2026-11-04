@@ -331,6 +331,10 @@ export default function CalendarPage() {
       setError("Sluttiden måste vara efter starttiden.");
       return;
     }
+    const wasFamilySurprise = editingEvent?.category === "överraskning" &&
+      editingEvent.visible_to_children && !editingEvent.audience_member_ids;
+    if (form.category === "överraskning" && form.visibility === "family" && !wasFamilySurprise &&
+        !window.confirm("Hela familjen kan se överraskningen. Vill du spara den så?")) return;
     setSaving(true); setError("");
     const responsibleChanged = editingEvent ? editingEvent.responsible_member_id !== (form.responsible_member_id || null) : true;
     const payload: Record<string, unknown> = {
@@ -497,6 +501,12 @@ export default function CalendarPage() {
       )}
       <div className="calendar-form-row"><label className="calendar-field"><span>Gäller vem?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem aktiviteten handlar om.</small><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">{form.visibility === "family" ? "Hela familjen" : form.visibility === "adults" ? "Alla vuxna" : "Valda personer"}</option>{eligibleMembers.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Vem ansvarar?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem som ska ta ansvar.</small><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{eligibleMembers.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
       <label className="calendar-field"><span>Vilken typ?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Kategori för aktiviteten.</small><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label>
+      {form.category === "överraskning" && form.visibility === "family" && (
+        <p className="muted">
+          Hela familjen kan se överraskningen.
+          {canSetVisibility && " Välj Bara vuxna eller Valda personer under Vem kan se aktiviteten? om du vill begränsa vem som ser den."}
+        </p>
+      )}
       <label className="calendar-field"><span>När ska påminnelsen komma?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Påminnelsen kopplas till den ansvariga personen.</small><select value={form.reminder_minutes} onChange={(e) => setForm({ ...form, reminder_minutes: e.target.value })}>{reminderOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <div style={{ borderTop: "1px solid #dbe3ea", marginTop: 6, paddingTop: 14 }}><label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: "#102a43", fontSize: 13 }}><input type="checkbox" checked={form.recurrence_enabled} onChange={(e) => setForm({ ...form, recurrence_enabled: e.target.checked, recurrence_days: e.target.checked && form.recurrence_days.length === 0 ? [((new Date(`${form.date}T12:00:00`).getDay() + 6) % 7)] : form.recurrence_days })} /> Återkommande aktivitet</label>{form.recurrence_enabled && <div style={{ marginTop: 10 }}><div style={{ color: "#6b7b8c", fontSize: 11, marginBottom: 6 }}>Välj vilka veckodagar aktiviteten ska återkomma.</div><div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>{weekdays.map((day, index) => <button key={day} type="button" onClick={() => toggleDay(index)} style={{ border: form.recurrence_days.includes(index) ? "1px solid #0b2d4d" : "1px solid #dbe3ea", background: form.recurrence_days.includes(index) ? "#0b2d4d" : "#ffffff", color: form.recurrence_days.includes(index) ? "#ffffff" : "#102a43", borderRadius: 7, padding: "7px 2px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>{day}</button>)}</div><label className="calendar-field" style={{ marginTop: 10 }}><span>Återkom till och med</span><input type="date" required={form.recurrence_enabled} value={form.recurrence_end_date} min={form.date} onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })} /></label></div>}</div>
       <div style={{ marginTop: 8, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Färg i kalendern följer den som aktiviteten gäller. En färgad markering på kanten visar vem som är ansvarig.</div>
