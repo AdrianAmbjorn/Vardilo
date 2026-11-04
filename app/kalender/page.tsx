@@ -137,6 +137,7 @@ export default function CalendarPage() {
   const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showBreakForm, setShowBreakForm] = useState(false);
+  const [copyingEvent, setCopyingEvent] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [editingBreak, setEditingBreak] = useState<CalendarBreak | null>(null);
   const [saving, setSaving] = useState(false);
@@ -255,8 +256,9 @@ export default function CalendarPage() {
     return { background: targetColor.background, color: targetColor.text, borderLeft: responsibleColor ? `6px solid ${responsibleColor.background}` : undefined, boxShadow: responsibleColor ? `inset -5px 0 0 ${responsibleColor.background}` : undefined };
   };
 
-  function openAdd(date?: Date) { setEditingEvent(null); setForm(formValues(undefined, date)); setError(""); setShowForm(true); }
+  function openAdd(date?: Date) { setCopyingEvent(false); setEditingEvent(null); setForm(formValues(undefined, date)); setError(""); setShowForm(true); }
   function openEdit(event: CalendarEvent) {
+    setCopyingEvent(false);
     const original = events.find((item) => event.id.startsWith(`${item.id}-`) || item.id === event.id) ?? event;
     setEditingEvent(original);
     setForm(formValues(original, new Date(event.starts_at)));
@@ -321,6 +323,29 @@ export default function CalendarPage() {
       target_member_id: eligible(form.target_member_id) ? form.target_member_id : "",
       responsible_member_id: eligible(form.responsible_member_id) ? form.responsible_member_id : "",
     });
+  }
+
+  function copyActivity() {
+    if (!editingEvent || readOnly) return;
+    setForm({
+      ...formValues(editingEvent),
+      recurrence_enabled: false,
+      recurrence_days: [],
+      recurrence_end_date: "",
+    });
+    setEditingEvent(null);
+    setCopyingEvent(true);
+    setError("");
+  }
+
+  function changeActivityDate(date: string) {
+    if (!copyingEvent || !date || !form.date) {
+      setForm({ ...form, date });
+      return;
+    }
+    const offset = Date.parse(date) - Date.parse(form.date);
+    const shift = (value: string) => value ? new Date(Date.parse(value) + offset).toISOString().slice(0, 10) : "";
+    setForm({ ...form, date, end_date: shift(form.end_date), last_day: shift(form.last_day) });
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -557,6 +582,7 @@ export default function CalendarPage() {
       {editingEvent && restrictedAudience(editingEvent) && (
         <p className="muted"><span aria-hidden="true">🔒 </span>Synlig för {restrictedAudience(editingEvent)?.toLowerCase()}.</p>
       )}
+      {copyingEvent && <p className="muted">Du redigerar en ny kopia. Välj datum innan du sparar.</p>}
       {readOnly && <p className="muted">Bara den som publicerade aktiviteten kan redigera den.</p>}
       <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label>
@@ -564,7 +590,7 @@ export default function CalendarPage() {
         <input type="checkbox" checked={form.all_day} onChange={event => setForm({ ...form, all_day: event.target.checked })} />
         <span>Heldag</span>
       </label>
-      <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>{!form.all_day && <label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label>}</div>
+      <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={event => changeActivityDate(event.target.value)} /></label>{!form.all_day && <label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label>}</div>
       {form.all_day ? (
         <label className="calendar-field">
           <span>Sista dagen (valfritt)</span>
@@ -626,7 +652,13 @@ export default function CalendarPage() {
       <div style={{ marginTop: 8, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Färg i kalendern följer den som aktiviteten gäller. En färgad markering på kanten visar vem som är ansvarig.</div>
       </fieldset>
       {editingEvent?.responsible_member_id && <div style={{ border: "1px solid #dbe3ea", borderRadius: 10, padding: "10px 12px", marginBottom: 10, background: "#f8fafb" }}><strong>Ansvar:</strong> {memberById.get(editingEvent.responsible_member_id)?.display_name ?? "Familjemedlem"}<div style={{ marginTop: 3, color: "#6b7b8c", fontSize: 12 }}>{assignmentLabel(editingEvent)}.</div>{editingEvent.assignment_status === "pending" && editingEvent.responsible_member_id === currentMemberId && <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button type="button" className="secondary" onClick={() => void respondToAssignment("declined")} disabled={responding}>{responding ? "Sparar..." : "Avböj"}</button><button type="button" className="primary" onClick={() => void respondToAssignment("accepted")} disabled={responding}>{responding ? "Sparar..." : "Acceptera"}</button></div>}</div>}
-      <div className="calendar-modal-actions">{editingEvent && !readOnly && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving || responding}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={readOnly || saving || deleting || responding}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
+      <div className="calendar-modal-actions">
+        {editingEvent && !readOnly && (
+          <button className="secondary" type="button" onClick={copyActivity} disabled={deleting || saving || responding}>
+            Kopiera aktivitet
+          </button>
+        )}
+        {editingEvent && !readOnly && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving || responding}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={readOnly || saving || deleting || responding}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
     </form></div>}
 
     {showBreakForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSaveBreak}><div className="calendar-modal-heading"><div><p className="eyebrow">LOV & STUDIEDAGAR</p><h2>{editingBreak ? "Redigera ledighet" : "Markera ledighet"}</h2></div><button type="button" onClick={() => { setShowBreakForm(false); setEditingBreak(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}<p className="muted" style={{ marginBottom: 16 }}>Markera en hel vecka eller flera dagar på en gång. Detta blir en tydlig markering i familjens kalender.</p><label className="calendar-field"><span>Namn</span><input autoFocus required value={breakForm.title} onChange={(e) => setBreakForm({ ...breakForm, title: e.target.value })} placeholder="T.ex. Höstlov" /></label><label className="calendar-field"><span>Typ</span><select value={breakForm.break_type} onChange={(e) => setBreakForm({ ...breakForm, break_type: e.target.value })}>{breakTypes.map((type) => <option key={type} value={type}>{type === "lov" ? "Lov" : type === "studiedag" ? "Studiedag" : "Annat"}</option>)}</select></label><div className="calendar-form-row"><label className="calendar-field"><span>Från</span><input type="date" required value={breakForm.starts_on} onChange={(e) => setBreakForm({ ...breakForm, starts_on: e.target.value })} /></label><label className="calendar-field"><span>Till</span><input type="date" required value={breakForm.ends_on} onChange={(e) => setBreakForm({ ...breakForm, ends_on: e.target.value })} /></label></div><div className="calendar-modal-actions">{editingBreak && <button className="secondary" type="button" onClick={handleDeleteBreak} disabled={deletingBreak || savingBreak}>{deletingBreak ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowBreakForm(false); setEditingBreak(null); }}>Avbryt</button><button className="primary" type="submit" disabled={savingBreak || deletingBreak}>{savingBreak ? "Sparar..." : editingBreak ? "Spara ändringar" : "Spara ledighet"}</button></div></form></div>}
