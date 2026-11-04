@@ -69,10 +69,13 @@ function weekDays(date: Date) {
 function timeLabel(value: string) { return new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
 function formValues(event?: CalendarEvent, date?: Date) {
   const target = event ? new Date(event.starts_at) : (date ?? new Date());
+  const end = event?.ends_at ? new Date(event.ends_at) : null;
   return {
     title: event?.title ?? "",
     date: dateKey(target),
     time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
+    end_date: end ? dateKey(end) : "",
+    end_time: end ? `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}` : "",
     location: event?.location ?? "",
     description: event?.description ?? "",
     category: event?.category ?? "familj",
@@ -249,12 +252,26 @@ export default function CalendarPage() {
     if (!familyId || !form.title.trim()) return;
     if (form.recurrence_enabled && (!form.recurrence_end_date || form.recurrence_days.length === 0)) { setError("Välj minst en veckodag och ett slutdatum för den återkommande aktiviteten."); return; }
     if (form.recurrence_enabled && form.recurrence_end_date < form.date) { setError("Slutdatum kan inte vara före startdatum."); return; }
+    const original = editingEvent ? formValues(editingEvent) : null;
+    const start = new Date(editingEvent && original?.date === form.date && original.time === form.time
+      ? editingEvent.starts_at
+      : `${form.date}T${form.time}:00`);
+    const end = form.end_time ? new Date(editingEvent?.ends_at && original?.end_date === form.end_date && original.end_time === form.end_time
+      ? editingEvent.ends_at
+      : `${form.end_date || form.date}T${form.end_time}:00`) : null;
+    if (!Number.isFinite(start.getTime()) || (end && !Number.isFinite(end.getTime()))) {
+      setError("Ange ett giltigt datum och klockslag.");
+      return;
+    }
+    if (end && end <= start) {
+      setError("Sluttiden måste vara efter starttiden.");
+      return;
+    }
     setSaving(true); setError("");
-    const startsAt = new Date(`${form.date}T${form.time}:00`).toISOString();
     const responsibleChanged = editingEvent ? editingEvent.responsible_member_id !== (form.responsible_member_id || null) : true;
     const payload: Record<string, unknown> = {
       title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null,
-      starts_at: startsAt, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null,
+      starts_at: start.toISOString(), ends_at: end?.toISOString() ?? null, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null,
       category: form.category, reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
       recurrence_enabled: form.recurrence_enabled, recurrence_days: form.recurrence_enabled ? form.recurrence_days : [], recurrence_end_date: form.recurrence_enabled ? form.recurrence_end_date : null,
     };
@@ -354,6 +371,19 @@ export default function CalendarPage() {
     {showForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSave}><div className="calendar-modal-heading"><div><p className="eyebrow">{editingEvent ? "AKTIVITET" : "NY AKTIVITET"}</p><h2>{editingEvent ? "Redigera aktivitet" : "Lägg till i kalendern"}</h2></div><button type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}
       <label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label>
       <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div>
+      <div className="calendar-form-row">
+        <label className="calendar-field">
+          <span>Slutdatum (valfritt)</span>
+          <input type="date" min={form.date} value={form.end_date} onChange={event => setForm({ ...form, end_date: event.target.value })} />
+        </label>
+        <label className="calendar-field">
+          <span>Sluttid (valfritt)</span>
+          <input type="time" required={Boolean(form.end_date)} value={form.end_time} onChange={event => setForm({ ...form, end_time: event.target.value })} />
+        </label>
+      </div>
+      {(form.end_date || form.end_time) && (
+        <button type="button" className="secondary" onClick={() => setForm({ ...form, end_date: "", end_time: "" })}>Rensa sluttid</button>
+      )}
       <label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label>
       <label className="calendar-field"><span>Beskrivning</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Valfri information" rows={3} /></label>
       <div className="calendar-form-row"><label className="calendar-field"><span>Gäller vem?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem aktiviteten handlar om.</small><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">Hela familjen</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Vem ansvarar?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem som ska ta ansvar.</small><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
