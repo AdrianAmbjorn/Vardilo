@@ -10,7 +10,7 @@ function localDate(value:string){const d=new Date(value);return `${d.getFullYear
 
 export default function TasksPage(){
  const supabase=useMemo(()=>createClient(),[]);
- const [member,setMember]=useState<{id:string;family_id:string}|null>(null);
+ const [member,setMember]=useState<{id:string;family_id:string;role:string}|null>(null);
  const [members,setMembers]=useState<Member[]>([]);
  const [tasks,setTasks]=useState<Task[]>([]);
  const [title,setTitle]=useState("");
@@ -32,7 +32,7 @@ export default function TasksPage(){
  async function load(){
   const {data:u,error:authError}=await supabase.auth.getUser();
   if(authError||!u.user){setError("Logga in för att se uppgifterna.");setLoading(false);return}
-  const {data:m,error:memberError}=await supabase.from("family_members").select("id,family_id").eq("user_id",u.user.id).maybeSingle();
+  const {data:m,error:memberError}=await supabase.from("family_members").select("id,family_id,role").eq("user_id",u.user.id).maybeSingle();
   if(memberError||!m){setError("Kunde inte hitta din familj.");setLoading(false);return}
   setMember(m);
   const [ms,ts]=await Promise.all([
@@ -74,11 +74,15 @@ export default function TasksPage(){
   if(!a.due_at&&b.due_at)return 1;
   return a.due_at&&b.due_at?new Date(a.due_at).getTime()-new Date(b.due_at).getTime():0;
  });
+ const myXp=tasks.filter(t=>t.completed_at&&t.assigned_member_id===member?.id).reduce((s,t)=>s+t.xp,0);
+ const myOpen=tasks.filter(t=>!t.completed_at&&t.assigned_member_id===member?.id).length;
+ const myGoal=500;
  const total=tasks.reduce((s,t)=>s+(t.completed_at?t.xp:0),0);
  const completed=tasks.filter(t=>t.completed_at).length;
  const leaderboard=members.map(m=>({id:m.id,name:m.display_name,xp:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).reduce((sum,t)=>sum+t.xp,0),done:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).length,open:tasks.filter(t=>!t.completed_at&&t.assigned_member_id===m.id).length})).sort((a,b)=>b.xp-a.xp||a.name.localeCompare(b.name,"sv"));
  return <main className="section-shell"><header className="section-header"><div><p className="eyebrow">VARDILO</p><h1>Uppgifter</h1><p className="muted">Ansvar, uppgifter och XP för familjen.</p></div><Link className="secondary" href="/">Hem</Link></header>
  <section className="section-card">
+ {member?.role==="barn"&&<div style={{padding:"22px",background:"#edf7ef",color:"#102a43",borderBottom:"1px solid var(--line)"}}><h2 style={{fontSize:20,margin:0,color:"#102a43"}}>Mina XP</h2><p style={{fontSize:30,fontWeight:800,margin:"8px 0",color:"#102a43"}}>{myXp} / {myGoal} XP</p><div role="progressbar" aria-label="Mitt XP-mål" aria-valuemin={0} aria-valuemax={myGoal} aria-valuenow={Math.min(myXp,myGoal)} style={{height:12,background:"#d5e4da",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,myXp/myGoal*100)}%`,background:"#3f7d4a",borderRadius:20}}/></div><p style={{fontSize:13,margin:"10px 0 0",color:"#102a43"}}>{myXp>=myGoal?"Du har nått ditt mål!":`${myGoal-myXp} XP kvar till målet`} · {myOpen} uppgifter kvar</p></div>}
  <div className="family-admin-form" style={{display:"grid",gap:12}}>
   <label className="family-admin-field"><span>Ny uppgift</span><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="T.ex. Plocka undan efter middag"/></label>
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
