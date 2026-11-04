@@ -41,6 +41,7 @@ export default function ListsPage() {
   const [item, setItem] = useState("");
   const [listName, setListName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<{ listId: string; itemId?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
@@ -107,6 +108,7 @@ export default function ListsPage() {
   }
 
   function open(list: FamilyList) {
+    setDeleteTarget(null);
     void run(async () => {
       const { data, error } = await supabase.from("family_list_items")
         .select("id,text,completed").eq("list_id", list.id).order("created_at");
@@ -158,24 +160,25 @@ export default function ListsPage() {
   }
 
   function removeList(list: OpenList) {
-    if (!member || !window.confirm(`Ta bort listan ”${list.name}” och alla dess punkter permanent?`)) return;
+    if (!member) return;
     void run(async () => {
       const { error } = await supabase.from("family_lists").delete()
         .eq("id", list.id).eq("family_id", member.family_id).select("id").single();
       if (error) throw error;
       setLists(current => current.filter(entry => entry.id !== list.id));
       setSelected(null);
+      setDeleteTarget(null);
       setItem("");
     }, "Kunde inte ta bort listan. Försök igen.");
   }
 
   function removeItem(list: OpenList, entry: ListItem) {
-    if (!window.confirm(`Ta bort ”${entry.text}” permanent?`)) return;
     void run(async () => {
       const { error } = await supabase.from("family_list_items").delete()
         .eq("id", entry.id).eq("list_id", list.id).select("id").single();
       if (error) throw error;
       setSelected({ ...list, items: list.items.filter(item => item.id !== entry.id) });
+      setDeleteTarget(null);
     }, "Kunde inte ta bort listpunkten. Försök igen.");
   }
 
@@ -188,6 +191,18 @@ export default function ListsPage() {
       if (error) throw error;
       setSelected({ ...selected, items: selected.items.map(item => item.id === data.id ? data : item) });
     }, "Kunde inte ändra listpunkten. Försök igen.");
+  }
+
+  function confirmRemoval(message: string, onConfirm: () => void) {
+    return (
+      <div style={{ flexBasis: "100%", padding: 10, border: "1px solid var(--line)", borderRadius: 10 }}>
+        <p role="status" style={{ margin: "0 0 8px" }}>{message}</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button className="secondary" type="button" onClick={() => setDeleteTarget(null)} disabled={busy}>Avbryt</button>
+          <button className="secondary" type="button" onClick={onConfirm} disabled={busy}>Bekräfta borttagning</button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -259,17 +274,19 @@ export default function ListsPage() {
                   {categoryOptions()}
                 </select>
               </label>
-              <button className="secondary" onClick={() => removeList(selected)} disabled={busy}>
+              <button className="secondary" type="button" onClick={() => setDeleteTarget({ listId: selected.id })} disabled={busy}>
                 Ta bort listan
               </button>
             </div>
+            {deleteTarget?.listId === selected.id && !deleteTarget.itemId &&
+              confirmRemoval(`Ta bort listan ”${selected.name}” och alla dess punkter?`, () => removeList(selected))}
             <form className="family-admin-form" onSubmit={addItem}>
               <input aria-label="Ny listpunkt" style={typedText} value={item} onChange={event => setItem(event.target.value)} placeholder="Lägg till listpunkt" disabled={busy} />
               <button className="primary" disabled={busy || !item.trim()}>+ Lägg till</button>
             </form>
             {!selected.items.length && <div className="section-row"><p className="muted">Listan är tom.</p></div>}
             {selected.items.map(entry => (
-              <div className="task-row" key={entry.id}>
+              <div className="task-row" key={entry.id} style={{ flexWrap: "wrap" }}>
                 <span aria-hidden="true" style={{ color: "var(--muted)", flexShrink: 0 }}>*</span>
                 <input
                   type="checkbox"
@@ -279,16 +296,19 @@ export default function ListsPage() {
                   disabled={busy}
                   style={{ accentColor: "#334155", width: 18, height: 18, margin: 0, flexShrink: 0 }}
                 />
-                <strong style={{ ...typedText, textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
+                <strong style={{ ...typedText, flex: "1 1 80px", minWidth: 0, overflowWrap: "anywhere", textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
                 <button
                   className="secondary"
                   aria-label={`Ta bort ${entry.text}`}
-                  onClick={() => removeItem(selected, entry)}
+                  type="button"
+                  onClick={() => setDeleteTarget({ listId: selected.id, itemId: entry.id })}
                   disabled={busy}
-                  style={{ marginLeft: "auto" }}
+                  style={{ marginLeft: "auto", minHeight: 44, flexShrink: 0 }}
                 >
                   Ta bort
                 </button>
+                {deleteTarget?.listId === selected.id && deleteTarget.itemId === entry.id &&
+                  confirmRemoval(`Ta bort ”${entry.text}”?`, () => removeItem(selected, entry))}
               </div>
             ))}
           </div>
