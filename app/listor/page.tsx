@@ -1,3 +1,181 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";import Link from "next/link";import {createClient} from "@/lib/supabase/client";
-export default function ListsPage(){const s=useMemo(()=>createClient(),[]);const [m,setM]=useState<any>(null);const [lists,setLists]=useState<any[]>([]);const [selected,setSelected]=useState<any>(null);const [name,setName]=useState("");const [item,setItem]=useState("");async function load(){const {data:u}=await s.auth.getUser();if(!u.user)return;const {data:me}=await s.from("family_members").select("id,family_id").eq("user_id",u.user.id).maybeSingle();if(!me)return;setM(me);const {data:ls}=await s.from("family_lists").select("id,name").eq("family_id",me.family_id).order("created_at");setLists(ls??[])}useEffect(()=>{load()},[s]);async function addList(){if(!m||!name.trim())return;await s.from("family_lists").insert({family_id:m.family_id,name:name.trim(),created_by:(await s.auth.getUser()).data.user?.id});setName("");load()}async function addItem(){if(!selected||!item.trim())return;await s.from("family_list_items").insert({list_id:selected.id,text:item.trim(),created_by_member_id:m.id});setItem("");open(selected)}async function open(l:any){const {data:items}=await s.from("family_list_items").select("id,text,completed").eq("list_id",l.id).order("created_at");setSelected({...l,items:items??[]})}async function toggle(i:any){await s.from("family_list_items").update({completed:!i.completed}).eq("id",i.id);open(selected)}const typedText={color:"#102a43",WebkitTextFillColor:"#102a43",caretColor:"#102a43"} as const;return <main className="section-shell"><style>{`.section-card input,.section-card textarea,.section-card select{color:#102a43!important;-webkit-text-fill-color:#102a43!important;caret-color:#102a43!important}.section-card .task-row strong{color:#102a43!important;-webkit-text-fill-color:#102a43!important}`}</style><header className="section-header"><div><p className="eyebrow">VARDILO</p><h1>Listor</h1><p className="muted">Gemensamma listor för familjen.</p></div><Link className="secondary" href="/">Hem</Link></header><section className="section-card"><div className="family-admin-form"><label className="family-admin-field"><span>Ny lista</span><input style={typedText} value={name} onChange={e=>setName(e.target.value)} placeholder="T.ex. Matbutiken"/></label><button className="primary" onClick={addList}>+ Skapa lista</button></div>{lists.map(l=><div className="section-row" key={l.id}><button className="secondary" onClick={()=>open(l)}>{l.name}</button></div>)}{selected&&<div style={{marginTop:24}}><div className="card-heading"><h3>{selected.name}</h3></div><div className="family-admin-form"><input style={typedText} value={item} onChange={e=>setItem(e.target.value)} placeholder="Lägg till listpunkt"/><button className="primary" onClick={addItem}>+ Lägg till</button></div>{selected.items.map((i:any)=><div className="task-row" key={i.id}><button className="check" onClick={()=>toggle(i)}>{i.completed?"✓":""}</button><strong style={{textDecoration:i.completed?"line-through":"none",...typedText}}>{i.text}</strong></div>)}</div>}</section></main>}
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+type FamilyList = { id: string; name: string };
+type ListItem = { id: string; text: string; completed: boolean };
+type OpenList = FamilyList & { items: ListItem[] };
+type Member = { id: string; family_id: string; userId: string };
+
+const typedText = { color: "#102a43", WebkitTextFillColor: "#102a43", caretColor: "#102a43" };
+
+export default function ListsPage() {
+  const supabase = useMemo(() => createClient(), []);
+  const [member, setMember] = useState<Member | null>(null);
+  const [lists, setLists] = useState<FamilyList[]>([]);
+  const [selected, setSelected] = useState<OpenList | null>(null);
+  const [name, setName] = useState("");
+  const [item, setItem] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [error, setError] = useState("");
+  const operation = useRef(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (!auth.user && (!authError || authError.name === "AuthSessionMissingError")) {
+        setLoadError("Logga in för att se familjens listor.");
+        return;
+      }
+      if (authError || !auth.user) throw authError;
+      const { data: profile, error: profileError } = await supabase.from("family_members")
+        .select("id,family_id").eq("user_id", auth.user.id).maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile) {
+        setLoadError("Ditt konto behöver vara kopplat till en familj för att visa listor.");
+        return;
+      }
+      const { data, error } = await supabase.from("family_lists")
+        .select("id,name").eq("family_id", profile.family_id).order("created_at");
+      if (error) throw error;
+      setMember({ ...profile, userId: auth.user.id });
+      setLists(data ?? []);
+    } catch {
+      setLoadError("Kunde inte hämta familjens listor.");
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  async function run(action: () => Promise<void>, message: string) {
+    if (operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch {
+      setError(message);
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
+  }
+
+  function addList(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!member || !name.trim()) return;
+    void run(async () => {
+      const { data, error } = await supabase.from("family_lists")
+        .insert({ family_id: member.family_id, name: name.trim(), created_by: member.userId })
+        .select("id,name").single();
+      if (error) throw error;
+      setLists(current => [...current, data]);
+      setName("");
+    }, "Kunde inte skapa listan. Försök igen.");
+  }
+
+  function open(list: FamilyList) {
+    void run(async () => {
+      const { data, error } = await supabase.from("family_list_items")
+        .select("id,text,completed").eq("list_id", list.id).order("created_at");
+      if (error) throw error;
+      setSelected({ ...list, items: data ?? [] });
+      if (selected?.id !== list.id) setItem("");
+    }, "Kunde inte öppna listan. Försök igen.");
+  }
+
+  function addItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || !member || !item.trim()) return;
+    void run(async () => {
+      const { data, error } = await supabase.from("family_list_items")
+        .insert({ list_id: selected.id, text: item.trim(), created_by_member_id: member.id })
+        .select("id,text,completed").single();
+      if (error) throw error;
+      setSelected({ ...selected, items: [...selected.items, data] });
+      setItem("");
+    }, "Kunde inte lägga till listpunkten. Försök igen.");
+  }
+
+  function toggle(entry: ListItem) {
+    if (!selected) return;
+    void run(async () => {
+      const { data, error } = await supabase.from("family_list_items")
+        .update({ completed: !entry.completed }).eq("id", entry.id).eq("list_id", selected.id)
+        .select("id,text,completed").single();
+      if (error) throw error;
+      setSelected({ ...selected, items: selected.items.map(item => item.id === data.id ? data : item) });
+    }, "Kunde inte ändra listpunkten. Försök igen.");
+  }
+
+  return (
+    <main className="section-shell">
+      <header className="section-header">
+        <div>
+          <p className="eyebrow">VARDILO</p>
+          <h1>Listor</h1>
+          <p className="muted">Gemensamma listor för familjen.</p>
+        </div>
+        <Link className="secondary" href="/">Hem</Link>
+      </header>
+      <section className="section-card">
+        {loading && <div className="section-row"><p role="status">Laddar listor...</p></div>}
+        {loadError && (
+          <div className="section-row">
+            <p role="alert">{loadError}</p>
+            <button className="secondary" onClick={() => void load()}>Försök igen</button>
+          </div>
+        )}
+        {member && (
+          <form className="family-admin-form" onSubmit={addList}>
+            <label className="family-admin-field">
+              <span>Ny lista</span>
+              <input style={typedText} value={name} onChange={event => setName(event.target.value)} placeholder="T.ex. Matbutiken" disabled={busy} />
+            </label>
+            <button className="primary" disabled={busy || !name.trim()}>+ Skapa lista</button>
+          </form>
+        )}
+        {error && <div className="section-row"><p role="alert">{error}</p></div>}
+        {lists.map(list => (
+          <div className="section-row" key={list.id}>
+            <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
+          </div>
+        ))}
+        {selected && (
+          <div style={{ marginTop: 24 }}>
+            <div className="card-heading"><h3>{selected.name}</h3></div>
+            <form className="family-admin-form" onSubmit={addItem}>
+              <input aria-label="Ny listpunkt" style={typedText} value={item} onChange={event => setItem(event.target.value)} placeholder="Lägg till listpunkt" disabled={busy} />
+              <button className="primary" disabled={busy || !item.trim()}>+ Lägg till</button>
+            </form>
+            {!selected.items.length && <div className="section-row"><p className="muted">Listan är tom.</p></div>}
+            {selected.items.map(entry => (
+              <div className="task-row" key={entry.id}>
+                <button
+                  className="check"
+                  aria-label={`Bocka av ${entry.text}`}
+                  aria-pressed={entry.completed}
+                  onClick={() => toggle(entry)}
+                  disabled={busy}
+                >
+                  {entry.completed ? "✓" : ""}
+                </button>
+                <strong style={{ ...typedText, textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
