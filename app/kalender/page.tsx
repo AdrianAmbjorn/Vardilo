@@ -31,7 +31,7 @@ type CalendarEvent = {
 type CalendarBreak = { id: string; title: string; break_type: string; starts_on: string; ends_on: string };
 
 const weekdays = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
-const categories = ["familj", "skola", "träning", "annat"];
+const categories = ["familj", "skola", "träning", "överraskning", "annat"];
 const breakTypes = ["lov", "studiedag", "annat"];
 const reminderOptions = [
   { value: "", label: "Ingen påminnelse" },
