@@ -1,21 +1,25 @@
 :root {
-  --bg: #071d33;
+  --bg: #fbf7ef;
   --surface: #ffffff;
   --text: #102a43;
-  --muted: #64758a;
-  --line: #d9e1e8;
-  --accent: #0b2d4d;
+  --muted: #526477;
+  --line: #e1d9cc;
+  --accent: #102a43;
   --accent-soft: #e8eef4;
   --red: #d52b2b;
   --red-soft: #fbe9e9;
-  --shadow: 0 18px 45px rgba(0, 0, 0, .16);
+  --terracotta: #b85c46;
+  --terracotta-text: #99432f;
+  --sage: #6e8b76;
+  --sage-soft: #e8efe7;
+  --shadow: 0 14px 40px rgba(16, 42, 67, .08);
 }
 
 body { background: var(--bg); }
 .shell { background: var(--bg); }
-.sidebar { background: #061a2d; border-right-color: rgba(255,255,255,.10); }
+.sidebar { background: #102a43; border-right-color: rgba(255,255,255,.10); }
 .brand { color: #ffffff; }
-.brand-mark { background: #ffffff; color: var(--red); border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+.brand-mark { background: #ffffff; color: var(--terracotta); border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .house-icon { width: 23px; height: 23px; display: block; }
 .brand strong { color: #ffffff; }
 .brand span { color: #b9c8d7; }
@@ -29,16 +33,17 @@ body { background: var(--bg); }
 .member small { color: #9eb0c2; }
 .avatar { background: #edf2f6; color: var(--accent); }
 .content { color: var(--text); }
-.topbar h1 { color: #ffffff; }
-.eyebrow { color: #ff5a5a; }
-.red-text { color: #ff5a5a; }
+.topbar h1 { color: var(--text); }
+.eyebrow { color: var(--terracotta-text); }
+.red-text { color: var(--terracotta-text); }
 .profile { background: #ffffff; color: var(--accent); }
 .hero-card, .card, .quick-add, .section-card, .auth-card { box-shadow: var(--shadow); }
-.hero-card, .card, .quick-add { border-color: rgba(255,255,255,.18); }
+.hero-card, .card, .quick-add { border-color: var(--line); }
 .hero-card h2, .card h3 { color: var(--text); }
 .muted { color: var(--muted); }
-.primary { background: var(--red); border-color: var(--red); }
-.secondary { background: #ffffff; color: var(--accent); border-color: #d9e1e8; }
+.primary { background: var(--accent); border-color: var(--accent); }
+.check { background: var(--sage-soft); color: #375443; border: 1px solid var(--sage); }
+.secondary { background: #ffffff; color: var(--accent); border-color: var(--line); }
 .quick-add { color: var(--text); }
 .quick-add a { background: var(--accent-soft); color: var(--accent); }
 .section-shell { background: var(--bg); color: var(--text); }
@@ -46,12 +51,13 @@ body { background: var(--bg); }
 .section-header > .back-link { justify-self: start; }
 .section-header > .secondary { justify-self: end; }
 @media (max-width: 850px) { .section-header { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; } .section-header > .back-link { grid-column: 1 / -1; } }
-/* Dark text is inherited inside light surfaces, while headings remain legible on navy. */
+/* Keep headings legible against the light page and card backgrounds. */
 .hero-card, .card, .quick-add, .section-card, .auth-card, .calendar-card, .calendar-modal, .profile-menu { color: var(--text); }
-.section-header h1, .section-header h2 { color: #ffffff; }
-.back-link { color: #ffffff; }
+.section-header h1, .section-header h2 { color: var(--text); }
+.back-link { color: var(--accent); }
 .auth-shell { background: var(--bg); }
-.auth-brand .brand { color: #ffffff; }
+.auth-brand .brand, .auth-brand .brand strong { color: var(--text); }
+.auth-brand .brand span { color: var(--muted); }
 .auth-card h1, .auth-card h2 { color: var(--text); }
 
 /* All text entered by the user uses Vardilo's blue text. */
