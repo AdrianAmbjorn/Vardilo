@@ -83,9 +83,12 @@ function VisibilityMark({ event }: { event: CalendarEvent }) {
 function formValues(event?: CalendarEvent, date?: Date) {
   const target = event ? new Date(event.starts_at) : (date ?? new Date());
   const end = event?.ends_at ? new Date(event.ends_at) : null;
+  const lastDay = end && event?.all_day ? dateKey(new Date(end.getTime() - 1)) : "";
   return {
     visibility: event?.audience_member_ids ? "selected" : event?.visible_to_children === false ? "adults" : "family",
     audience_member_ids: event?.audience_member_ids ?? [],
+    all_day: event?.all_day ?? false,
+    last_day: lastDay,
     title: event?.title ?? "",
     date: dateKey(target),
     time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
@@ -181,12 +184,20 @@ export default function CalendarPage() {
         if (cursor >= start && event.recurrence_days.includes(mondayIndex)) {
           const occurrence = new Date(cursor);
           occurrence.setHours(start.getHours(), start.getMinutes(), start.getSeconds(), start.getMilliseconds());
-          const duration = event.ends_at ? new Date(event.ends_at).getTime() - start.getTime() : 0;
+          const end = event.ends_at ? new Date(event.ends_at) : null;
+          const duration = end ? end.getTime() - start.getTime() : 0;
+          const occurrenceEnd = new Date(occurrence.getTime() + duration);
+          if (end && event.all_day) {
+            const startDay = Date.parse(dateKey(start));
+            const endDay = Date.parse(dateKey(end));
+            occurrenceEnd.setTime(occurrence.getTime());
+            occurrenceEnd.setDate(occurrence.getDate() + (endDay - startDay) / 86_400_000);
+          }
           result.push({
             ...event,
             id: `${event.id}-${dateKey(occurrence)}`,
             starts_at: occurrence.toISOString(),
-            ends_at: duration > 0 ? new Date(occurrence.getTime() + duration).toISOString() : null,
+            ends_at: duration > 0 ? occurrenceEnd.toISOString() : null,
           });
         }
         cursor.setDate(cursor.getDate() + 1);
@@ -294,12 +305,24 @@ export default function CalendarPage() {
     if (form.recurrence_enabled && (!form.recurrence_end_date || form.recurrence_days.length === 0)) { setError("Välj minst en veckodag och ett slutdatum för den återkommande aktiviteten."); return; }
     if (form.recurrence_enabled && form.recurrence_end_date < form.date) { setError("Slutdatum kan inte vara före startdatum."); return; }
     const original = editingEvent ? formValues(editingEvent) : null;
-    const start = new Date(editingEvent && original?.date === form.date && original.time === form.time
+    const start = new Date(editingEvent && original?.all_day === form.all_day &&
+      original.date === form.date && (form.all_day || original.time === form.time)
       ? editingEvent.starts_at
-      : `${form.date}T${form.time}:00`);
-    const end = form.end_time ? new Date(editingEvent?.ends_at && original?.end_date === form.end_date && original.end_time === form.end_time
-      ? editingEvent.ends_at
-      : `${form.end_date || form.date}T${form.end_time}:00`) : null;
+      : `${form.date}T${form.all_day ? "00:00" : form.time}:00`);
+    let end: Date | null = null;
+    if (form.all_day) {
+      if (form.last_day && form.last_day < form.date) {
+        setError("Sista dagen kan inte vara före startdatum.");
+        return;
+      }
+      end = new Date(`${form.last_day || form.date}T00:00:00`);
+      end.setDate(end.getDate() + 1);
+    } else if (form.end_time) {
+      end = new Date(editingEvent?.ends_at && !original?.all_day &&
+        original?.end_date === form.end_date && original.end_time === form.end_time
+        ? editingEvent.ends_at
+        : `${form.end_date || form.date}T${form.end_time}:00`);
+    }
     if (!Number.isFinite(start.getTime()) || (end && !Number.isFinite(end.getTime()))) {
       setError("Ange ett giltigt datum och klockslag.");
       return;
@@ -315,7 +338,7 @@ export default function CalendarPage() {
       visible_to_children: form.visibility !== "adults",
       audience_member_ids: form.visibility === "selected" ? form.audience_member_ids : null,
       ...(!editingEvent || form.visibility === "selected" ? { created_by: currentUserId } : {}),
-      starts_at: start.toISOString(), ends_at: end?.toISOString() ?? null, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null,
+      all_day: form.all_day, starts_at: start.toISOString(), ends_at: end?.toISOString() ?? null, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null,
       category: form.category, reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
       recurrence_enabled: form.recurrence_enabled, recurrence_days: form.recurrence_enabled ? form.recurrence_days : [], recurrence_end_date: form.recurrence_enabled ? form.recurrence_end_date : null,
     };
@@ -419,7 +442,17 @@ export default function CalendarPage() {
       {readOnly && <p className="muted">Bara den som publicerade aktiviteten kan redigera den.</p>}
       <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label>
-      <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div>
+      <label className="calendar-field" style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+        <input type="checkbox" checked={form.all_day} onChange={event => setForm({ ...form, all_day: event.target.checked })} />
+        <span>Heldag</span>
+      </label>
+      <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label>{!form.all_day && <label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label>}</div>
+      {form.all_day ? (
+        <label className="calendar-field">
+          <span>Sista dagen (valfritt)</span>
+          <input type="date" min={form.date} value={form.last_day} onChange={event => setForm({ ...form, last_day: event.target.value })} />
+        </label>
+      ) : <>
       <div className="calendar-form-row">
         <label className="calendar-field">
           <span>Slutdatum (valfritt)</span>
@@ -433,6 +466,7 @@ export default function CalendarPage() {
       {(form.end_date || form.end_time) && (
         <button type="button" className="secondary" onClick={() => setForm({ ...form, end_date: "", end_time: "" })}>Rensa sluttid</button>
       )}
+      </>}
       <label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label>
       <label className="calendar-field"><span>Beskrivning</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Valfri information" rows={3} /></label>
       {canSetVisibility && (
