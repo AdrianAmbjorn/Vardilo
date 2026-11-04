@@ -82,16 +82,41 @@ export default function CalendarPushSettings() {
     }
   }
 
+  async function showTestNotification() {
+    if (!ready || !enabled || busy) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await ready.registration.showNotification("Testnotis från Vardilo", {
+        body: "Så här kan en kalenderpåminnelse visas på den här enheten.",
+        icon: "/app-icon/192",
+        tag: "vardilo-test",
+      });
+      setMessage("Testnotisen är skickad till enheten. Om du inte ser den, kontrollera notiscentret och enhetens notisinställningar.");
+    } catch {
+      setMessage("Kunde inte visa testnotisen. Kontrollera att Vardilo får visa notiser på enheten.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section className="section-row" aria-label="Push för kalenderpåminnelser">
       <div>
         <strong>Push för kalenderpåminnelser</strong>
-        <p>Gäller den här enheten. Aktivitetens namn visas först när du öppnar Vardilo.</p>
+        <p>Kalenderpåminnelser kan visas även när Vardilo är stängd. Aktivitetens namn visas först i appen.</p>
         {message && <p role="status">{message}</p>}
       </div>
-      <button className="secondary" type="button" aria-pressed={enabled} disabled={!ready || busy} onClick={() => void toggle()}>
-        {enabled ? "Stäng av push" : "Slå på push"}
-      </button>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button className="secondary" type="button" disabled={!ready || busy} onClick={() => void toggle()}>
+          {enabled ? "Stäng av push" : "Slå på push"}
+        </button>
+        {enabled && (
+          <button className="secondary" type="button" disabled={busy} onClick={() => void showTestNotification()}>
+            Visa testnotis
+          </button>
+        )}
+      </div>
     </section>
   );
 }
