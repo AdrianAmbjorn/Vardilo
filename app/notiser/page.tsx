@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import CalendarPushSettings from "./calendar-push-settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -168,6 +169,7 @@ export default function NotificationsPage() {
         </button>
       </header>
       <section className="section-card">
+        {memberId && <CalendarPushSettings />}
         {saveError && <div className="section-row"><p role="alert">{saveError}</p></div>}
         {loading ? (
           <div className="section-row"><p className="muted" role="status">Laddar...</p></div>
