@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFamilyProfilePhotos } from "@/lib/use-family-profile-photos";
 import { createClient } from "@/lib/supabase/client";
 
 const navItems = [["Hem","Överblick","/"],["Kalender","Familjens vecka","/kalender"],["Check-in","Var är jag?","/check-in"],["Uppgifter","Ansvar & XP","/uppgifter"],["Hjälp","Jag kan","/hjalp"],["Listor","Gemensamt","/listor"],["Önskelistor","Presenter","/onskelistor"],["Chat","Familjen","/chat"],["Notiser","Det senaste","/notiser"],["Galleri","Minnen","/galleri"]];
@@ -18,33 +19,7 @@ function dateKey(d:Date){return d.toISOString().slice(0,10)}
 function startOfWeek(date:Date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d}
 function formatEventTime(v:string){return new Intl.DateTimeFormat("sv-SE",{hour:"2-digit",minute:"2-digit"}).format(new Date(v))}
 export default function Home(){const router=useRouter();const supabase=useMemo(()=>createClient(),[]);const [member,setMember]=useState<Member|null>(null);const [members,setMembers]=useState<Member[]>([]);const [nextEvent,setNextEvent]=useState<CalendarEvent|null>(null);const [menu,setMenu]=useState<MenuRow[]>([]);const [tasks,setTasks]=useState<Task[]>([]);const [helps,setHelps]=useState<Help[]>([]);const [chats,setChats]=useState<Chat[]>([]);const [unread,setUnread]=useState(0);const [menuEnabled,setMenuEnabled]=useState(false);const [showMenuEditor,setShowMenuEditor]=useState(false);const [menuDraft,setMenuDraft]=useState<string[]>(Array(7).fill(""));const [showAdd,setShowAdd]=useState(false);const [showProfile,setShowProfile]=useState(false);const [loggingOut,setLoggingOut]=useState(false);const [loading,setLoading]=useState(true);const [savingMenu,setSavingMenu]=useState(false);const [removingTaskId,setRemovingTaskId]=useState<string|null>(null);const [completingTaskId,setCompletingTaskId]=useState<string|null>(null);const [homeError,setHomeError]=useState("");const [childXp,setChildXp]=useState(0);const [childOpen,setChildOpen]=useState(0);
-const [profilePhotos, setProfilePhotos] = useState<Record<string, string>>({});
-useEffect(() => {
-  if (!member?.family_id) return;
-  let active = true;
-  const urls: string[] = [];
-  const familyId = member.family_id;
-  const bucket = supabase.storage.from("family-profile-photos");
-  setProfilePhotos({});
-  async function loadPhotos() {
-    const { data } = await bucket.list(familyId, { limit: 100 });
-    if (!active || !data) return;
-    const photoNames = new Set(data.map(photo => photo.name));
-    const photos = await Promise.all(members.filter(person => photoNames.has(`${person.id}.jpg`)).map(async person => {
-      const { data } = await bucket.download(`${familyId}/${person.id}.jpg`);
-      if (!active || !data) return null;
-      const url = URL.createObjectURL(data);
-      urls.push(url);
-      return [person.id, url] as const;
-    }));
-    if (active) setProfilePhotos(Object.fromEntries(photos.filter(photo => photo !== null)));
-  }
-  void loadPhotos().catch(() => { /* Keep the initials if storage is unavailable. */ });
-  return () => {
-    active = false;
-    urls.forEach(url => URL.revokeObjectURL(url));
-  };
-}, [member?.family_id, members, supabase]);
+const profilePhotos = useFamilyProfilePhotos(supabase, member?.family_id);
 const today=new Date();const weekStart=startOfWeek(today);const weekDates=weekDays.map((_,i)=>{const d=new Date(weekStart);d.setDate(d.getDate()+i);return d});
 useEffect(()=>{let active=true;async function loadHome(){setLoading(true);const {data:a}=await supabase.auth.getUser();if(!a.user){router.replace("/login");return}const {data:me}=await supabase.from("family_members").select("id,family_id,display_name,role,xp_goal,xp_reward").eq("user_id",a.user.id).maybeSingle();if(!me){setLoading(false);return}if(me.role==="barn"){const {data:ownTasks}=await supabase.from("family_tasks").select("xp,completed_at").eq("family_id",me.family_id).eq("assigned_member_id",me.id);if(active){setChildXp((ownTasks??[]).reduce((sum,t)=>sum+(t.completed_at?t.xp:0),0));setChildOpen((ownTasks??[]).filter(t=>!t.completed_at).length)}}const now=new Date().toISOString();const end=new Date(today);end.setDate(end.getDate()+8);const [{data:ms},{data:events},{data:menuRows},{data:ts},{data:hs},{data:cs},{count}]=await Promise.all([supabase.from("family_members").select("id,family_id,display_name,role,xp_goal,xp_reward").eq("family_id",me.family_id).order("created_at"),supabase.from("calendar_events").select("id,title,starts_at,location,target_member_id,responsible_member_id").eq("family_id",me.family_id).or(`target_member_id.is.null,target_member_id.eq.${me.id},responsible_member_id.eq.${me.id}`).gte("starts_at",now).lte("starts_at",end.toISOString()).order("starts_at").limit(1),supabase.from("family_meal_menu").select("id,menu_date,meal").eq("family_id",me.family_id).gte("menu_date",dateKey(weekStart)).lte("menu_date",dateKey(weekDates[6])).order("menu_date"),supabase.from("family_tasks").select("id,title,assigned_member_id,xp,completed_at").eq("family_id",me.family_id).order("completed_at",{ascending:true,nullsFirst:true}).order("created_at",{ascending:false}).limit(100),supabase.from("help_requests").select("id,title,details,claimed_by_member_id,needed_at").eq("family_id",me.family_id).is("completed_at",null).order("created_at",{ascending:false}).limit(2),supabase.from("family_chat_messages").select("id,member_id,body,created_at").eq("family_id",me.family_id).order("created_at",{ascending:false}).limit(2),supabase.from("notifications").select("id",{count:"exact",head:true}).eq("recipient_member_id",me.id).is("read_at",null)]);if(!active)return;setMember(me);setMembers(ms??[]);setNextEvent(events?.[0]??null);setMenu(menuRows??[]);setTasks((me.role==="barn"?(ts??[]).filter(t=>t.assigned_member_id===me.id):(ts??[])).slice(0,4));setHelps(hs??[]);setChats((cs??[]).reverse());setUnread(count??0);setMenuEnabled((menuRows??[]).some(r=>r.meal?.trim()));setLoading(false)}loadHome();return()=>{active=false}},[router,supabase]);
 useEffect(()=>{if(!member)return;const c=supabase.channel(`home-notifications-${member.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications",filter:`recipient_member_id=eq.${member.id}`},()=>setUnread(v=>v+1)).on("postgres_changes",{event:"UPDATE",schema:"public",table:"notifications",filter:`recipient_member_id=eq.${member.id}`},()=>{supabase.from("notifications").select("id",{count:"exact",head:true}).eq("recipient_member_id",member.id).is("read_at",null).then(({count})=>setUnread(count??0))}).subscribe();return()=>{supabase.removeChannel(c)}},[member,supabase]);
