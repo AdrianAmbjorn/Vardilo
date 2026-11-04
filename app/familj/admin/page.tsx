@@ -26,7 +26,6 @@ const familyRelationships = [
   ["faster", "Faster"],
   ["farbror", "Farbror"],
   ["kusin", "Kusin"],
-  ["barn", "Barn"],
   ["annan_nara_familj", "Annan nära familj"],
 ] as const;
 
