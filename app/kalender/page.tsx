@@ -436,8 +436,31 @@ export default function CalendarPage() {
   const assignmentIconStyle = (event: CalendarEvent): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, marginLeft: 5, borderRadius: "50%", background: event.assignment_status === "accepted" ? "#2e7d32" : "#c62828", color: "#ffffff", fontSize: 11, fontWeight: 900, verticalAlign: "middle" });
   const toggleDay = (day: number) => setForm({ ...form, recurrence_days: form.recurrence_days.includes(day) ? form.recurrence_days.filter((item) => item !== day) : [...form.recurrence_days, day].sort((a, b) => a - b) });
 
-  return <main className="section-shell">
-    <header className="section-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="secondary" type="button" disabled={!familyId} onClick={() => { setImportError(""); setCalendarFile(null); setShowImport(true); }}>Importera kalender</button><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
+  return <main className="section-shell calendar-page">
+    <style>{`
+      .calendar-page .calendar-page-header { grid-template-columns: minmax(0, 1fr) auto; }
+      .calendar-page-header > .back-link { grid-column: 1 / -1; }
+      .calendar-header-actions { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+      .calendar-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; margin: 12px 16px; }
+      .calendar-filters .calendar-field { margin: 0; min-width: 0; }
+      .calendar-filters .calendar-field input, .calendar-filters .calendar-field select { min-width: 0; }
+      .calendar-filters > button { justify-self: start; }
+      @media (max-width: 850px) {
+        .calendar-page .calendar-page-header { grid-template-columns: minmax(0, 1fr); }
+        .calendar-header-actions > button { min-height: 44px; }
+      }
+      @media (max-width: 600px) {
+        .calendar-page { padding: 24px 16px; }
+        .calendar-page .calendar-page-header { gap: 10px; }
+        .calendar-page-header h1 { font-size: clamp(23px, 6vw, 30px); }
+        .calendar-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .calendar-filters > :first-child, .calendar-filters > button { grid-column: 1 / -1; }
+        .calendar-filters .calendar-field input, .calendar-filters .calendar-field select { font-size: 16px; padding-inline: 8px; }
+        .calendar-page .calendar-toolbar { flex-direction: row; align-items: center; padding: 12px 16px; }
+        .calendar-page .calendar-toolbar h2 { font-size: 16px; }
+      }
+    `}</style>
+    <header className="section-header calendar-page-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div className="calendar-header-actions"><button className="secondary" type="button" disabled={!familyId} onClick={() => { setImportError(""); setCalendarFile(null); setShowImport(true); }}>Importera kalender</button><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
     {importResult && <p role="status" className="section-row">{importResult}</p>}
     {showImport && (
       <div className="calendar-modal-backdrop">
@@ -458,12 +481,12 @@ export default function CalendarPage() {
       </div>
     )}
     <section className="calendar-card">
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, margin: "12px 16px" }}>
-        <label className="calendar-field" style={{ flex: "1 1 180px", maxWidth: 260 }}>
+      <div className="calendar-filters">
+        <label className="calendar-field">
           <span>Sök i kalendern</span>
           <input type="search" placeholder="Namn eller plats" value={search} onChange={event => setSearch(event.target.value)} />
         </label>
-        <label className="calendar-field" style={{ flex: "1 1 180px", maxWidth: 260 }}>
+        <label className="calendar-field">
           <span>Visa aktivitetstyp</span>
           <select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)}>
             <option value="">Alla typer</option>
@@ -472,7 +495,7 @@ export default function CalendarPage() {
             ))}
           </select>
         </label>
-        <label className="calendar-field" style={{ flex: "1 1 180px", maxWidth: 260 }}>
+        <label className="calendar-field">
           <span>Familjemedlem</span>
           <select value={memberFilter} onChange={event => setMemberFilter(event.target.value)}>
             <option value="">Alla personer</option>
@@ -500,7 +523,7 @@ export default function CalendarPage() {
         </div>
         <h2 style={{ color: "#102a43" }}>
           {view === "month" ? monthLabel(currentMonth) :
-            `${dateKey(currentWeek[0])} – ${dateKey(currentWeek[6])}`}
+            new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short", year: "numeric" }).formatRange(currentWeek[0], currentWeek[6])}
         </h2>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
           <button type="button" aria-pressed={view === "month"} style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button>
