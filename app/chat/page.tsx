@@ -1,8 +1,160 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";import Link from "next/link";import {createClient} from "@/lib/supabase/client";
+
+import Link from "next/link";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useFamilyProfilePhotos } from "@/lib/use-family-profile-photos";
-export default function ChatPage(){const s=useMemo(()=>createClient(),[]);const [m,setM]=useState<any>(null);const [members,setMembers]=useState<any[]>([]);const [messages,setMessages]=useState<any[]>([]);const [body,setBody]=useState("");const profilePhotos=useFamilyProfilePhotos(s,m?.family_id);async function load(){const {data:u}=await s.auth.getUser();if(!u.user)return;const {data:me}=await s.from("family_members").select("id,family_id,display_name").eq("user_id",u.user.id).maybeSingle();if(!me)return;setM(me);const [{data:ms},{data:rows}]=await Promise.all([s.from("family_members").select("id,display_name").eq("family_id",me.family_id),s.from("family_chat_messages").select("id,member_id,body,created_at").eq("family_id",me.family_id).order("created_at",{ascending:true}).limit(100)]);setMembers(ms??[]);setMessages(rows??[])}useEffect(()=>{load()},[s]);useEffect(()=>{if(!m)return;const channel=s.channel(`family-chat-${m.family_id}`).on("postgres_changes",{event:"*",schema:"public",table:"family_chat_messages",filter:`family_id=eq.${m.family_id}`},()=>load()).subscribe();return()=>{s.removeChannel(channel)}},[m,s]);async function send(){if(!m||!body.trim())return;await s.from("family_chat_messages").insert({family_id:m.family_id,member_id:m.id,body:body.trim()});setBody("");load()}return <main className="section-shell"><header className="section-header"><div><p className="eyebrow">VARDILO</p><h1>Familjechat</h1><p className="muted">Meddelanden från familjen.</p></div><Link className="secondary" href="/">Hem</Link></header><section className="section-card"><div style={{maxHeight:520,overflowY:"auto"}}>{messages.map(x=>{const sender=members.find(y=>y.id===x.member_id);const own=x.member_id===m?.id;return <div className="section-row" key={x.id} style={{display:"flex",alignItems:"flex-start",gap:10}}>
-  <span className="avatar" aria-hidden="true" style={{overflow:"hidden"}}>
-    {profilePhotos[x.member_id] ? <img src={profilePhotos[x.member_id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}} /> : sender?.display_name?.trim().charAt(0).toLocaleUpperCase("sv-SE") || "?"}
-  </span>
-  <div style={{flex:1,minWidth:0}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:12}}><strong>{own?"Du":sender?.display_name??"Familjemedlem"}</strong><small className="muted">{new Intl.DateTimeFormat("sv-SE",{hour:"2-digit",minute:"2-digit",day:"numeric",month:"short"}).format(new Date(x.created_at))}</small></div><p style={{marginTop:6,overflowWrap:"anywhere"}}>{x.body}</p></div></div>})}{!messages.length&&<p className="muted">Inga meddelanden ännu.</p>}</div><div className="family-admin-form"><input value={body} onChange={e=>setBody(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")send()}} placeholder="Skriv ett meddelande"/><button className="primary" onClick={send}>Skicka</button></div></section></main>}
+
+type Member = { id: string; display_name: string };
+type Message = { id: string; member_id: string; body: string; created_at: string };
+
+const dayLabel = new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "long", year: "numeric" });
+const timeLabel = new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit" });
+
+export default function ChatPage() {
+  const supabase = useMemo(() => createClient(), []);
+  const [member, setMember] = useState<(Member & { family_id: string }) | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const thread = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
+  const familyId = member?.family_id;
+  const profilePhotos = useFamilyProfilePhotos(supabase, familyId);
+
+  const loadMessages = useCallback(async (id: string) => {
+    const { data, error } = await supabase.from("family_chat_messages")
+      .select("id,member_id,body,created_at").eq("family_id", id)
+      .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100);
+    if (error) setError("Kunde inte läsa meddelandena.");
+    else setMessages(data.reverse());
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    async function load() {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        setError("Logga in för att öppna familjechatten.");
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase.from("family_members")
+        .select("id,family_id,display_name").eq("user_id", auth.user.id).maybeSingle();
+      if (!data) {
+        setError("Kunde inte hitta din familj.");
+        setLoading(false);
+        return;
+      }
+      setMember(data);
+      const { data: family } = await supabase.from("family_members")
+        .select("id,display_name").eq("family_id", data.family_id);
+      setMembers(family ?? []);
+    }
+    void load();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!familyId) return;
+    void loadMessages(familyId);
+    const channel = supabase.channel(`family-chat-${familyId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "family_chat_messages", filter: `family_id=eq.${familyId}` },
+        () => void loadMessages(familyId))
+      .subscribe(status => { if (status === "SUBSCRIBED") void loadMessages(familyId); });
+    return () => { void supabase.removeChannel(channel); };
+  }, [familyId, loadMessages, supabase]);
+
+  useEffect(() => {
+    const panel = thread.current;
+    if (panel && followLatest.current) panel.scrollTop = panel.scrollHeight;
+  }, [messages]);
+
+  async function send(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!member || !body.trim() || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const { error } = await supabase.from("family_chat_messages")
+        .insert({ family_id: member.family_id, member_id: member.id, body: body.trim() });
+      if (error) {
+        setError("Kunde inte skicka. Ditt meddelande finns kvar.");
+        return;
+      }
+      followLatest.current = true;
+      setBody("");
+      await loadMessages(member.family_id);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <main className="section-shell family-chat-page">
+      <style>{`
+        .family-chat-page .section-header { grid-template-columns: minmax(0, 1fr) auto; }
+        .chat-thread { height: clamp(240px, 58dvh, 580px); overflow-y: auto; padding: 16px; }
+        .chat-day { text-align: center; color: var(--muted); font-size: 12px; margin: 14px 0; }
+        .chat-line { display: flex; align-items: flex-end; gap: 8px; margin: 0 0 10px; }
+        .chat-line-own { justify-content: flex-end; }
+        .chat-line .avatar { overflow: hidden; margin-bottom: 16px; }
+        .chat-line .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .chat-message { min-width: 0; max-width: min(79%, 560px); display: grid; justify-items: start; gap: 3px; }
+        .chat-line-own .chat-message { justify-items: end; }
+        .chat-sender, .chat-time { color: var(--muted); font-size: 11px; padding-inline: 5px; }
+        .chat-bubble { margin: 0; padding: 8px 13px; border-radius: 18px 18px 18px 5px; background: #ebedf1; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+        .chat-line-own .chat-bubble { border-radius: 18px 18px 5px 18px; background: #0065cf; color: #fff; }
+        .chat-composer { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
+        .chat-composer input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 24px; font-size: 16px; }
+        .chat-composer button { border-radius: 24px; min-height: 44px; }
+        .chat-composer button:disabled { opacity: .55; }
+        @media (max-width: 600px) {
+          .family-chat-page { padding: 22px 12px; }
+          .chat-thread { padding: 12px 10px; }
+        }
+      `}</style>
+      <header className="section-header">
+        <div><p className="eyebrow">VARDILO</p><h1>Familjechatten</h1></div>
+        <Link className="secondary" href="/">Hem</Link>
+      </header>
+      <section className="section-card">
+        <div className="chat-thread" ref={thread} role="log" aria-label="Meddelanden" tabIndex={0} onScroll={event => {
+          const panel = event.currentTarget;
+          followLatest.current = panel.scrollHeight - panel.scrollTop - panel.clientHeight < 80;
+        }}>
+          {loading && <p className="muted">Laddar meddelanden…</p>}
+          {!loading && !error && !messages.length && <p className="muted">Inga meddelanden ännu.</p>}
+          {messages.map((message, index) => {
+            const sender = members.find(person => person.id === message.member_id);
+            const own = message.member_id === member?.id;
+            const date = new Date(message.created_at);
+            const day = dayLabel.format(date);
+            const previous = messages[index - 1];
+            const photo = profilePhotos[message.member_id];
+            return (
+              <Fragment key={message.id}>
+                {(!previous || dayLabel.format(new Date(previous.created_at)) !== day) && <p className="chat-day">{day}</p>}
+                <div className={own ? "chat-line chat-line-own" : "chat-line"}>
+                  {!own && <span className="avatar" aria-hidden="true">{photo ? <img src={photo} alt="" /> : sender?.display_name.trim().charAt(0).toLocaleUpperCase("sv-SE") || "?"}</span>}
+                  <div className="chat-message">
+                    <strong className="chat-sender">{own ? "Du" : sender?.display_name ?? "Familjemedlem"}</strong>
+                    <p className="chat-bubble">{message.body}</p>
+                    <time className="chat-time" dateTime={message.created_at}>{timeLabel.format(date)}</time>
+                  </div>
+                </div>
+              </Fragment>
+            );
+          })}
+        </div>
+        {error && <p className="section-row" role="alert">{error}</p>}
+        <form className="chat-composer" onSubmit={send}>
+          <input aria-label="Meddelande" value={body} onChange={event => setBody(event.target.value)} placeholder="Skriv ett meddelande" disabled={sending || !member} />
+          <button className="primary" type="submit" disabled={sending || !member || !body.trim()}>{sending ? "Skickar…" : "Skicka"}</button>
+        </form>
+      </section>
+    </main>
+  );
+}
