@@ -1,15 +1,15 @@
 :root {
-  --bg: #fbf7ef;
+  --bg: #f4f8f3;
   --surface: #ffffff;
-  --text: #102a43;
-  --muted: #526477;
-  --line: #e1d9cc;
-  --accent: #102a43;
-  --accent-soft: #e8eef4;
+  --text: #113f2b;
+  --muted: #4e6759;
+  --line: #d7e4d8;
+  --accent: #05824e;
+  --accent-soft: #e4f1e8;
   --red: #d52b2b;
   --red-soft: #fbe9e9;
-  --terracotta: #e51b23;
-  --terracotta-text: #cf1820;
+  --terracotta: #e7ba53;
+  --terracotta-text: #765516;
   --sage: #6e8b76;
   --sage-soft: #e8efe7;
   --shadow: 0 14px 40px rgba(16, 42, 67, .08);
@@ -17,20 +17,20 @@
 
 body { background: var(--bg); }
 .shell { background: var(--bg); }
-.sidebar { background: #102a43; border-right-color: rgba(255,255,255,.10); }
+.sidebar { background: #113f2b; border-right-color: rgba(255,255,255,.10); }
 .brand { color: #ffffff; }
 .brand-mark { background: #ffffff; color: var(--terracotta); border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .house-icon { width: 23px; height: 23px; display: block; }
 .brand strong { color: #ffffff; }
 .brand span { color: #b9c8d7; }
 .nav-item { color: #eaf0f5; }
-.nav-item small { color: #9eb0c2; }
+.nav-item small { color: #bcd7c6; }
 .nav-item:hover, .nav-item.active { background: #ffffff; color: var(--accent); }
 .nav-item:hover small, .nav-item.active small { color: #64758a; }
 .sidebar-footer { border-top-color: rgba(255,255,255,.12); }
-.family-label { color: #9eb0c2; }
+.family-label { color: #bcd7c6; }
 .member strong { color: #ffffff; }
-.member small { color: #9eb0c2; }
+.member small { color: #bcd7c6; }
 .avatar { background: #edf2f6; color: var(--accent); }
 .content { color: var(--text); }
 .topbar h1 { color: var(--text); }
@@ -60,7 +60,7 @@ body { background: var(--bg); }
 .auth-brand .brand span { color: var(--muted); }
 .auth-card h1, .auth-card h2 { color: var(--text); }
 
-/* All text entered by the user uses Vardilo's blue text. */
+/* All text entered by the user uses the shared theme text color. */
 input, textarea, select {
   color: var(--text) !important;
   -webkit-text-fill-color: var(--text) !important;
@@ -71,3 +71,4 @@ input::placeholder, textarea::placeholder {
   -webkit-text-fill-color: var(--muted) !important;
   opacity: 1;
 }
+.sidebar .nav-item.active { box-shadow: inset 3px 0 var(--terracotta); }
