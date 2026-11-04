@@ -8,7 +8,7 @@
   --accent-soft: #e4f1e8;
   --red: #d52b2b;
   --red-soft: #fbe9e9;
-  --terracotta: #c69a38;
+  --terracotta: #e7ba53;
   --terracotta-text: #765516;
   --sage: #6e8b76;
   --sage-soft: #e8efe7;
@@ -19,8 +19,7 @@ body { background: var(--bg); }
 .shell { background: var(--bg); }
 .sidebar { background: #113f2b; border-right-color: rgba(255,255,255,.10); }
 .brand { color: #ffffff; }
-.brand-mark { background: var(--terracotta); color: var(--text); border-radius: 50%; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
-.auth-brand .brand-mark { width: 40px; height: 40px; }
+.brand-mark { background: #ffffff; color: var(--terracotta); border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .house-icon { width: 23px; height: 23px; display: block; }
 .brand strong { color: #ffffff; }
 .brand span { color: #b9c8d7; }
