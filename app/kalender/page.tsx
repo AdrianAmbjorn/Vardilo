@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { calendarImportId, parseCalendarFile } from "@/lib/calendar-import";
 import { createClient } from "@/lib/supabase/client";
 
-type FamilyMember = { id: string; display_name: string; color: string };
+type FamilyMember = { id: string; display_name: string; color: string; role: string };
 type CalendarEvent = {
   id: string;
   title: string;
@@ -14,6 +14,7 @@ type CalendarEvent = {
   starts_at: string;
   ends_at: string | null;
   all_day: boolean;
+  visible_to_children: boolean;
   responsible_member_id: string | null;
   target_member_id: string | null;
   category: string;
@@ -71,6 +72,7 @@ function formValues(event?: CalendarEvent, date?: Date) {
   const target = event ? new Date(event.starts_at) : (date ?? new Date());
   const end = event?.ends_at ? new Date(event.ends_at) : null;
   return {
+    visible_to_children: event?.visible_to_children ?? true,
     title: event?.title ?? "",
     date: dateKey(target),
     time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
@@ -96,6 +98,7 @@ export default function CalendarPage() {
   const [breaks, setBreaks] = useState<CalendarBreak[]>([]);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [canSetVisibility, setCanSetVisibility] = useState(false);
   const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showBreakForm, setShowBreakForm] = useState(false);
@@ -119,13 +122,14 @@ export default function CalendarPage() {
     setError("");
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
-    const { data: membership, error: membershipError } = await supabase.from("family_members").select("id,family_id").eq("user_id", auth.user.id).limit(1).single();
+    const { data: membership, error: membershipError } = await supabase.from("family_members").select("id,family_id,role").eq("user_id", auth.user.id).limit(1).single();
     if (membershipError || !membership) { setError("Kunde inte hitta familjen för ditt konto."); return; }
+    setCanSetVisibility(membership.role !== "barn");
     setFamilyId(membership.family_id);
     setCurrentMemberId(membership.id);
     const [eventResult, memberResult, breakResult] = await Promise.all([
-      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
-      supabase.from("family_members").select("id,display_name,color").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
+      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
+      supabase.from("family_members").select("id,display_name,color,role").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
     if (eventResult.error) setError(eventResult.error.message); else setEvents((eventResult.data ?? []) as CalendarEvent[]);
@@ -271,6 +275,7 @@ export default function CalendarPage() {
     const responsibleChanged = editingEvent ? editingEvent.responsible_member_id !== (form.responsible_member_id || null) : true;
     const payload: Record<string, unknown> = {
       title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null,
+      visible_to_children: form.visible_to_children,
       starts_at: start.toISOString(), ends_at: end?.toISOString() ?? null, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null,
       category: form.category, reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
       recurrence_enabled: form.recurrence_enabled, recurrence_days: form.recurrence_enabled ? form.recurrence_days : [], recurrence_end_date: form.recurrence_enabled ? form.recurrence_end_date : null,
@@ -386,7 +391,25 @@ export default function CalendarPage() {
       )}
       <label className="calendar-field"><span>Plats</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="T.ex. Kista IP" /></label>
       <label className="calendar-field"><span>Beskrivning</span><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Valfri information" rows={3} /></label>
-      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller vem?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem aktiviteten handlar om.</small><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">Hela familjen</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Vem ansvarar?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem som ska ta ansvar.</small><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
+      {canSetVisibility && (
+        <label className="calendar-field">
+          <span>Vem kan se aktiviteten?</span>
+          <select value={form.visible_to_children ? "family" : "adults"} onChange={event => {
+            const visible = event.target.value === "family";
+            setForm({
+              ...form,
+              visible_to_children: visible,
+              target_member_id: !visible && memberById.get(form.target_member_id)?.role === "barn" ? "" : form.target_member_id,
+              responsible_member_id: !visible && memberById.get(form.responsible_member_id)?.role === "barn" ? "" : form.responsible_member_id,
+            });
+          }}>
+            <option value="family">Hela familjen</option>
+            <option value="adults">Bara vuxna</option>
+          </select>
+          {!form.visible_to_children && <small>Barn kan varken se aktiviteten eller få påminnelser om den.</small>}
+        </label>
+      )}
+      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller vem?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem aktiviteten handlar om.</small><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">{form.visible_to_children ? "Hela familjen" : "Alla vuxna"}</option>{members.filter(member => form.visible_to_children || member.role !== "barn").map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Vem ansvarar?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem som ska ta ansvar.</small><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.filter(member => form.visible_to_children || member.role !== "barn").map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
       <label className="calendar-field"><span>Vilken typ?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Kategori för aktiviteten.</small><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label>
       <label className="calendar-field"><span>När ska påminnelsen komma?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Påminnelsen kopplas till den ansvariga personen.</small><select value={form.reminder_minutes} onChange={(e) => setForm({ ...form, reminder_minutes: e.target.value })}>{reminderOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <div style={{ borderTop: "1px solid #dbe3ea", marginTop: 6, paddingTop: 14 }}><label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: "#102a43", fontSize: 13 }}><input type="checkbox" checked={form.recurrence_enabled} onChange={(e) => setForm({ ...form, recurrence_enabled: e.target.checked, recurrence_days: e.target.checked && form.recurrence_days.length === 0 ? [((new Date(`${form.date}T12:00:00`).getDay() + 6) % 7)] : form.recurrence_days })} /> Återkommande aktivitet</label>{form.recurrence_enabled && <div style={{ marginTop: 10 }}><div style={{ color: "#6b7b8c", fontSize: 11, marginBottom: 6 }}>Välj vilka veckodagar aktiviteten ska återkomma.</div><div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>{weekdays.map((day, index) => <button key={day} type="button" onClick={() => toggleDay(index)} style={{ border: form.recurrence_days.includes(index) ? "1px solid #0b2d4d" : "1px solid #dbe3ea", background: form.recurrence_days.includes(index) ? "#0b2d4d" : "#ffffff", color: form.recurrence_days.includes(index) ? "#ffffff" : "#102a43", borderRadius: 7, padding: "7px 2px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>{day}</button>)}</div><label className="calendar-field" style={{ marginTop: 10 }}><span>Återkom till och med</span><input type="date" required={form.recurrence_enabled} value={form.recurrence_end_date} min={form.date} onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })} /></label></div>}</div>
