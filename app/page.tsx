@@ -35,18 +35,33 @@ return <main className="shell"><style>{`.event strong{color:var(--text)!importan
 .profile-menu-link { display: block; padding: 9px; color: var(--accent); font-size: 13px; font-weight: 700; }
 .mobile-home-menu { display: none; }
 @media (max-width: 850px) {
-  .mobile-home-menu { display: block; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
-  .mobile-home-menu summary { padding: 12px 14px; cursor: pointer; font-weight: 700; }
-  .mobile-home-menu nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 4px; padding: 0 8px 8px; }
-  .mobile-home-menu a { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px; color: var(--accent); font-weight: 600; overflow-wrap: anywhere; }
+  .mobile-home-menu { display: block; margin-bottom: 16px; }
+  .mobile-home-menu summary { display: inline-flex; align-items: center; gap: 9px; padding: 4px 9px 4px 4px; cursor: pointer; list-style: none; font-weight: 700; }
+  .mobile-home-menu summary::-webkit-details-marker { display: none; }
+  .mobile-home-menu summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
+  .mobile-menu-house { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); color: var(--terracotta); border: 1px solid var(--line); }
+  .mobile-home-menu nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 4px; padding: 8px; margin-top: 6px; background: var(--text); border-radius: 14px; }
+  .mobile-home-menu .nav-item { min-height: 44px; overflow-wrap: anywhere; }
 }`}</style><aside className="sidebar"><Link href="/" className="brand"><div className="brand-mark" aria-label="Vardilo" style={{background:"var(--terracotta)",borderRadius:"50%",width:40,height:40,minWidth:40,padding:0,display:"grid",placeItems:"center",overflow:"hidden",boxShadow:"none",position:"relative",zIndex:1}}><HouseIcon/></div><div><strong>VARDILO</strong><span>Family life, together.</span></div></Link><nav aria-label="Huvudmeny">{navItems.map(([title,subtitle,href],i)=><Link className={i===0?"nav-item active":"nav-item"} href={href} key={title}><span>{title}{title==="Notiser"&&unread>0?<b style={{marginLeft:7,background:"var(--red)",color:"white",borderRadius:20,padding:"2px 6px",fontSize:9}}>{unread}</b>:null}</span><small>{subtitle}</small></Link>)}</nav><div className="sidebar-footer"><div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}><div className="family-label" style={{marginBottom:0}}>FAMILJEN</div><Link href="/familj/admin" aria-label="Lägg till eller hantera familjemedlemmar" title="Lägg till eller hantera familjemedlemmar" style={{display:"grid",placeItems:"center",width:30,height:30,borderRadius:9,border:"1px solid rgba(255,255,255,.3)",color:"#ffffff",textDecoration:"none",fontSize:22,fontWeight:700,lineHeight:1}}>+</Link></div>{members.map(p=><div className="member" key={p.id}><span className="avatar">{profilePhotos[p.id] ? <img className="profile-photo" src={profilePhotos[p.id]} alt="" /> : p.display_name.charAt(0).toUpperCase()}</span><span><strong>{p.display_name}</strong><small>{p.role}</small></span></div>)}</div></aside><section className="content">
   <details className="mobile-home-menu">
-    <summary>Meny{unread > 0 && ` · ${unread} olästa notiser`}</summary>
+    <summary>
+      <span className="mobile-menu-house"><HouseIcon /></span>
+      <span>Meny{unread > 0 && ` · ${unread} olästa notiser`}</span>
+    </summary>
     <nav aria-label="Huvudmeny">
-      {navItems.filter(([, , href]) => href !== "/").map(([title, , href]) => (
-        <Link key={href} href={href}>{title}{href === "/notiser" && unread > 0 && ` (${unread})`}</Link>
+      {navItems.map(([title, subtitle, href]) => (
+        <Link
+          className={href === "/" ? "nav-item active" : "nav-item"}
+          aria-current={href === "/" ? "page" : undefined}
+          key={href}
+          href={href}
+          onClick={event => event.currentTarget.closest("details")?.removeAttribute("open")}
+        >
+          <span>{title}{href === "/notiser" && unread > 0 && ` (${unread})`}</span>
+          <small>{subtitle}</small>
+        </Link>
       ))}
-      <Link href="/familj/admin">Hantera familjen</Link>
+      <Link className="nav-item" href="/familj/admin"><span>Hantera familjen</span></Link>
     </nav>
   </details>
   <header className="topbar"><div><p className="eyebrow">{todayLabel}</p><h1>God kväll, <span className="red-text">{displayName}.</span></h1></div><div className="profile-wrap"><button className="profile" type="button" aria-label="Öppna profilmeny" aria-expanded={showProfile} onClick={()=>setShowProfile(v=>!v)}>{member && profilePhotos[member.id] ? <img className="profile-photo" src={profilePhotos[member.id]} alt="" /> : displayName.charAt(0).toUpperCase()}</button>{showProfile&&<div className="profile-menu"><div className="profile-menu-name"><strong>{displayName}</strong><span>{member?.role}</span></div>{member && <Link className="profile-menu-link" href="/profil">Min profil</Link>}<button type="button" onClick={handleSignOut} disabled={loggingOut}>{loggingOut?"Loggar ut...":"Logga ut"}</button></div>}</div></header><section className="hero-card"><div><p className="eyebrow">HEM</p><h2>Vad behöver familjen veta just nu?</h2><p className="muted">Vardilo samlar kalender, ansvar, listor och familjens små saker på ett ställe.</p></div><div className="hero-actions"><button className="primary" type="button" onClick={()=>setShowAdd(v=>!v)}>+ Lägg till</button><Link className="secondary" href="/hjalp">Jag kan hjälpa till</Link></div></section>{showAdd&&<div className="quick-add" role="dialog" aria-label="Lägg till"><strong>Vad vill du lägga till?</strong><div><Link href="/kalender">Händelse</Link><Link href="/uppgifter">Uppgift</Link><Link href="/hjalp">Hjälp</Link><Link href="/listor">Listpunkt</Link></div></div>}
