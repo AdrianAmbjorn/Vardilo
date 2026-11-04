@@ -36,6 +36,8 @@ export default function ProfilePage() {
   const [member, setMember] = useState<{ id: string; family_id: string; display_name: string } | null>(null);
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState("");
+  const [draft, setDraft] = useState<Blob | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -71,24 +73,41 @@ export default function ProfilePage() {
   }, [bucket, supabase]);
 
   useEffect(() => {
-    if (!photo) { setPreview(""); return; }
-    const url = URL.createObjectURL(photo);
+    if (!file) return;
+    let active = true;
+    void resizePhoto(file).then(
+      image => { if (active) setDraft(image); },
+      error => { if (active) setStatus(error instanceof Error ? error.message : "Kunde inte läsa bilden."); },
+    ).finally(() => { if (active) setPreparing(false); });
+    return () => { active = false; };
+  }, [file]);
+
+  const displayedPhoto = draft ?? photo;
+  useEffect(() => {
+    if (!displayedPhoto) { setPreview(""); return; }
+    const url = URL.createObjectURL(displayedPhoto);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [photo]);
+  }, [displayedPhoto]);
+
+  function chooseFile(next: File | null) {
+    setDraft(null);
+    setStatus("");
+    setPreparing(Boolean(next));
+    setFile(next);
+  }
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!member || !file || busy) return;
+    if (!member || !draft || preparing || busy) return;
     const form = event.currentTarget;
     setBusy(true);
     setStatus("");
     try {
-      const photo = await resizePhoto(file);
-      const { error } = await bucket.upload(`${member.family_id}/${member.id}.jpg`, photo, { upsert: true, contentType: "image/jpeg", cacheControl: "0" });
+      const { error } = await bucket.upload(`${member.family_id}/${member.id}.jpg`, draft, { upsert: true, contentType: "image/jpeg", cacheControl: "0" });
       if (error) throw new Error("Kunde inte ladda upp bilden. Försök igen.");
-      setPhoto(photo);
-      setFile(null);
+      setPhoto(draft);
+      chooseFile(null);
       form.reset();
       setStatus("Profilbilden är sparad.");
     } catch (error) {
@@ -125,14 +144,17 @@ export default function ProfilePage() {
         {member && !loading && (
           <>
             <div className="avatar" style={{ width: 72, height: 72, overflow: "hidden", fontSize: 24 }}>
-              {preview ? <img src={preview} alt="Din profilbild" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
+              {preview ? <img src={preview} alt={draft ? "Förhandsvisning av ny profilbild" : "Din profilbild"} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
             </div>
             <p>{member.display_name}</p>
+            {draft && <p className="muted">Förhandsvisning. Bilden är ännu inte sparad.</p>}
+            {preparing && <p role="status">Förbereder förhandsvisning…</p>}
             <p className="muted">Bilden visas för familjen och beskärs till en kvadrat.</p>
-            <form onSubmit={save} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-              <input type="file" aria-label="Välj profilbild" accept="image/jpeg,image/png,image/webp" onChange={event => setFile(event.target.files?.[0] ?? null)} disabled={busy} />
-              <button className="primary" type="submit" disabled={!file || busy}>Spara profilbild</button>
-              {photo && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>Ta bort bild</button>}
+            <form onSubmit={save} onReset={() => chooseFile(null)} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              <input type="file" aria-label="Välj profilbild" accept="image/jpeg,image/png,image/webp" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
+              <button className="primary" type="submit" disabled={!draft || preparing || busy}>Spara profilbild</button>
+              {file && <button className="secondary" type="reset" disabled={busy}>Avbryt bildval</button>}
+              {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>Ta bort bild</button>}
             </form>
           </>
         )}
