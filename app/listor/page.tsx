@@ -161,15 +161,14 @@ export default function ListsPage() {
             {!selected.items.length && <div className="section-row"><p className="muted">Listan är tom.</p></div>}
             {selected.items.map(entry => (
               <div className="task-row" key={entry.id}>
-                <button
-                  className="check"
+                <input
+                  type="checkbox"
                   aria-label={`Bocka av ${entry.text}`}
-                  aria-pressed={entry.completed}
-                  onClick={() => toggle(entry)}
+                  checked={entry.completed}
+                  onChange={() => toggle(entry)}
                   disabled={busy}
-                >
-                  {entry.completed ? "✓" : ""}
-                </button>
+                  style={{ accentColor: "#334155", width: 18, height: 18, margin: 0, flexShrink: 0 }}
+                />
                 <strong style={{ ...typedText, textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
               </div>
             ))}
