@@ -16,9 +16,13 @@ const categoryEmoji: Record<Category, string> = {
   Hemmet: "🏠",
 };
 
+function categoryLabel(category: Category) {
+  return category === "Hemmet" ? "Till hemmet" : category;
+}
+
 function categoryOptions() {
   return categories.map(category => (
-    <option key={category} value={category}>{categoryEmoji[category]} {category}</option>
+    <option key={category} value={category}>{categoryEmoji[category]} {categoryLabel(category)}</option>
   ));
 }
 type ListItem = { id: string; text: string; completed: boolean };
@@ -225,8 +229,8 @@ export default function ListsPage() {
           const groupLists = lists.filter(list => list.category === group);
           if (!groupLists.length) return null;
           return (
-            <section key={group} aria-label={group === "Övrigt" ? "Listor utan kategori" : group}>
-              {group !== "Övrigt" && <div className="card-heading"><h2><span aria-hidden="true">{categoryEmoji[group]}</span> {group}</h2></div>}
+            <section key={group} aria-label={group === "Övrigt" ? "Listor utan kategori" : categoryLabel(group)}>
+              {group !== "Övrigt" && <div className="card-heading"><h2><span aria-hidden="true">{categoryEmoji[group]}</span> {categoryLabel(group)}</h2></div>}
               {groupLists.map(list => (
                 <div className="section-row" key={list.id}>
                   <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
@@ -266,6 +270,7 @@ export default function ListsPage() {
             {!selected.items.length && <div className="section-row"><p className="muted">Listan är tom.</p></div>}
             {selected.items.map(entry => (
               <div className="task-row" key={entry.id}>
+                <span aria-hidden="true" style={{ color: "var(--muted)", flexShrink: 0 }}>*</span>
                 <input
                   type="checkbox"
                   aria-label={`Bocka av ${entry.text}`}
