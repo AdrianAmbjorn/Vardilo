@@ -15,6 +15,8 @@ type CalendarEvent = {
   ends_at: string | null;
   all_day: boolean;
   visible_to_children: boolean;
+  audience_member_ids: string[] | null;
+  created_by: string | null;
   responsible_member_id: string | null;
   target_member_id: string | null;
   category: string;
@@ -72,7 +74,8 @@ function formValues(event?: CalendarEvent, date?: Date) {
   const target = event ? new Date(event.starts_at) : (date ?? new Date());
   const end = event?.ends_at ? new Date(event.ends_at) : null;
   return {
-    visible_to_children: event?.visible_to_children ?? true,
+    visibility: event?.audience_member_ids ? "selected" : event?.visible_to_children === false ? "adults" : "family",
+    audience_member_ids: event?.audience_member_ids ?? [],
     title: event?.title ?? "",
     date: dateKey(target),
     time: event ? `${String(target.getHours()).padStart(2, "0")}:${String(target.getMinutes()).padStart(2, "0")}` : "18:00",
@@ -98,6 +101,7 @@ export default function CalendarPage() {
   const [breaks, setBreaks] = useState<CalendarBreak[]>([]);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [canSetVisibility, setCanSetVisibility] = useState(false);
   const [currentMemberId, setCurrentMemberId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -124,11 +128,12 @@ export default function CalendarPage() {
     if (!auth.user) return;
     const { data: membership, error: membershipError } = await supabase.from("family_members").select("id,family_id,role").eq("user_id", auth.user.id).limit(1).single();
     if (membershipError || !membership) { setError("Kunde inte hitta familjen för ditt konto."); return; }
+    setCurrentUserId(auth.user.id);
     setCanSetVisibility(membership.role !== "barn");
     setFamilyId(membership.family_id);
     setCurrentMemberId(membership.id);
     const [eventResult, memberResult, breakResult] = await Promise.all([
-      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
+      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,audience_member_ids,created_by,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
       supabase.from("family_members").select("id,display_name,color,role").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
@@ -251,9 +256,31 @@ export default function CalendarPage() {
     }
   }
 
+  const readOnly = Boolean(editingEvent?.audience_member_ids && editingEvent.created_by !== currentUserId);
+  const eligibleMembers = members.filter(member =>
+    form.visibility === "selected" ? form.audience_member_ids.includes(member.id) :
+      form.visibility !== "adults" || member.role !== "barn"
+  );
+
+  function setAudience(visibility: string, audience: string[]) {
+    const eligible = (id: string) => visibility === "selected" ? audience.includes(id) :
+      visibility !== "adults" || memberById.get(id)?.role !== "barn";
+    setForm({
+      ...form,
+      visibility,
+      audience_member_ids: audience,
+      target_member_id: eligible(form.target_member_id) ? form.target_member_id : "",
+      responsible_member_id: eligible(form.responsible_member_id) ? form.responsible_member_id : "",
+    });
+  }
+
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
-    if (!familyId || !form.title.trim()) return;
+    if (!familyId || !currentUserId || !form.title.trim() || readOnly) return;
+    if (form.visibility === "selected" && !form.audience_member_ids.length) {
+      setError("Välj minst en person som får se aktiviteten.");
+      return;
+    }
     if (form.recurrence_enabled && (!form.recurrence_end_date || form.recurrence_days.length === 0)) { setError("Välj minst en veckodag och ett slutdatum för den återkommande aktiviteten."); return; }
     if (form.recurrence_enabled && form.recurrence_end_date < form.date) { setError("Slutdatum kan inte vara före startdatum."); return; }
     const original = editingEvent ? formValues(editingEvent) : null;
@@ -275,7 +302,9 @@ export default function CalendarPage() {
     const responsibleChanged = editingEvent ? editingEvent.responsible_member_id !== (form.responsible_member_id || null) : true;
     const payload: Record<string, unknown> = {
       title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null,
-      visible_to_children: form.visible_to_children,
+      visible_to_children: form.visibility !== "adults",
+      audience_member_ids: form.visibility === "selected" ? form.audience_member_ids : null,
+      ...(!editingEvent || form.visibility === "selected" ? { created_by: currentUserId } : {}),
       starts_at: start.toISOString(), ends_at: end?.toISOString() ?? null, target_member_id: form.target_member_id || null, responsible_member_id: form.responsible_member_id || null,
       category: form.category, reminder_minutes: form.reminder_minutes ? Number(form.reminder_minutes) : null,
       recurrence_enabled: form.recurrence_enabled, recurrence_days: form.recurrence_enabled ? form.recurrence_days : [], recurrence_end_date: form.recurrence_enabled ? form.recurrence_end_date : null,
@@ -374,6 +403,8 @@ export default function CalendarPage() {
     </section>
 
     {showForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSave}><div className="calendar-modal-heading"><div><p className="eyebrow">{editingEvent ? "AKTIVITET" : "NY AKTIVITET"}</p><h2>{editingEvent ? "Redigera aktivitet" : "Lägg till i kalendern"}</h2></div><button type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}
+      {readOnly && <p className="muted">Bara den som publicerade aktiviteten kan redigera den.</p>}
+      <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label>
       <div className="calendar-form-row"><label className="calendar-field"><span>Datum</span><input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></label><label className="calendar-field"><span>Tid</span><input type="time" required value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label></div>
       <div className="calendar-form-row">
@@ -394,28 +425,37 @@ export default function CalendarPage() {
       {canSetVisibility && (
         <label className="calendar-field">
           <span>Vem kan se aktiviteten?</span>
-          <select value={form.visible_to_children ? "family" : "adults"} onChange={event => {
-            const visible = event.target.value === "family";
-            setForm({
-              ...form,
-              visible_to_children: visible,
-              target_member_id: !visible && memberById.get(form.target_member_id)?.role === "barn" ? "" : form.target_member_id,
-              responsible_member_id: !visible && memberById.get(form.responsible_member_id)?.role === "barn" ? "" : form.responsible_member_id,
-            });
-          }}>
+          <select value={form.visibility} onChange={event => setAudience(event.target.value, form.audience_member_ids)}>
             <option value="family">Hela familjen</option>
             <option value="adults">Bara vuxna</option>
+            <option value="selected">Valda personer</option>
           </select>
-          {!form.visible_to_children && <small>Barn kan varken se aktiviteten eller få påminnelser om den.</small>}
         </label>
       )}
-      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller vem?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem aktiviteten handlar om.</small><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">{form.visible_to_children ? "Hela familjen" : "Alla vuxna"}</option>{members.filter(member => form.visible_to_children || member.role !== "barn").map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Vem ansvarar?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem som ska ta ansvar.</small><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{members.filter(member => form.visible_to_children || member.role !== "barn").map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
+      {form.visibility === "selected" && !readOnly && (
+        <fieldset>
+          <legend>Välj personer</legend>
+          {members.map(member => (
+            <label key={member.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input type="checkbox" checked={form.audience_member_ids.includes(member.id)} onChange={event => {
+                const audience = event.target.checked ? [...form.audience_member_ids, member.id] :
+                  form.audience_member_ids.filter(id => id !== member.id);
+                setAudience("selected", audience);
+              }} />
+              {member.display_name}
+            </label>
+          ))}
+          <small>Du kan också se aktiviteten som skapare.</small>
+        </fieldset>
+      )}
+      <div className="calendar-form-row"><label className="calendar-field"><span>Gäller vem?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem aktiviteten handlar om.</small><select value={form.target_member_id} onChange={(e) => setForm({ ...form, target_member_id: e.target.value })}><option value="">{form.visibility === "family" ? "Hela familjen" : form.visibility === "adults" ? "Alla vuxna" : "Valda personer"}</option>{eligibleMembers.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label><label className="calendar-field"><span>Vem ansvarar?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Vem som ska ta ansvar.</small><select value={form.responsible_member_id} onChange={(e) => setForm({ ...form, responsible_member_id: e.target.value })}><option value="">Ingen ansvarig vald</option>{eligibleMembers.map((member) => <option key={member.id} value={member.id}>{member.display_name}</option>)}</select></label></div>
       <label className="calendar-field"><span>Vilken typ?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Kategori för aktiviteten.</small><select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{categories.map((category) => <option key={category} value={category}>{category[0].toUpperCase() + category.slice(1)}</option>)}</select></label>
       <label className="calendar-field"><span>När ska påminnelsen komma?</span><small style={{ color: "#6b7b8c", fontSize: 11 }}>Påminnelsen kopplas till den ansvariga personen.</small><select value={form.reminder_minutes} onChange={(e) => setForm({ ...form, reminder_minutes: e.target.value })}>{reminderOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <div style={{ borderTop: "1px solid #dbe3ea", marginTop: 6, paddingTop: 14 }}><label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: "#102a43", fontSize: 13 }}><input type="checkbox" checked={form.recurrence_enabled} onChange={(e) => setForm({ ...form, recurrence_enabled: e.target.checked, recurrence_days: e.target.checked && form.recurrence_days.length === 0 ? [((new Date(`${form.date}T12:00:00`).getDay() + 6) % 7)] : form.recurrence_days })} /> Återkommande aktivitet</label>{form.recurrence_enabled && <div style={{ marginTop: 10 }}><div style={{ color: "#6b7b8c", fontSize: 11, marginBottom: 6 }}>Välj vilka veckodagar aktiviteten ska återkomma.</div><div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>{weekdays.map((day, index) => <button key={day} type="button" onClick={() => toggleDay(index)} style={{ border: form.recurrence_days.includes(index) ? "1px solid #0b2d4d" : "1px solid #dbe3ea", background: form.recurrence_days.includes(index) ? "#0b2d4d" : "#ffffff", color: form.recurrence_days.includes(index) ? "#ffffff" : "#102a43", borderRadius: 7, padding: "7px 2px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>{day}</button>)}</div><label className="calendar-field" style={{ marginTop: 10 }}><span>Återkom till och med</span><input type="date" required={form.recurrence_enabled} value={form.recurrence_end_date} min={form.date} onChange={(e) => setForm({ ...form, recurrence_end_date: e.target.value })} /></label></div>}</div>
       <div style={{ marginTop: 8, marginBottom: 8, color: "#6b7b8c", fontSize: 12 }}>Färg i kalendern följer den som aktiviteten gäller. En färgad markering på kanten visar vem som är ansvarig.</div>
+      </fieldset>
       {editingEvent?.responsible_member_id && <div style={{ border: "1px solid #dbe3ea", borderRadius: 10, padding: "10px 12px", marginBottom: 10, background: "#f8fafb" }}><strong>Ansvar:</strong> {memberById.get(editingEvent.responsible_member_id)?.display_name ?? "Familjemedlem"}<div style={{ marginTop: 3, color: "#6b7b8c", fontSize: 12 }}>{assignmentLabel(editingEvent)}.</div>{editingEvent.assignment_status === "pending" && editingEvent.responsible_member_id === currentMemberId && <div style={{ display: "flex", gap: 8, marginTop: 10 }}><button type="button" className="secondary" onClick={() => void respondToAssignment("declined")} disabled={responding}>{responding ? "Sparar..." : "Avböj"}</button><button type="button" className="primary" onClick={() => void respondToAssignment("accepted")} disabled={responding}>{responding ? "Sparar..." : "Acceptera"}</button></div>}</div>}
-      <div className="calendar-modal-actions">{editingEvent && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving || responding}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={saving || deleting || responding}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
+      <div className="calendar-modal-actions">{editingEvent && !readOnly && <button className="secondary" type="button" onClick={handleDelete} disabled={deleting || saving || responding}>{deleting ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowForm(false); setEditingEvent(null); }}>Avbryt</button><button className="primary" type="submit" disabled={readOnly || saving || deleting || responding}>{saving ? "Sparar..." : "Spara aktivitet"}</button></div>
     </form></div>}
 
     {showBreakForm && <div className="calendar-modal-backdrop" role="presentation"><form className="calendar-modal" onSubmit={handleSaveBreak}><div className="calendar-modal-heading"><div><p className="eyebrow">LOV & STUDIEDAGAR</p><h2>{editingBreak ? "Redigera ledighet" : "Markera ledighet"}</h2></div><button type="button" onClick={() => { setShowBreakForm(false); setEditingBreak(null); }}>×</button></div>{error && <p className="family-admin-error">{error}</p>}<p className="muted" style={{ marginBottom: 16 }}>Markera en hel vecka eller flera dagar på en gång. Detta blir en tydlig markering i familjens kalender.</p><label className="calendar-field"><span>Namn</span><input autoFocus required value={breakForm.title} onChange={(e) => setBreakForm({ ...breakForm, title: e.target.value })} placeholder="T.ex. Höstlov" /></label><label className="calendar-field"><span>Typ</span><select value={breakForm.break_type} onChange={(e) => setBreakForm({ ...breakForm, break_type: e.target.value })}>{breakTypes.map((type) => <option key={type} value={type}>{type === "lov" ? "Lov" : type === "studiedag" ? "Studiedag" : "Annat"}</option>)}</select></label><div className="calendar-form-row"><label className="calendar-field"><span>Från</span><input type="date" required value={breakForm.starts_on} onChange={(e) => setBreakForm({ ...breakForm, starts_on: e.target.value })} /></label><label className="calendar-field"><span>Till</span><input type="date" required value={breakForm.ends_on} onChange={(e) => setBreakForm({ ...breakForm, ends_on: e.target.value })} /></label></div><div className="calendar-modal-actions">{editingBreak && <button className="secondary" type="button" onClick={handleDeleteBreak} disabled={deletingBreak || savingBreak}>{deletingBreak ? "Tar bort..." : "Ta bort"}</button>}<span className="calendar-modal-spacer" /><button className="secondary" type="button" onClick={() => { setShowBreakForm(false); setEditingBreak(null); }}>Avbryt</button><button className="primary" type="submit" disabled={savingBreak || deletingBreak}>{savingBreak ? "Sparar..." : editingBreak ? "Spara ändringar" : "Spara ledighet"}</button></div></form></div>}
