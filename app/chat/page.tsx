@@ -18,17 +18,21 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const thread = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
+  const messageRequest = useRef(0);
   const familyId = member?.family_id;
   const profilePhotos = useFamilyProfilePhotos(supabase, familyId);
 
   const loadMessages = useCallback(async (id: string) => {
+    const request = ++messageRequest.current;
     const { data, error } = await supabase.from("family_chat_messages")
       .select("id,member_id,body,created_at").eq("family_id", id)
       .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100);
+    if (request !== messageRequest.current) return;
     if (error) setError("Kunde inte läsa meddelandena.");
     else setMessages(data.reverse());
     setLoading(false);
@@ -64,7 +68,17 @@ export default function ChatPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "family_chat_messages", filter: `family_id=eq.${familyId}` },
         () => void loadMessages(familyId))
       .subscribe(status => { if (status === "SUBSCRIBED") void loadMessages(familyId); });
-    return () => { void supabase.removeChannel(channel); };
+    const refreshVisible = () => {
+      if (document.visibilityState === "visible") void loadMessages(familyId);
+    };
+    const timer = window.setInterval(refreshVisible, 15_000);
+    document.addEventListener("visibilitychange", refreshVisible);
+    return () => {
+      messageRequest.current++;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshVisible);
+      void supabase.removeChannel(channel);
+    };
   }, [familyId, loadMessages, supabase]);
 
   useEffect(() => {
@@ -92,6 +106,25 @@ export default function ChatPage() {
     }
   }
 
+  async function removeMessage(message: Message) {
+    if (!member || message.member_id !== member.id || removingId ||
+        !window.confirm("Ta bort meddelandet för hela familjen?")) return;
+    setRemovingId(message.id);
+    setError("");
+    try {
+      const { error } = await supabase.from("family_chat_messages").delete()
+        .eq("id", message.id).eq("family_id", member.family_id).eq("member_id", member.id)
+        .select("id").maybeSingle();
+      if (error) throw error;
+      messageRequest.current++;
+      setMessages(current => current.filter(item => item.id !== message.id));
+    } catch {
+      setError("Kunde inte ta bort meddelandet. Försök igen.");
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
   return (
     <main className="section-shell family-chat-page">
       <style>{`
@@ -104,6 +137,8 @@ export default function ChatPage() {
         .chat-line .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .chat-message { min-width: 0; max-width: min(79%, 560px); display: grid; justify-items: start; gap: 3px; }
         .chat-line-own .chat-message { justify-items: end; }
+        .chat-message-meta { display: flex; align-items: center; gap: 4px; }
+        .chat-remove { border: 0; background: transparent; color: var(--muted); padding: 4px 6px; font-size: 11px; text-decoration: underline; }
         .chat-sender, .chat-time { color: var(--muted); font-size: 11px; padding-inline: 5px; }
         .chat-bubble { margin: 0; padding: 8px 13px; border-radius: 18px 18px 18px 5px; background: #ebedf1; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
         .chat-line-own .chat-bubble { border-radius: 18px 18px 5px 18px; background: #0065cf; color: #fff; }
@@ -142,7 +177,12 @@ export default function ChatPage() {
                   <div className="chat-message">
                     <strong className="chat-sender">{own ? "Du" : sender?.display_name ?? "Familjemedlem"}</strong>
                     <p className="chat-bubble">{message.body}</p>
-                    <time className="chat-time" dateTime={message.created_at}>{timeLabel.format(date)}</time>
+                    <div className="chat-message-meta">
+                      <time className="chat-time" dateTime={message.created_at}>{timeLabel.format(date)}</time>
+                      {own && <button type="button" className="chat-remove" disabled={removingId !== null} onClick={() => void removeMessage(message)}>
+                        {removingId === message.id ? "Tar bort…" : "Ta bort"}
+                      </button>}
+                    </div>
                   </div>
                 </div>
               </Fragment>
