@@ -21,6 +21,11 @@ export default function TasksPage(){
  const [filterMember,setFilterMember]=useState("all");
  const [saving,setSaving]=useState(false);
  const [workingId,setWorkingId]=useState<string|null>(null);
+ const [editingId,setEditingId]=useState<string|null>(null);
+ const [editTitle,setEditTitle]=useState("");
+ const [editAssigned,setEditAssigned]=useState("");
+ const [editXp,setEditXp]=useState("0");
+ const [editDue,setEditDue]=useState("");
  const [error,setError]=useState("");
  const [loading,setLoading]=useState(true);
 
@@ -61,6 +66,8 @@ export default function TasksPage(){
   if(e)setError("Kunde inte uppdatera uppgiften: "+e.message);else await load();
   setWorkingId(null);
  }
+ function beginEdit(t:Task){setEditingId(t.id);setEditTitle(t.title);setEditAssigned(t.assigned_member_id??"");setEditXp(String(t.xp));setEditDue(t.due_at?localDate(t.due_at):"");setError("")}
+ async function saveEdit(){if(!editingId||!member||!editTitle.trim()||workingId)return;setWorkingId(editingId);setError("");const {error:e}=await supabase.from("family_tasks").update({title:editTitle.trim(),assigned_member_id:editAssigned||null,xp:Math.max(0,Math.floor(Number(editXp)||0)),due_at:editDue?new Date(`${editDue}T12:00:00`).toISOString():null,updated_at:new Date().toISOString()}).eq("id",editingId).eq("family_id",member.family_id);if(e)setError("Kunde inte spara ändringarna: "+e.message);else{setEditingId(null);await load()}setWorkingId(null)}
  const visible=tasks.filter(t=>(showCompleted||!t.completed_at)&&(filterMember==="all"||(filterMember==="family"?t.assigned_member_id===null:t.assigned_member_id===filterMember))).sort((a,b)=>{
   if(Boolean(a.completed_at)!==Boolean(b.completed_at))return a.completed_at?1:-1;
   if(a.due_at&&!b.due_at)return -1;
@@ -87,7 +94,7 @@ export default function TasksPage(){
  {loading?<p className="muted" style={{padding:22}}>Laddar uppgifter...</p>:visible.map(t=>{
   const who=members.find(m=>m.id===t.assigned_member_id);
   const overdue=Boolean(t.due_at&&!t.completed_at&&localDate(t.due_at)<localDate(new Date().toISOString()));
-  return <div className="section-row" key={t.id}><div><strong style={{color:"var(--text)",textDecoration:t.completed_at?"line-through":"none"}}>{t.title}</strong><p>{who?.display_name??"Hela familjen"} · +{t.xp} XP</p>{t.due_at&&<p style={{color:overdue?"#b42318":"var(--muted)"}}>{overdue?"Försenad · ":"Klart senast "}{dateLabel(t.due_at)}</p>}</div><button className="secondary" type="button" disabled={workingId!==null} onClick={()=>void toggle(t)}>{workingId===t.id?"Sparar...":t.completed_at?"Ångra":"Markera klar"}</button></div>;
+  return <div className="section-row" key={t.id} style={{flexWrap:"wrap",gap:12}}>{editingId===t.id?<div style={{width:"100%",display:"grid",gap:12,color:"var(--text)"}}><label className="family-admin-field"><span>Uppgift</span><input value={editTitle} onChange={e=>setEditTitle(e.target.value)}/></label><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:10}}><label className="family-admin-field"><span>Ansvarig</span><select value={editAssigned} onChange={e=>setEditAssigned(e.target.value)}><option value="">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label><label className="family-admin-field"><span>Klart senast</span><input type="date" value={editDue} onChange={e=>setEditDue(e.target.value)}/></label><label className="family-admin-field"><span>XP</span><input type="number" min="0" step="1" value={editXp} onChange={e=>setEditXp(e.target.value)}/></label></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="button" className="primary" disabled={!editTitle.trim()||workingId!==null} onClick={()=>void saveEdit()}>{workingId===t.id?"Sparar...":"Spara ändringar"}</button><button type="button" className="secondary" disabled={workingId!==null} onClick={()=>setEditingId(null)}>Avbryt</button></div></div>:<><div><strong style={{color:"var(--text)",textDecoration:t.completed_at?"line-through":"none"}}>{t.title}</strong><p>{who?.display_name??"Hela familjen"} · +{t.xp} XP</p>{t.due_at&&<p style={{color:overdue?"#b42318":"var(--muted)"}}>{overdue?"Försenad · ":"Klart senast "}{dateLabel(t.due_at)}</p>}</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="secondary" type="button" disabled={workingId!==null||editingId!==null} onClick={()=>beginEdit(t)}>Ändra</button><button className="secondary" type="button" disabled={workingId!==null||editingId!==null} onClick={()=>void toggle(t)}>{workingId===t.id?"Sparar...":t.completed_at?"Ångra":"Markera klar"}</button></div></>}</div>;
  })}
  {!loading&&!visible.length&&<p className="muted" style={{padding:22}}>{tasks.length?"Inga uppgifter matchar filtret.":"Inga uppgifter ännu."}</p>}
  </section></main>;
