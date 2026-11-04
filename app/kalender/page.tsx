@@ -149,16 +149,17 @@ export default function CalendarPage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState("");
+  const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(() => formValues());
   const [breakForm, setBreakForm] = useState({ title: "", break_type: "lov", starts_on: dateKey(new Date()), ends_on: dateKey(new Date()) });
 
   async function loadCalendar() {
-    setError("");
+    setLoadError("");
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
+    if (!auth.user) { setLoadError("Logga in för att se familjens kalender."); return; }
     const { data: membership, error: membershipError } = await supabase.from("family_members").select("id,family_id,role").eq("user_id", auth.user.id).limit(1).single();
-    if (membershipError || !membership) { setError("Kunde inte hitta familjen för ditt konto."); return; }
+    if (membershipError || !membership) { setLoadError("Kunde inte hitta familjen för ditt konto."); return; }
     setCurrentUserId(auth.user.id);
     setCanSetVisibility(membership.role !== "barn");
     setFamilyId(membership.family_id);
@@ -168,7 +169,8 @@ export default function CalendarPage() {
       supabase.from("family_members").select("id,display_name,color,role").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
-    if (eventResult.error) setError(eventResult.error.message); else setEvents((eventResult.data ?? []) as CalendarEvent[]);
+    if (eventResult.error || memberResult.error || breakResult.error) setLoadError("Delar av kalendern kunde inte laddas.");
+    if (!eventResult.error) setEvents((eventResult.data ?? []) as CalendarEvent[]);
     if (!memberResult.error) setMembers((memberResult.data ?? []) as FamilyMember[]);
     if (!breakResult.error) setBreaks((breakResult.data ?? []) as CalendarBreak[]);
   }
@@ -222,7 +224,7 @@ export default function CalendarPage() {
         count += 1;
       }
     }
-    return result;
+    return result.sort((first, second) => Date.parse(first.starts_at) - Date.parse(second.starts_at));
   }, [events]);
   const query = search.trim().toLocaleLowerCase("sv-SE");
   const hasFilters = Boolean(query || categoryFilter || memberFilter);
@@ -491,8 +493,35 @@ export default function CalendarPage() {
           </button>
         )}
       </div>
-      <div className="calendar-toolbar" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 14 }}><div className="calendar-navigation"><button type="button" onClick={() => movePeriod(-1)}>‹</button><button type="button" onClick={goToday}>Idag</button><button type="button" onClick={() => movePeriod(1)}>›</button></div><h2 style={{ margin: 0, color: "#102a43", fontSize: 20, lineHeight: 1.2, textAlign: "center", minWidth: 180, whiteSpace: "nowrap" }}>{view === "month" ? monthLabel(currentMonth) : `${currentWeek[0].getDate()}–${currentWeek[6].getDate()} ${new Intl.DateTimeFormat("sv-SE", { month: "long", year: "numeric" }).format(currentWeek[6])}`}</h2><div style={{ display: "flex", gap: 6, alignItems: "center", justifySelf: "end" }}><button type="button" style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button><button type="button" style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button></div></div>
-      {hasFilters && !eventMap.size && <p role="status" className="muted" style={{ margin: "12px 16px" }}>Inga aktiviteter matchar dina val i den här vyn.</p>}
+      <div className="calendar-toolbar" style={{ flexWrap: "wrap", gap: 12 }}>
+        <div className="calendar-navigation">
+          <button type="button" aria-label="Föregående period" onClick={() => movePeriod(-1)}>‹</button>
+          <button type="button" onClick={goToday}>Idag</button>
+          <button type="button" aria-label="Nästa period" onClick={() => movePeriod(1)}>›</button>
+        </div>
+        <h2 style={{ color: "#102a43" }}>
+          {view === "month" ? monthLabel(currentMonth) :
+            `${dateKey(currentWeek[0])} – ${dateKey(currentWeek[6])}`}
+        </h2>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+          <button type="button" aria-pressed={view === "month"} style={switchButtonStyle(view === "month")} onClick={() => setView("month")}>Månad</button>
+          <button type="button" aria-pressed={view === "week"} style={switchButtonStyle(view === "week")} onClick={() => setView("week")}>Vecka</button>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span>Gå till datum</span>
+            <input type="date" value={dateKey(currentMonth)} onChange={event => {
+              const date = new Date(`${event.target.value}T12:00:00`);
+              if (event.target.value && Number.isFinite(date.getTime())) setCurrentMonth(date);
+            }} />
+          </label>
+        </div>
+      </div>
+      {loadError && (
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, margin: "12px 16px" }}>
+          <p role="alert">{loadError}</p>
+          <button className="secondary" type="button" onClick={() => void loadCalendar()}>Försök igen</button>
+        </div>
+      )}
+      {hasFilters && !loadError && !eventMap.size && <p role="status" className="muted" style={{ margin: "12px 16px" }}>Inga aktiviteter matchar dina val i den här vyn.</p>}
       {view === "month" ? <><div className="calendar-weekdays">{weekdays.map((day) => <div key={day}>{day}</div>)}</div><div className="calendar-grid">{cells.map((day) => { const key = dateKey(day); const dayEvents = eventMap.get(key) ?? []; const dayBreaks = breaksForDate(day); const outside = day.getMonth() !== currentMonth.getMonth(); return <div key={key} className={`calendar-day ${outside ? "outside" : ""} ${key === todayKey ? "today" : ""}`}><button type="button" className="calendar-day-surface" onClick={() => openAdd(day)} aria-label={`Lägg till aktivitet ${key}`}><span className="calendar-day-number">{day.getDate()}</span></button>{dayBreaks.map((item) => <button key={item.id} type="button" onClick={() => openBreakForm(undefined, item)} style={{ display: "block", width: "100%", border: 0, borderRadius: 5, background: "#fbeaea", color: "#c62828", padding: "4px 5px", marginBottom: 4, fontSize: 9, fontWeight: 800, textAlign: "left", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.break_type === "studiedag" ? "Studiedag" : item.title}</button>)}<span className="calendar-events">{dayEvents.slice(0, 3).map((item) => <button type="button" className={`calendar-event-pill category-${item.category}`} style={eventStyle(item)} key={item.id} onClick={() => openEdit(item)}>{item.all_day || dateKey(new Date(item.starts_at)) !== key ? "" : `${timeLabel(item.starts_at)} `}<VisibilityMark event={item} /><MemberInitial member={item.target_member_id ? memberById.get(item.target_member_id) : undefined} />{item.title}{item.responsible_member_id && <span style={assignmentIconStyle(item)} title={assignmentLabel(item)}>{assignmentIcon(item)}</span>}</button>)}{dayEvents.length > 3 && <button
   type="button"
   className="calendar-more"
