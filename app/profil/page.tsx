@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-async function resizePhoto(file: File) {
+async function loadPhoto(file: File) {
   const heic = ["image/heic", "image/heif"].includes(file.type) || /\.hei[cf]$/i.test(file.name);
   const standard = ["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
     (!file.type && /\.(jpe?g|png|webp)$/i.test(file.name));
@@ -27,20 +27,24 @@ async function resizePhoto(file: File) {
     const image = new Image();
     image.src = url;
     await image.decode();
-    const side = Math.min(image.naturalWidth, image.naturalHeight);
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 256;
-    const context = canvas.getContext("2d");
-    if (!context || !side) throw new Error("Kunde inte läsa bilden.");
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, 256, 256);
-    context.drawImage(image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, 256, 256);
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Kunde inte spara bilden.")), "image/jpeg", 0.86);
-    });
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error("Kunde inte läsa bilden.");
+    return image;
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+const initialCrop = { zoom: 1, horizontal: 50, vertical: 50 };
+
+function drawCrop(canvas: HTMLCanvasElement, image: HTMLImageElement, crop: typeof initialCrop) {
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Kunde inte förbereda beskärningen.");
+  const side = Math.min(image.naturalWidth, image.naturalHeight) / crop.zoom;
+  const x = (image.naturalWidth - side) * crop.horizontal / 100;
+  const y = (image.naturalHeight - side) * crop.vertical / 100;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, x, y, side, side, 0, 0, canvas.width, canvas.height);
 }
 
 export default function ProfilePage() {
@@ -49,7 +53,9 @@ export default function ProfilePage() {
   const [member, setMember] = useState<{ id: string; family_id: string; display_name: string } | null>(null);
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState("");
-  const [draft, setDraft] = useState<Blob | null>(null);
+  const [draft, setDraft] = useState<HTMLImageElement | null>(null);
+  const [crop, setCrop] = useState(initialCrop);
+  const cropCanvas = useRef<HTMLCanvasElement>(null);
   const [preparing, setPreparing] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,23 +94,27 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!file) return;
     let active = true;
-    void resizePhoto(file).then(
+    void loadPhoto(file).then(
       image => { if (active) setDraft(image); },
       error => { if (active) setStatus(error instanceof Error ? error.message : "Kunde inte läsa bilden."); },
     ).finally(() => { if (active) setPreparing(false); });
     return () => { active = false; };
   }, [file]);
 
-  const displayedPhoto = draft ?? photo;
   useEffect(() => {
-    if (!displayedPhoto) { setPreview(""); return; }
-    const url = URL.createObjectURL(displayedPhoto);
+    if (draft && cropCanvas.current) drawCrop(cropCanvas.current, draft, crop);
+  }, [draft, crop]);
+
+  useEffect(() => {
+    if (!photo) { setPreview(""); return; }
+    const url = URL.createObjectURL(photo);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
-  }, [displayedPhoto]);
+  }, [photo]);
 
   function chooseFile(next: File | null) {
     setDraft(null);
+    setCrop(initialCrop);
     setStatus("");
     setPreparing(Boolean(next));
     setFile(next);
@@ -117,9 +127,15 @@ export default function ProfilePage() {
     setBusy(true);
     setStatus("");
     try {
-      const { error } = await bucket.upload(`${member.family_id}/${member.id}.jpg`, draft, { upsert: true, contentType: "image/jpeg", cacheControl: "0" });
+      const canvas = cropCanvas.current;
+      if (!canvas) throw new Error("Beskärningen är inte klar.");
+      drawCrop(canvas, draft, crop);
+      const image = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Kunde inte spara bilden.")), "image/jpeg", 0.86);
+      });
+      const { error } = await bucket.upload(`${member.family_id}/${member.id}.jpg`, image, { upsert: true, contentType: "image/jpeg", cacheControl: "0" });
       if (error) throw new Error("Kunde inte ladda upp bilden. Försök igen.");
-      setPhoto(draft);
+      setPhoto(image);
       chooseFile(null);
       form.reset();
       setStatus("Profilbilden är sparad.");
@@ -157,14 +173,25 @@ export default function ProfilePage() {
         {member && !loading && (
           <>
             <div className="avatar" style={{ width: 72, height: 72, overflow: "hidden", fontSize: 24 }}>
-              {preview ? <img src={preview} alt={draft ? "Förhandsvisning av ny profilbild" : "Din profilbild"} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
+              {preview ? <img src={preview} alt="Din sparade profilbild" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
             </div>
             <p>{member.display_name}</p>
-            {draft && <p className="muted">Förhandsvisning. Bilden är ännu inte sparad.</p>}
             {preparing && <p role="status">Förbereder förhandsvisning…</p>}
             <p className="muted">Bilden visas för familjen och beskärs till en kvadrat.</p>
             <form onSubmit={save} onReset={() => chooseFile(null)} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
               <input type="file" aria-label="Välj profilbild" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
+              {draft && (
+                <fieldset disabled={busy} style={{ flexBasis: "100%", minWidth: 0, margin: "8px 0", border: "1px solid var(--line)", borderRadius: 10, padding: 12 }}>
+                  <legend>Beskär profilbild</legend>
+                  <canvas ref={cropCanvas} width={256} height={256} role="img" aria-label="Förhandsvisning av beskuren profilbild" style={{ display: "block", width: "min(100%, 256px)", height: "auto", borderRadius: "50%" }} />
+                  <p className="muted">Justera bilden innan du sparar.</p>
+                  <div style={{ display: "grid", gap: 10, maxWidth: 320 }}>
+                    <label>Zoom <input type="range" min={1} max={3} step={0.01} value={crop.zoom} onChange={event => setCrop({ ...crop, zoom: event.target.valueAsNumber })} /></label>
+                    <label>Vänster till höger <input type="range" min={0} max={100} value={crop.horizontal} onChange={event => setCrop({ ...crop, horizontal: event.target.valueAsNumber })} /></label>
+                    <label>Uppifrån och ned <input type="range" min={0} max={100} value={crop.vertical} onChange={event => setCrop({ ...crop, vertical: event.target.valueAsNumber })} /></label>
+                  </div>
+                </fieldset>
+              )}
               <button className="primary" type="submit" disabled={!draft || preparing || busy}>Spara profilbild</button>
               {file && <button className="secondary" type="reset" disabled={busy}>Avbryt bildval</button>}
               {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>Ta bort bild</button>}
