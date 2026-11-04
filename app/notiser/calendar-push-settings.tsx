@@ -83,10 +83,14 @@ export default function CalendarPushSettings() {
   }
 
   async function showTestNotification() {
-    if (!ready || !enabled || busy) return;
+    if (!ready || busy) return;
     setBusy(true);
     setMessage("");
     try {
+      if (await Notification.requestPermission() !== "granted") {
+        setMessage("Webbläsaren har inte tillåtelse att visa notiser. Kontrollera webbplatsens notisbehörighet.");
+        return;
+      }
       await ready.registration.showNotification("Testnotis från Vardilo", {
         body: "Så här kan en kalenderpåminnelse visas på den här enheten.",
         icon: "/app-icon/192",
@@ -111,11 +115,9 @@ export default function CalendarPushSettings() {
         <button className="secondary" type="button" disabled={!ready || busy} onClick={() => void toggle()}>
           {enabled ? "Stäng av push" : "Slå på push"}
         </button>
-        {enabled && (
-          <button className="secondary" type="button" disabled={busy} onClick={() => void showTestNotification()}>
+        <button className="secondary" type="button" disabled={!ready || busy} onClick={() => void showTestNotification()}>
             Visa testnotis
-          </button>
-        )}
+        </button>
       </div>
     </section>
   );
