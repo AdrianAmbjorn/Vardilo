@@ -11,6 +11,7 @@ type Notification = {
   title: string;
   body: string | null;
   href: string | null;
+  metadata?: { starts_at?: unknown } | null;
   read_at: string | null;
   created_at: string;
 };
@@ -70,7 +71,7 @@ export default function NotificationsPage() {
 
       const { data, error } = await supabase
         .from("notifications")
-        .select("id,type,title,body,href,read_at,created_at")
+        .select("id,type,title,body,href,metadata,read_at,created_at")
         .eq("recipient_member_id", member.id)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -140,6 +141,14 @@ export default function NotificationsPage() {
 
   async function openNotification(notification: Notification) {
     if (!notification.read_at && !await markRead(notification.id)) return;
+    const startsAt = notification.metadata?.starts_at;
+    if (notification.href === "/kalender" && typeof startsAt === "string") {
+      const date = new Date(startsAt);
+      if (Number.isFinite(date.getTime())) {
+        router.push(`/kalender?datum=${encodeURIComponent(date.toISOString())}`);
+        return;
+      }
+    }
     if (notification.href) router.push(notification.href);
   }
 

@@ -130,7 +130,17 @@ export default function CalendarPage() {
     if (!breakResult.error) setBreaks((breakResult.data ?? []) as CalendarBreak[]);
   }
 
-  useEffect(() => { void loadCalendar(); }, []);
+  useEffect(() => {
+    const target = new URLSearchParams(window.location.search).get("datum");
+    if (target) {
+      const date = new Date(target);
+      if (Number.isFinite(date.getTime())) {
+        setCurrentMonth(date);
+        setView("week");
+      }
+    }
+    void loadCalendar();
+  }, []);
   const cells = monthDays(currentMonth);
   const currentWeek = weekDays(currentMonth);
   const expandedEvents = useMemo(() => {
