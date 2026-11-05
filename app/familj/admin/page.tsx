@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Invitations from "./invitations";
 import ChildLogins from "./child-logins";
 import { createClient } from "@/lib/supabase/client";
 
@@ -55,6 +56,8 @@ const colorHex: Record<string, string> = {
 export default function FamilyAdminPage() {
   const supabase = useMemo(() => createClient(), []);
   const actionLock = useRef(false);
+  const [currentRole,setCurrentRole]=useState("");
+  const [savingRoleId,setSavingRoleId]=useState<string|null>(null);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [memberName, setMemberName] = useState("");
@@ -76,7 +79,7 @@ export default function FamilyAdminPage() {
 
     const { data: currentMember } = await supabase
       .from("family_members")
-      .select("id, family_id")
+      .select("id, family_id, role")
       .eq("user_id", user.id)
       .order("created_at")
       .limit(1)
@@ -101,7 +104,8 @@ export default function FamilyAdminPage() {
     }
 
     setFamilyName(family?.name ?? "");
-    setCanManageMembers(Boolean(permissions?.can_manage_members));
+    setCurrentRole(currentMember.role);
+    setCanManageMembers(currentMember.role === "admin");
     setMembers((familyMembers ?? []) as FamilyMember[]);
     } catch { setError("Kunde inte läsa familjen. Försök igen."); }
   }
@@ -121,7 +125,7 @@ export default function FamilyAdminPage() {
     const { error: rpcError } = await supabase.rpc("add_family_member_for_current_user", {
       member_name: memberName.trim(),
       member_role: memberRole,
-      member_family_role: memberRole === "familj" ? familyRelationship : null,
+      member_family_role: memberRole !== "barn" ? familyRelationship : null,
     });
 
     if (rpcError) {
@@ -172,6 +176,15 @@ export default function FamilyAdminPage() {
 
   }
 
+  async function changeRole(member: FamilyMember, role: string, relationship = member.family_role) {
+    if(actionLock.current||!canManageMembers)return;
+    if(role!==member.role&&!window.confirm(`Ändra rollen för ${member.display_name} till ${role === "familj" ? "Familjemedlem" : role}?`))return;
+    actionLock.current=true;setSavingRoleId(member.id);setError("");
+    try{const result=await supabase.rpc("set_family_member_role",{p_member_id:member.id,p_role:role,p_family_role:relationship});if(result.error)throw result.error;await loadFamily()}
+    catch(error){setError(typeof error==="object"&&error&&"message" in error?String(error.message):"Kunde inte ändra rollen.")}
+    finally{actionLock.current=false;setSavingRoleId(null)}
+  }
+
   if (loading) {
     return <main className="section-shell">Laddar...</main>;
   }
@@ -217,13 +230,14 @@ export default function FamilyAdminPage() {
                   value={memberRole}
                   onChange={(event) => setMemberRole(event.target.value)}
                 >
+                  <option value="admin">Admin</option>
                   <option value="förälder">Förälder</option>
                   <option value="barn">Barn</option>
                   <option value="familj">Familj</option>
                 </select>
               </label>
 
-              {memberRole === "familj" ? (
+              {memberRole !== "barn" ? (
                 <label className="family-admin-field">
                   <span>Relation</span>
                   <select
@@ -254,7 +268,8 @@ export default function FamilyAdminPage() {
           </div>
         )}
 
-        {canManageMembers && <ChildLogins members={members} onChanged={loadFamily} />}
+        {canManageMembers && <Invitations members={members} />}
+        {["admin","förälder"].includes(currentRole) && <ChildLogins members={members} onChanged={loadFamily} />}
         <div className="family-admin-list">
           <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
             <h3>Familjemedlemmar</h3>
@@ -276,12 +291,14 @@ export default function FamilyAdminPage() {
                   <div>
                     <div className="family-admin-member-name">{member.display_name}</div>
                     <div className="family-admin-member-meta">
-                      {roleLabel}{member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
+                      {member.role === "admin" ? "Admin" : member.role === "familj" ? "Familjemedlem" : roleLabel}{relationship ? ` · ${relationship}` : ""}{member.user_id ? " · Konto kopplat" : " · Familjemedlem"}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  {canManageMembers && <label className="family-admin-field" style={{margin:0}}><span>Roll</span><select aria-label={`Roll för ${member.display_name}`} value={member.role} disabled={savingRoleId!==null} onChange={event=>void changeRole(member,event.target.value)}><option value="admin">Admin</option><option value="förälder">Förälder</option><option value="barn">Barn</option><option value="familj">Familjemedlem</option></select></label>}
+                  {canManageMembers && member.role!=="barn" && <label className="family-admin-field" style={{margin:0}}><span>Relation</span><select aria-label={`Relation för ${member.display_name}`} value={member.family_role??""} disabled={savingRoleId!==null} onChange={event=>void changeRole(member,member.role,event.target.value)}><option value="">Ej angiven</option>{familyRelationships.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>}
                   <label className="family-admin-field" style={{ margin: 0 }}>
                     <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>Färg</span>
                     <select value={member.color} onChange={(event) => changeColor(member.id, event.target.value)} disabled={savingColorId === member.id} aria-label={`Färg för ${member.display_name}`}>

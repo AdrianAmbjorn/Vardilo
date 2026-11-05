@@ -1,6 +1,6 @@
 # Parent-managed child accounts
 
-Deploy with JWT gateway verification disabled (`--no-verify-jwt`): the handler verifies the bearer token with Auth `getUser`, then checks the caller's family, adult role, and `can_manage_members` permission. This supports both legacy and asymmetric JWTs. Never expose `SUPABASE_SERVICE_ROLE_KEY` outside the Edge Function.
+Deploy with JWT gateway verification disabled (`--no-verify-jwt`): the handler verifies the bearer token with Auth `getUser`, then checks the caller's family, admin or parent role. This supports both legacy and asymmetric JWTs. Never expose `SUPABASE_SERVICE_ROLE_KEY` outside the Edge Function.
 
 The child signs in through Supabase Auth with a deterministic internal email derived from the normalized parent email and child username. The internal address receives no mail. Passwords are handled only by Auth; they are never saved in application tables. Parents reset a child's password from their authenticated account.
 

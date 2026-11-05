@@ -18,8 +18,6 @@ Deno.serve(async (request: Request) => {
     if (typeof memberId !== "string" || !/^[0-9a-f-]{36}$/i.test(memberId) || typeof password !== "string" || password.length < 10 || password.length > 128 || !["create", "reset"].includes(action)) return response({ error: "Välj ett lösenord på 10–128 tecken." }, 400);
     const { data: guardian, error: guardianError } = await admin.from("family_members").select("id,family_id,role").eq("user_id", auth.user.id).single();
     if (guardianError || !guardian || !["admin", "förälder"].includes(guardian.role)) return response({ error: "Endast föräldrar med rätt behörighet kan hantera barnkonton." }, 403);
-    const { data: permission } = await admin.from("family_permissions").select("can_manage_members").eq("family_member_id", guardian.id).maybeSingle();
-    if (!permission?.can_manage_members) return response({ error: "Du saknar behörighet att hantera familjemedlemmar." }, 403);
     const { data: child, error: childError } = await admin.from("family_members").select("id,display_name,role,user_id").eq("id", memberId).eq("family_id", guardian.family_id).eq("role", "barn").single();
     if (childError || !child) return response({ error: "Barnprofilen kunde inte hittas i din familj." }, 403);
     if (action === "reset") {

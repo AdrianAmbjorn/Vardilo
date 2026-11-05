@@ -49,8 +49,8 @@ function edge(scenario = {}) {
 }
 const createBody = { action:'create',memberId:'11111111-1111-4111-8111-111111111111',username:'Alice',password:'long-child-password' };
 
-test('anonymous, invalid session, child actor, missing permission and foreign-family child are denied', async () => {
-  for (const [scenario,token,status] of [[{},'',401],[{invalidToken:true},'bad',401],[{childActor:true},'valid',403],[{noPermission:true},'valid',403],[{foreignChild:true},'valid',403]]) {
+test('anonymous, invalid session, child actor, foreign-family child are denied', async () => {
+  for (const [scenario,token,status] of [[{},'',401],[{invalidToken:true},'bad',401],[{childActor:true},'valid',403],[{foreignChild:true},'valid',403]]) {
     const e=edge(scenario); assert.equal((await e.run(createBody,token)).status,status);
     assert(!e.calls.some(call=>['create','reset','link'].includes(call[0])));
   }

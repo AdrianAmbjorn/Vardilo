@@ -2,6 +2,7 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { loginDestination } from "@/lib/login-destination";
 import { childLoginEmail, validChildUsername } from "@/lib/child-login";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,8 +35,9 @@ export default function LoginPage() {
     setMessage("");
 
     try {
+    const destination = loginDestination(window.location.search);
     if (mode === "signup") {
-      const redirectTo = `${window.location.origin}/auth/callback?next=/familj`;
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(destination)}`;
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -50,7 +52,7 @@ export default function LoginPage() {
       } else if (!data.session) {
         setMessage("Kontot är skapat. Kontrollera din e-post för att bekräfta kontot.");
       } else {
-        router.push("/familj");
+        router.push(destination);
         router.refresh();
       }
     } else {
@@ -63,7 +65,7 @@ export default function LoginPage() {
       if (error) {
         setMessage(mode === "child" ? "Kunde inte logga in. Kontrollera förälderns e-post, barnets användarnamn och lösenord." : error.message);
       } else {
-        router.push("/familj");
+        router.push(destination);
         router.refresh();
       }
     }

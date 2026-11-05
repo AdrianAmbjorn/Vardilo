@@ -15,7 +15,7 @@ test('login releases its lock and keeps the form usable after a rejected request
   const state = {}, lock = { current: false };
   const submit = handler('app/login/page.tsx', 'async function handleSubmit', '\n  return (', {
     submitLock: lock, setLoading: value => state.loading = value, setMessage: value => state.message = value,
-    mode: 'login', email: ' me@example.com ', password: 'password',
+    window: { location: { search: '' } }, loginDestination: () => '/familj', mode: 'login', email: ' me@example.com ', password: 'password',
     supabase: { auth: { signInWithPassword: async ({ email }) => { assert.equal(email, 'me@example.com'); throw Error('offline'); } } },
   });
   await submit(event);
