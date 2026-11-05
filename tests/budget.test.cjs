@@ -19,19 +19,34 @@ test('division preserves every cent for odd totals, shared surplus and zero part
 });
 function handler(name,end,env){const s=readFileSync('app/budget/page.tsx','utf8');const start=s.indexOf(` async function ${name}(`);const code=stripTypeScriptTypes(s.slice(start,s.indexOf(end,start)));return new Function(...Object.keys(env),`${code};return ${name}`)(...Object.values(env))}
 test('editing a budget row is scoped to its family and month and keeps cents exact',async()=>{
- let payload,filters={},rows;const q={update(value){payload=value;return q},eq(key,value){filters[key]=value;return q},select(){return q},single:async()=>({data:{id:'row'},error:null})};
- const env={member:{id:'parent',family_id:'family'},busy:false,lock:{current:false},authEpoch:{current:0},failed:false,savedAt:null,draft:{title:' Rent ',amount:'9 999,99',kind:'expense',member_id:'parent',shared:true},parents:[{id:'parent'}],budgetAmount,editing:'row',month:'2026-11',draftId:{current:'request'},setError(){},setBusy(){},supabase:{from:()=>q},setRows:update=>rows=update([{id:'row',amount_cents:100}]),setDraft(){},setEditing(){},empty:{}};
+ let payload,filters={},rows;const q={update(value){payload=value;return q},eq(key,value){filters[key]=value;return q},or(){return q},select(){return q},single:async()=>({data:{id:'row'},error:null})};
+ const env={member:{id:'parent',family_id:'family'},busy:false,lock:{current:false},authEpoch:{current:0},failed:false,savedAt:null,personal:false,draft:{title:' Rent ',amount:'9 999,99',kind:'expense',member_id:'parent',shared:true},parents:[{id:'parent'}],budgetAmount,editing:'row',month:'2026-11',draftId:{current:'request'},setError(){},setBusy(){},supabase:{from:()=>q},setRows:update=>rows=update([{id:'row',amount_cents:100}]),setDraft(){},setEditing(){},empty:{}};
  await handler('save',' async function share',env)({preventDefault(){}});assert.deepEqual(filters,{id:'row',family_id:'family',month:'2026-11-01'});assert.equal(payload.amount_cents,999999);assert.equal(payload.title,'Rent');assert.equal(rows[0].amount_cents,999999);assert.equal(env.lock.current,false);
 });
 test('a failed share update leaves the displayed shared total unchanged',async()=>{
- let changed=false,error;const q={update:()=>q,eq:()=>q,select:()=>q,single:async()=>({error:Error('offline')})};const env={member:{id:'parent',family_id:'family'},lock:{current:false},authEpoch:{current:0},failed:false,savedAt:null,setBusy(){},setError:value=>error=value,supabase:{from:()=>q},setRows:()=>changed=true};
+ let changed=false,error;const q={update:()=>q,eq:()=>q,or:()=>q,select:()=>q,single:async()=>({error:Error('offline')})};const env={member:{id:'parent',family_id:'family'},lock:{current:false},authEpoch:{current:0},failed:false,savedAt:null,personal:false,setBusy(){},setError:value=>error=value,supabase:{from:()=>q},setRows:()=>changed=true};
  await handler('share',' async function remove',env)({id:'row',shared:false});assert.equal(changed,false);assert.match(error,/kunde inte sparas/);assert.equal(env.lock.current,false);
 });
 test('saving a month requests an archive snapshot for the selected month',async()=>{
- let args,reloaded=false;const env={member:{id:'parent'},lock:{current:false},authEpoch:{current:0},failed:false,loading:false,editing:null,draft:{title:'',amount:''},savedAt:null,month:'2026-09',setBusy(){},setError(){},supabase:{rpc:async(name,value)=>{assert.equal(name,'save_budget_month');args=value;return {error:null}}},setRetry:()=>reloaded=true};
- await handler('saveMonth',' return <main',env)();assert.deepEqual(args,{p_month:'2026-09-01',p_action:'save'});assert.equal(reloaded,true);assert.equal(env.lock.current,false);
+ let args,reloaded=false;const env={member:{id:'parent'},lock:{current:false},authEpoch:{current:0},failed:false,loading:false,editing:null,draft:{title:'',amount:''},savedAt:null,personal:false,month:'2026-09',setBusy(){},setError(){},supabase:{rpc:async(name,value)=>{assert.equal(name,'save_budget_month');args=value;return {error:null}}},setRetry:()=>reloaded=true};
+ await handler('saveMonth',' return <main',env)();assert.deepEqual(args,{p_month:'2026-09-01',p_action:'save',p_personal:false});assert.equal(reloaded,true);assert.equal(env.lock.current,false);
 });
 test('unsaved draft prevents archiving and losing entered text',async()=>{
  let called=false;const env={member:{id:'parent'},lock:{current:false},authEpoch:{current:0},failed:false,loading:false,editing:null,draft:{title:'New rent',amount:'300'},supabase:{rpc:()=>called=true}};
  await handler('saveMonth',' return <main',env)();assert.equal(called,false);
+});
+test('unassigned shared entries affect the monthly plan but do not claim a final settlement',()=>{
+ const result=budgetSummary([{kind:'expense',amount_cents:10001,member_id:null,shared:true}],['a','b']);assert.equal(result.net,10001);assert.equal(result.unassignedShared,1);assert.equal(result.people.reduce((sum,p)=>sum+p.share,0),10001);assert(result.people.every(p=>p.settlement===null));
+});
+test('a payer can be selected later directly on an existing row',async()=>{
+ let payload,scope,next;const q={update:value=>{payload=value;return q},eq:()=>q,or:value=>{scope=value;return q},select:()=>q,single:async()=>({data:{id:'row'},error:null})};const env={member:{id:'parent',family_id:'family'},lock:{current:false},authEpoch:{current:0},failed:false,savedAt:null,parents:[{id:'parent'}],personal:false,month:'2026-11',setBusy(){},setError(){},supabase:{from:()=>q},setRows:update=>next=update([{id:'row',member_id:null}])};
+ await handler('assign',' async function remove',env)({id:'row'},'parent');assert.equal(payload.member_id,'parent');assert.equal(next[0].member_id,'parent');assert.equal(scope,'owner_member_id.is.null');
+});
+test('both income and expense entries can be deleted within the selected budget month',async()=>{
+ for(const kind of ['income','expense']){let next,filters={};const q={delete:()=>q,eq:(key,value)=>{filters[key]=value;return q},or:()=>q,select:()=>q,single:async()=>({data:{id:'row'},error:null})};const env={member:{id:'parent',family_id:'family'},lock:{current:false},authEpoch:{current:0},savedAt:null,personal:false,month:'2026-11',editing:null,window:{confirm:()=>true},setBusy(){},setError(){},supabase:{from:()=>q},setRows:update=>next=update([{id:'row',kind},{id:'other'}])};
+ await handler('remove',' async function saveMonth',env)({id:'row',title:'Test',kind});assert.deepEqual(next,[{id:'other'}]);assert.deepEqual(filters,{id:'row',family_id:'family',month:'2026-11-01'});}
+});
+test('a new personal entry can be saved without choosing a payer or sharing it',async()=>{
+ let payload,next;const q={upsert:value=>{payload=value;return q},select:()=>q,single:async()=>({data:{id:'new'},error:null})};const env={member:{id:'parent',family_id:'family'},busy:false,lock:{current:false},authEpoch:{current:0},failed:false,savedAt:null,personal:true,draft:{title:' Hobby supplies ',amount:'123,45',kind:'expense',member_id:'',shared:true},parents:[{id:'parent'}],budgetAmount,editing:null,month:'2026-11',draftId:{current:'new'},setError(){},setBusy(){},supabase:{from:()=>q},setRows:update=>next=update([]),setDraft(){},setEditing(){},empty:{}};
+ await handler('save',' async function share',env)({preventDefault(){}});assert.equal(payload.member_id,null);assert.equal(payload.owner_member_id,'parent');assert.equal(payload.shared,false);assert.equal(payload.amount_cents,12345);assert.equal(next.length,1);
 });
