@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const categoryEmoji: Record<string, string> = { Mathandling: "🛒", Storhelg: "🎄", Fest: "🎉", Hemmet: "🏠" };
+
 export default function HomeLists({ familyId }: { familyId: string }) {
   const supabase = useMemo(() => createClient(), []);
-  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
+  const [lists, setLists] = useState<{ id: string; name: string; category: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -14,7 +16,7 @@ export default function HomeLists({ familyId }: { familyId: string }) {
     let active = true;
     setLoading(true);
     setError(false);
-    void supabase.from("family_lists").select("id,name").eq("family_id", familyId)
+    void supabase.from("family_lists").select("id,name,category").eq("family_id", familyId)
       .order("created_at").then(({ data, error }) => {
         if (!active) return;
         setLists(data ?? []);
@@ -33,7 +35,7 @@ export default function HomeLists({ familyId }: { familyId: string }) {
           {lists.map(list => (
             <Link key={list.id} href={`/listor?lista=${encodeURIComponent(list.id)}`}
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 48, padding: "10px 0", borderBottom: "1px solid var(--line)", color: "var(--text)", textDecoration: "none", fontWeight: 600 }}>
-              <span style={{ overflowWrap: "anywhere", minWidth: 0 }}>{list.name}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><span aria-hidden="true" style={{ flexShrink: 0 }}>{categoryEmoji[list.category ?? ""] ?? "📝"}</span><span style={{ overflowWrap: "anywhere", minWidth: 0 }}>{list.name}</span></span>
               <span aria-hidden="true" style={{ color: "var(--muted)" }}>›</span>
             </Link>
           ))}
