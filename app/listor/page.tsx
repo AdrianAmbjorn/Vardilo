@@ -106,6 +106,8 @@ export default function ListsPage() {
         .select("id,name,category").single();
       if (error) throw error;
       setLists(current => [...current, data]);
+      setSelected({ ...data, items: [] });
+      setListName(data.name);
       setName("");
       setCategory("");
     }, "Kunde inte skapa listan. Försök igen.");
@@ -210,120 +212,154 @@ export default function ListsPage() {
   }
 
   return (
-    <main className="section-shell">
+    <main className="section-shell reminders-page">
+      <style>{`
+        .reminders-page { padding: 32px clamp(14px, 4vw, 56px); }
+        .reminders-page > .section-header { max-width: 1100px; grid-template-columns: minmax(0, 1fr) auto; }
+        .reminders-workspace { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
+        .reminders-sidebar, .reminders-detail { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 8px 28px rgba(16,42,67,.04); min-width: 0; overflow: hidden; }
+        .reminders-sidebar { padding: 16px 12px; }
+        .reminders-sidebar h2 { font-size: 12px; color: var(--muted); margin: 22px 10px 8px; letter-spacing: .03em; }
+        .reminders-sidebar h2 span { margin-right: 5px; }
+        .reminders-create > summary { cursor: pointer; list-style: none; padding: 10px; min-height: 44px; display: flex; align-items: center; gap: 7px; color: var(--accent); font-weight: 700; }
+        .reminders-create > summary::-webkit-details-marker { display: none; }
+        .reminders-page .family-admin-form { display: grid; padding: 12px; gap: 12px; }
+        .reminders-page .family-admin-field { min-width: 0; margin: 0; }
+        .reminders-page input:not([type=checkbox]), .reminders-page select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: #fbfcfd; padding: 10px 12px; font-size: 16px; }
+        .reminders-list-button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; border: 0; border-radius: 11px; padding: 11px 12px; background: transparent; color: var(--text); text-align: left; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+        .reminders-list-button[aria-expanded=true] { background: var(--accent-soft); color: var(--accent); }
+        .reminders-list-symbol { color: var(--accent); font-size: 21px; }
+        .reminders-detail { min-height: 340px; }
+        .reminders-heading { padding: 24px 24px 16px; }
+        .reminders-heading h2 { font-size: clamp(24px, 5vw, 32px); line-height: 1.2; letter-spacing: -.03em; margin: 8px 0; color: var(--accent); overflow-wrap: anywhere; }
+        .reminders-category { color: var(--muted); font-size: 12px; }
+        .reminders-progress { color: var(--muted); font-size: 13px; margin: 0; }
+        .reminders-settings { margin: 0 24px 8px; border-bottom: 1px solid var(--line); }
+        .reminders-settings > summary { list-style: none; cursor: pointer; color: var(--muted); font-size: 13px; padding: 8px 0 12px; min-height: 40px; }
+        .reminders-settings > summary::-webkit-details-marker { display: none; }
+        .reminders-settings > summary::before { content: "⋯"; display: inline-block; margin-right: 7px; font-weight: 800; }
+        .reminders-settings .family-admin-form { padding: 8px 0 12px; }
+        .reminders-items { padding: 0 24px; }
+        .reminders-item { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+        .reminders-check { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; margin: -8px 0 0 -9px; border: 0; border-radius: 50%; background: transparent; color: white; padding: 0; }
+        .reminders-check::before { content: ""; position: absolute; inset: 9px; border: 1.5px solid #9caaba; border-radius: 50%; background: white; }
+        .reminders-check svg { position: relative; }
+        .reminders-check[aria-checked=true]::before { background: var(--accent); border-color: var(--accent); }
+        .reminders-item-text { flex: 1 1 90px; min-width: 0; overflow-wrap: anywhere; }
+        .reminders-item-title { display: flex; align-items: baseline; gap: 5px; font-size: 16px; line-height: 1.5; }
+        .reminders-item-title strong { font-weight: 500; }
+        .reminders-star { color: #7a8998; font-size: 12px; }
+        .reminders-item[data-completed=true] .reminders-item-title strong { color: var(--muted); text-decoration: line-through; }
+        .reminders-attribution { color: var(--muted); font-size: 12px; line-height: 1.55; padding-left: 10px; margin: 3px 0 0; }
+        .reminders-attribution span { display: block; }
+        .reminders-delete { flex: 0 0 44px; display: grid; place-items: center; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); padding: 8px; }
+        .reminders-delete:hover { color: var(--red); background: var(--red-soft); }
+        .reminders-page .reminders-add-item { display: flex; align-items: center; gap: 8px; margin: 12px 24px 22px; padding: 0; }
+        .reminders-add-item input { flex: 1; }
+        .reminders-add-item button { flex-shrink: 0; min-height: 44px; }
+        .reminders-empty { padding: 24px; color: var(--muted); font-size: 14px; }
+        .reminders-notice { padding: 12px 20px; }
+        .reminders-back { display: none; }
+        .reminders-page button:focus-visible, .reminders-page summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+        .reminders-page button:disabled { opacity: .5; cursor: default; }
+        @media(max-width: 700px) {
+          .reminders-workspace { grid-template-columns: minmax(0, 1fr); }
+          .reminders-workspace.has-selection .reminders-sidebar { display: none; }
+          .reminders-workspace:not(.has-selection) .reminders-detail { display: none; }
+          .reminders-heading { padding: 18px 18px 14px; }
+          .reminders-settings { margin-inline: 18px; }
+          .reminders-items { padding-inline: 18px; }
+          .reminders-page .reminders-add-item { margin-inline: 18px; }
+          .reminders-back { display: inline-flex; align-items: center; min-height: 40px; padding: 0; margin-bottom: 6px; border: 0; background: transparent; color: var(--accent); font-size: 14px; font-weight: 600; }
+        }
+      `}</style>
       <header className="section-header">
         <div>
           <p className="eyebrow">VARDILO</p>
           <h1>Listor</h1>
-          <p className="muted">Gemensamma listor för familjen.</p>
+          <p className="muted">Familjens önskningar, inköp och planer.</p>
         </div>
         <Link className="secondary" href="/">Hem</Link>
       </header>
-      <section className="section-card">
-        {loading && <div className="section-row"><p role="status">Laddar listor...</p></div>}
-        {loadError && (
-          <div className="section-row">
-            <p role="alert">{loadError}</p>
-            <button className="secondary" onClick={() => void load()}>Försök igen</button>
-          </div>
-        )}
-        {member && (
-          <form className="family-admin-form" onSubmit={addList}>
-            <label className="family-admin-field">
-              <span>Ny lista</span>
-              <input style={typedText} value={name} onChange={event => setName(event.target.value)} placeholder="T.ex. Matbutiken" disabled={busy} />
-            </label>
-            <label className="family-admin-field">
-              <span>Kategori</span>
-              <select style={typedText} value={category} onChange={event => setCategory(event.target.value as Category | "")} disabled={busy} required>
-                <option value="" disabled>Välj kategori</option>
-                {categoryOptions()}
-              </select>
-            </label>
-            <button className="primary" disabled={busy || !name.trim() || !category}>+ Skapa lista</button>
-          </form>
-        )}
-        {error && <div className="section-row"><p role="alert">{error}</p></div>}
-        {([...categories, "Övrigt"] as const).map(group => {
-          const groupLists = lists.filter(list => list.category === group);
-          if (!groupLists.length) return null;
-          return (
-            <section key={group} aria-label={group === "Övrigt" ? "Listor utan kategori" : categoryLabel(group)}>
-              {group !== "Övrigt" && <div className="card-heading"><h2><span aria-hidden="true">{categoryEmoji[group]}</span> {categoryLabel(group)}</h2></div>}
-              {groupLists.map(list => (
-                <div className="section-row" key={list.id}>
-                  <button className="secondary" aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>{list.name}</button>
+      {loading && <p role="status" className="reminders-notice">Laddar listor…</p>}
+      {loadError && <div className="reminders-notice"><p role="alert">{loadError}</p><button className="secondary" onClick={() => void load()}>Försök igen</button></div>}
+      {error && <p role="alert" className="reminders-notice">{error}</p>}
+      <div className={selected ? "reminders-workspace has-selection" : "reminders-workspace"}>
+        <aside className="reminders-sidebar" aria-label="Familjens listor">
+          {member && (
+            <details className="reminders-create">
+              <summary><span aria-hidden="true">＋</span> Ny lista</summary>
+              <form className="family-admin-form" onSubmit={addList}>
+                <label className="family-admin-field"><span>Listans namn</span><input style={typedText} value={name} onChange={event => setName(event.target.value)} placeholder="T.ex. Julen" disabled={busy} /></label>
+                <label className="family-admin-field"><span>Kategori</span><select value={category} onChange={event => setCategory(event.target.value as Category | "")} disabled={busy} required><option value="" disabled>Välj kategori</option>{categoryOptions()}</select></label>
+                <button className="primary" disabled={busy || !name.trim() || !category}>Skapa lista</button>
+              </form>
+            </details>
+          )}
+          {([...categories, "Övrigt"] as const).map(group => {
+            const groupLists = lists.filter(list => list.category === group);
+            if (!groupLists.length) return null;
+            return (
+              <section key={group} aria-label={group === "Övrigt" ? "Listor utan kategori" : categoryLabel(group)}>
+                {group !== "Övrigt" && <h2><span aria-hidden="true">{categoryEmoji[group]}</span>{categoryLabel(group)}</h2>}
+                {groupLists.map(list => (
+                  <button className="reminders-list-button" key={list.id} aria-expanded={selected?.id === list.id} onClick={() => open(list)} disabled={busy}>
+                    <span className="reminders-list-symbol" aria-hidden="true">☷</span>{list.name}
+                  </button>
+                ))}
+              </section>
+            );
+          })}
+          {!loading && !loadError && !lists.length && <p className="reminders-empty">Skapa familjens första lista med Ny lista.</p>}
+        </aside>
+        <section className="reminders-detail" aria-label={selected?.name ?? "Välj en lista"}>
+          {selected ? <>
+            <div className="reminders-heading">
+              <button className="reminders-back" type="button" disabled={busy} onClick={() => { setSelected(null); setDeleteTarget(null); }}>‹ Alla listor</button>
+              <div className="reminders-category">{selected.category === "Övrigt" ? "" : `${categoryEmoji[selected.category]} ${categoryLabel(selected.category)}`}</div>
+              <h2>{selected.name}</h2>
+              <p className="reminders-progress">{selected.items.filter(item => !item.completed).length} kvar · {selected.items.filter(item => item.completed).length} klara</p>
+            </div>
+            <details className="reminders-settings" key={selected.id}>
+              <summary>Listinställningar</summary>
+              <form className="family-admin-form" onSubmit={event => renameList(event, selected)}>
+                <label className="family-admin-field"><span>Listans namn</span><input style={typedText} value={listName} onChange={event => setListName(event.target.value)} disabled={busy} /></label>
+                <button className="secondary" disabled={busy || !listName.trim() || listName.trim() === selected.name}>Spara namn</button>
+              </form>
+              <div className="family-admin-form">
+                <label className="family-admin-field"><span>Byt kategori</span><select value={selected.category === "Övrigt" ? "" : selected.category} onChange={event => changeCategory(selected, event.target.value as Category)} disabled={busy}><option value="" disabled>Välj kategori</option>{categoryOptions()}</select></label>
+                <button className="secondary" type="button" onClick={() => setDeleteTarget({ listId: selected.id })} disabled={busy}>Ta bort listan</button>
+              </div>
+            </details>
+            {deleteTarget?.listId === selected.id && !deleteTarget.itemId && <div className="reminders-notice">{confirmRemoval(`Ta bort listan ”${selected.name}” och alla dess punkter?`, () => removeList(selected))}</div>}
+            <div className="reminders-items">
+              {!selected.items.length && <p className="reminders-empty">Listan är tom. Lägg till första punkten nedan.</p>}
+              {selected.items.map(entry => (
+                <div className="reminders-item" key={entry.id} data-completed={entry.completed}>
+                  <button className="reminders-check" role="checkbox" aria-checked={entry.completed} aria-label={`Bocka av ${entry.text}`} onClick={() => toggle(entry)} disabled={busy} type="button">
+                    {entry.completed && <svg width="15" height="15" viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  </button>
+                  <div className="reminders-item-text">
+                    <div className="reminders-item-title"><span className="reminders-star" aria-hidden="true">*</span><strong>{entry.text}</strong></div>
+                    <p className="reminders-attribution">
+                      <span>Önskad av {familyMembers.find(person => person.id === entry.created_by_member_id)?.display_name ?? "okänd medlem"}</span>
+                      {entry.completed && <span>Klar av {familyMembers.find(person => person.id === entry.completed_by_member_id)?.display_name ?? "okänd medlem"}</span>}
+                    </p>
+                  </div>
+                  <button className="reminders-delete" aria-label={`Ta bort ${entry.text}`} title="Ta bort" type="button" onClick={() => setDeleteTarget({ listId: selected.id, itemId: entry.id })} disabled={busy}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </button>
+                  {deleteTarget?.listId === selected.id && deleteTarget.itemId === entry.id && confirmRemoval(`Ta bort ”${entry.text}”?`, () => removeItem(selected, entry))}
                 </div>
               ))}
-            </section>
-          );
-        })}
-        {selected && (
-          <div style={{ marginTop: 24 }}>
-            <div className="card-heading"><h3>{selected.name}</h3></div>
-            <form className="family-admin-form" onSubmit={event => renameList(event, selected)}>
-              <label className="family-admin-field">
-                <span>Listans namn</span>
-                <input style={typedText} value={listName} onChange={event => setListName(event.target.value)} disabled={busy} />
-              </label>
-              <button className="secondary" disabled={busy || !listName.trim() || listName.trim() === selected.name}>
-                Spara namn
-              </button>
-            </form>
-            <div className="family-admin-form">
-              <label className="family-admin-field">
-                <span>Byt kategori</span>
-                <select style={typedText} value={selected.category === "Övrigt" ? "" : selected.category} onChange={event => changeCategory(selected, event.target.value as Category)} disabled={busy}>
-                  <option value="" disabled>Välj kategori</option>
-                  {categoryOptions()}
-                </select>
-              </label>
-              <button className="secondary" type="button" onClick={() => setDeleteTarget({ listId: selected.id })} disabled={busy}>
-                Ta bort listan
-              </button>
             </div>
-            {deleteTarget?.listId === selected.id && !deleteTarget.itemId &&
-              confirmRemoval(`Ta bort listan ”${selected.name}” och alla dess punkter?`, () => removeList(selected))}
-            <form className="family-admin-form" onSubmit={addItem}>
-              <input aria-label="Ny listpunkt" style={typedText} value={item} onChange={event => setItem(event.target.value)} placeholder="Lägg till listpunkt" disabled={busy} />
-              <button className="primary" disabled={busy || !item.trim()}>+ Lägg till</button>
+            <form className="family-admin-form reminders-add-item" onSubmit={addItem}>
+              <input aria-label="Ny listpunkt" value={item} onChange={event => setItem(event.target.value)} placeholder="Ny punkt" disabled={busy} />
+              <button className="primary" disabled={busy || !item.trim()} aria-label="Lägg till listpunkt">＋ Lägg till</button>
             </form>
-            {!selected.items.length && <div className="section-row"><p className="muted">Listan är tom.</p></div>}
-            {selected.items.map(entry => (
-              <div className="task-row" key={entry.id} style={{ flexWrap: "wrap" }}>
-                <span aria-hidden="true" style={{ color: "var(--muted)", flexShrink: 0 }}>*</span>
-                <input
-                  type="checkbox"
-                  aria-label={`Bocka av ${entry.text}`}
-                  checked={entry.completed}
-                  onChange={() => toggle(entry)}
-                  disabled={busy}
-                  style={{ accentColor: "#334155", width: 18, height: 18, margin: 0, flexShrink: 0 }}
-                />
-                <div style={{ flex: "1 1 80px", minWidth: 0, overflowWrap: "anywhere" }}>
-                  <strong style={{ ...typedText, textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
-                  <p style={{ color: "var(--muted)", fontSize: 12, margin: "4px 0 0" }}>
-                    Önskad av {familyMembers.find(person => person.id === entry.created_by_member_id)?.display_name ?? "okänd medlem"}
-                    {entry.completed && ` · Klar av ${familyMembers.find(person => person.id === entry.completed_by_member_id)?.display_name ?? "okänd medlem"}`}
-                  </p>
-                </div>
-                <button
-                  className="secondary"
-                  aria-label={`Ta bort ${entry.text}`}
-                  type="button"
-                  onClick={() => setDeleteTarget({ listId: selected.id, itemId: entry.id })}
-                  disabled={busy}
-                  style={{ marginLeft: "auto", minHeight: 44, flexShrink: 0 }}
-                >
-                  Ta bort
-                </button>
-                {deleteTarget?.listId === selected.id && deleteTarget.itemId === entry.id &&
-                  confirmRemoval(`Ta bort ”${entry.text}”?`, () => removeItem(selected, entry))}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+          </> : <div className="reminders-empty"><h2>Vad planerar familjen?</h2><p>Välj en lista till vänster för att se och lägga till punkter.</p></div>}
+        </section>
+      </div>
     </main>
   );
 }
