@@ -33,7 +33,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("error")) { setMode("confirm"); setMessage("Bekräftelselänken kunde inte användas. Begär ett nytt mejl här."); }
+    if (new URLSearchParams(window.location.search).has("error")) { setMode("login"); setMessage("Länken kunde inte slutföra inloggningen. Om du just bekräftade din e-post kan du logga in här. Behöver du en ny bekräftelselänk finns valet nedan."); }
   }, []);
   useEffect(() => {
     if (mode !== "confirm") return;
