@@ -91,6 +91,24 @@ export default function ChatPage() {
     if (panel && followLatest.current) panel.scrollTop = panel.scrollHeight;
   }, [messages]);
 
+  useEffect(() => {
+    if (!member || !messages.length || loading) return;
+    let active = true;
+    const markVisibleRead = async () => {
+      if (document.visibilityState !== "visible") return;
+      const ids = messages.filter(message => message.member_id !== member.id).map(message => message.id);
+      if (!ids.length) return;
+      try {
+        const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() })
+          .eq("recipient_member_id", member.id).eq("type", "chat").is("read_at", null).in("metadata->>message_id", ids);
+        if (!error && active) window.dispatchEvent(new Event("vardilo-chat-read"));
+      } catch { /* Leave messages unread if the acknowledgement cannot be saved. */ }
+    };
+    void markVisibleRead();
+    document.addEventListener("visibilitychange", markVisibleRead);
+    return () => { active = false; document.removeEventListener("visibilitychange", markVisibleRead); };
+  }, [member, messages, loading, supabase]);
+
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!member || !body.trim() || sending) return;

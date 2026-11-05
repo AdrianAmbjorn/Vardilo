@@ -4,6 +4,7 @@ export const homeSections = [
   { id: "calendar", label: "Nästa händelse", emoji: "📅" },
   { id: "help", label: "Hjälp i familjen", emoji: "🤝" },
   { id: "lists", label: "Listor", emoji: "📝" },
+  { id: "wishlists", label: "Önskelistor", emoji: "🎁" },
   { id: "meals", label: "Veckans mat", emoji: "🍽️" },
   { id: "tasks", label: "Uppgifter", emoji: "✅" },
   { id: "chat", label: "Familjechat", emoji: "💬" },

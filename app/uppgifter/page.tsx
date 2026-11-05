@@ -1,10 +1,13 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";
+import {useEffect,useMemo,useRef,useState} from "react";
 import Link from "next/link";
 import {createClient} from "@/lib/supabase/client";
 
+import { canCompleteDailyTask, taskIsCurrent } from "@/lib/daily-tasks";
+import { useStockholmDate } from "@/lib/use-stockholm-date";
+
 type Member={id:string;display_name:string;role:string;xp_goal:number;xp_reward:string|null};
-type Task={id:string;title:string;assigned_member_id:string|null;xp:number;due_at:string|null;completed_at:string|null};
+type Task={scheduled_date:string|null;daily_series_id:string|null;series_start:string|null;series_end:string|null;id:string;title:string;assigned_member_id:string|null;xp:number;due_at:string|null;completed_at:string|null};
 function dateLabel(value:string){return new Intl.DateTimeFormat("sv-SE",{day:"numeric",month:"short",year:"numeric"}).format(new Date(value))}
 function localDate(value:string){const d=new Date(value);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 
@@ -22,6 +25,14 @@ export default function TasksPage(){
  const [assigned,setAssigned]=useState("");
  const [xp,setXp]=useState("20");
  const [dueDate,setDueDate]=useState("");
+ const [daily,setDaily]=useState(false);
+ const [startDate,setStartDate]=useState("");
+ const [endDate,setEndDate]=useState("");
+ const [dailyChildren,setDailyChildren]=useState<string[]>([]);
+ const [showOtherDays,setShowOtherDays]=useState(false);
+ const today=useStockholmDate();
+ const dailyRequest=useRef<string|null>(null);
+ const addLock=useRef(false);
  const [showCompleted,setShowCompleted]=useState(true);
  const [filterMember,setFilterMember]=useState("all");
  const [saving,setSaving]=useState(false);
@@ -34,6 +45,15 @@ export default function TasksPage(){
  const [error,setError]=useState("");
  const [loading,setLoading]=useState(true);
 
+ async function readTasks(familyId:string){
+  const rows:Task[]=[];
+  for(let offset=0;;offset+=500){
+   const result=await supabase.from("family_tasks").select("id,title,assigned_member_id,xp,due_at,completed_at,scheduled_date,daily_series_id,series_start,series_end").eq("family_id",familyId).order("created_at",{ascending:false}).order("id").range(offset,offset+499);
+   if(result.error)throw result.error;
+   rows.push(...(result.data??[]));
+   if((result.data??[]).length<500)return {data:rows,error:null};
+  }
+ }
  async function load(){
 try {
   const {data:u,error:authError}=await supabase.auth.getUser();
@@ -43,11 +63,11 @@ try {
   setMember(m);
   const [ms,ts,permissions]=await Promise.all([
    supabase.from("family_members").select("id,display_name,role,xp_goal,xp_reward").eq("family_id",m.family_id).order("created_at"),
-   supabase.from("family_tasks").select("id,title,assigned_member_id,xp,due_at,completed_at").eq("family_id",m.family_id).order("created_at",{ascending:false}),
+   readTasks(m.family_id),
    supabase.from("family_permissions").select("can_manage_tasks").eq("family_member_id",m.id).maybeSingle()
   ]);
   setCanManageGoals(permissions.data?.can_manage_tasks===true);
-  if(ms.error||ts.error)setError(ms.error?.message??ts.error?.message??"Kunde inte läsa uppgifterna.");
+  if(ms.error)setError(ms.error.message);
   else{setMembers(ms.data??[]);setTasks(ts.data??[]);setError("")}
 
 } catch { setError("Kunde inte läsa uppgifterna. Försök igen."); } finally { setLoading(false); }
@@ -55,24 +75,30 @@ try {
  }
  useEffect(()=>{void load()},[supabase]);
  async function add(){
-  if(!member||member.role==="barn"||!title.trim()||saving)return;
+  if(!member||member.role==="barn"||!title.trim()||saving||addLock.current)return;
+  if(daily&&(!dailyChildren.length||!startDate||!endDate||startDate<today||endDate<startDate)){setError("Välj minst ett barn och en giltig period från idag eller framåt.");return}
+  addLock.current=true;
   setSaving(true);setError("");
 try {
   const {data:u}=await supabase.auth.getUser();
   if(!u.user){setError("Du behöver logga in igen.");setSaving(false);return}
-  const {error:e}=await supabase.from("family_tasks").insert({
-   family_id:member.family_id,title:title.trim(),assigned_member_id:assigned||null,
-   xp:Math.max(0,Math.floor(Number(xp)||0)),
-   due_at:dueDate?new Date(`${dueDate}T12:00:00`).toISOString():null,
-   created_by:u.user.id
-  });
+  let e;
+  if(daily){
+    dailyRequest.current ??= crypto.randomUUID();
+    const result=await supabase.rpc("create_daily_tasks",{p_title:title.trim(),p_member_ids:dailyChildren,p_xp:Math.max(0,Math.floor(Number(xp)||0)),p_start:startDate,p_end:endDate,p_request_id:dailyRequest.current});
+    e=result.error;
+  }else{
+    const result=await supabase.from("family_tasks").insert({family_id:member.family_id,title:title.trim(),assigned_member_id:assigned||null,xp:Math.max(0,Math.floor(Number(xp)||0)),due_at:dueDate?new Date(`${dueDate}T12:00:00`).toISOString():null,created_by:u.user.id});
+    e=result.error;
+  }
   if(e)setError("Kunde inte spara uppgiften: "+e.message);
-  else{setTitle("");setAssigned("");setXp("20");setDueDate("");await load()}
+  else{setTitle("");setAssigned("");setXp("20");setDueDate("");setStartDate("");setEndDate("");setDailyChildren([]);dailyRequest.current=null;await load()}
 
-} catch { setError("Kunde inte spara uppgiften. Kontrollera listan innan du försöker igen."); } finally { setSaving(false); }
+} catch { setError("Kunde inte spara uppgiften. Kontrollera listan innan du försöker igen."); } finally { addLock.current=false;setSaving(false); }
  }
  async function toggle(task:Task){
   if(workingId||!member||(member.role==="barn"&&task.assigned_member_id!==member.id))return;
+  if(task.scheduled_date&&!canCompleteDailyTask(task,member,today))return;
   setWorkingId(task.id);setError("");
 try {
   const {error:e}=await supabase.from("family_tasks").update({completed_at:task.completed_at?null:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",task.id);
@@ -81,44 +107,53 @@ try {
 } catch { setError("Kunde inte uppdatera uppgiften. Försök igen."); } finally { setWorkingId(null); }
  }
  function beginEdit(t:Task){if(member?.role==="barn")return;setEditingId(t.id);setEditTitle(t.title);setEditAssigned(t.assigned_member_id??"");setEditXp(String(t.xp));setEditDue(t.due_at?localDate(t.due_at):"");setError("")}
+ async function cancelPeriod(task:Task){
+  if(!member||member.role==="barn"||!task.daily_series_id||workingId)return;
+  if(!window.confirm("Avsluta återstående dagar för denna uppgift? Klara och tidigare dagar sparas."))return;
+  setWorkingId(task.id);setError("");
+  try{const {error:e}=await supabase.from("family_tasks").delete().eq("family_id",member.family_id).eq("daily_series_id",task.daily_series_id).gte("scheduled_date",today).is("completed_at",null);if(e)throw e;await load();}
+  catch{setError("Kunde inte avsluta perioden. Försök igen.")}finally{setWorkingId(null)}
+ }
  async function saveEdit(){if(!editingId||!member||member.role==="barn"||!editTitle.trim()||workingId)return;setWorkingId(editingId);setError("");try{const {error:e}=await supabase.from("family_tasks").update({title:editTitle.trim(),assigned_member_id:editAssigned||null,xp:Math.max(0,Math.floor(Number(editXp)||0)),due_at:editDue?new Date(`${editDue}T12:00:00`).toISOString():null,updated_at:new Date().toISOString()}).eq("id",editingId).eq("family_id",member.family_id);if(e)setError("Kunde inte spara ändringarna: "+e.message);else{setEditingId(null);await load()}}catch{setError("Kunde inte spara ändringarna. Försök igen.")}finally{setWorkingId(null)}}
  async function saveGoal(){if(!editingGoalId||savingGoal)return;const value=Number(goalDraft);if(!Number.isInteger(value)||value<1||value>100000){setError("Målet måste vara mellan 1 och 100 000 XP.");return}setSavingGoal(true);setError("");try{const {error:e}=await supabase.rpc("set_child_xp_goal",{p_member_id:editingGoalId,p_goal:value,p_reward:rewardDraft.trim()});if(e)setError("Kunde inte spara målet: "+e.message);else{setEditingGoalId(null);await load()}}catch{setError("Kunde inte spara målet. Försök igen.")}finally{setSavingGoal(false)}}
- const visible=tasks.filter(t=>(showCompleted||!t.completed_at)&&(filterMember==="all"||(filterMember==="family"?t.assigned_member_id===null:t.assigned_member_id===filterMember))).sort((a,b)=>{
+ const visible=tasks.filter(t=>(showOtherDays||taskIsCurrent(t,today))&&(showCompleted||!t.completed_at)&&(filterMember==="all"||(filterMember==="family"?t.assigned_member_id===null:t.assigned_member_id===filterMember))).sort((a,b)=>{
   if(Boolean(a.completed_at)!==Boolean(b.completed_at))return a.completed_at?1:-1;
   if(a.due_at&&!b.due_at)return -1;
   if(!a.due_at&&b.due_at)return 1;
   return a.due_at&&b.due_at?new Date(a.due_at).getTime()-new Date(b.due_at).getTime():0;
  });
  const myXp=tasks.filter(t=>t.completed_at&&t.assigned_member_id===member?.id).reduce((s,t)=>s+t.xp,0);
- const myOpen=tasks.filter(t=>!t.completed_at&&t.assigned_member_id===member?.id).length;
+ const myOpen=tasks.filter(t=>taskIsCurrent(t,today)&&!t.completed_at&&t.assigned_member_id===member?.id).length;
  const myGoal=members.find(m=>m.id===member?.id)?.xp_goal??500;
  const myReward=members.find(m=>m.id===member?.id)?.xp_reward;
  const total=tasks.reduce((s,t)=>s+(t.completed_at?t.xp:0),0);
  const completed=tasks.filter(t=>t.completed_at).length;
- const leaderboard=members.map(m=>({id:m.id,name:m.display_name,xp:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).reduce((sum,t)=>sum+t.xp,0),done:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).length,open:tasks.filter(t=>!t.completed_at&&t.assigned_member_id===m.id).length})).sort((a,b)=>b.xp-a.xp||a.name.localeCompare(b.name,"sv"));
- return <main className="section-shell"><header className="section-header"><div><p className="eyebrow">VARDILO</p><h1>Uppgifter</h1><p className="muted">Ansvar, uppgifter och XP för familjen.</p></div><Link className="secondary" href="/">Hem</Link></header>
+ const leaderboard=members.map(m=>({id:m.id,name:m.display_name,xp:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).reduce((sum,t)=>sum+t.xp,0),done:tasks.filter(t=>t.completed_at&&t.assigned_member_id===m.id).length,open:tasks.filter(t=>taskIsCurrent(t,today)&&!t.completed_at&&t.assigned_member_id===m.id).length})).sort((a,b)=>b.xp-a.xp||a.name.localeCompare(b.name,"sv"));
+ return <main className="section-shell"><style>{`.daily-task-settings{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--surface)}.daily-task-settings p{font-size:14px;color:var(--muted);line-height:1.6}.daily-task-dates{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.daily-task-settings fieldset{border:0;margin:16px 0 0;padding:0}.daily-task-settings legend{font-weight:700;margin-bottom:10px;font-size:14px}.daily-task-settings fieldset label{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-right:18px}.daily-task-settings input[type=checkbox]{width:20px;height:20px;accent-color:var(--text)}.daily-done{color:#237544;font-size:30px;font-weight:800;line-height:1}.daily-status{font-size:13px;color:var(--muted)}`}</style><header className="section-header"><div><p className="eyebrow">VARDILO</p><h1>Uppgifter</h1><p className="muted">Ansvar, uppgifter och XP för familjen.</p></div><Link className="secondary" href="/">Hem</Link></header>
  <section className="section-card">
  {member?.role==="barn"&&<div style={{padding:"22px",background:"#edf7ef",color:"#102a43",borderBottom:"1px solid var(--line)"}}><h2 style={{fontSize:20,margin:0,color:"#102a43"}}>Mina XP</h2><p style={{fontSize:30,fontWeight:800,margin:"8px 0",color:"#102a43"}}>{myXp} / {myGoal} XP</p><div role="progressbar" aria-label="Mitt XP-mål" aria-valuemin={0} aria-valuemax={myGoal} aria-valuenow={Math.min(myXp,myGoal)} style={{height:12,background:"#d5e4da",borderRadius:20,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,myXp/myGoal*100)}%`,background:"#3f7d4a",borderRadius:20}}/></div><p style={{fontSize:13,margin:"10px 0 0",color:"#102a43"}}>{myXp>=myGoal?"Du har nått ditt mål!":`${myGoal-myXp} XP kvar till målet`} · {myOpen} uppgifter kvar</p>{myReward&&<p style={{fontSize:13,color:"#102a43"}}>Min belöning: <strong>{myReward}</strong></p>}</div>}
  {member?.role!=="barn"&&<>
  <div className="family-admin-form" style={{display:"grid",gap:12}}>
-  <label className="family-admin-field"><span>Ny uppgift</span><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="T.ex. Plocka undan efter middag"/></label>
+  <label className="family-admin-field"><span>Ny uppgift</span><input value={title} disabled={saving} onChange={e=>{setTitle(e.target.value);dailyRequest.current=null}} placeholder="T.ex. Plocka undan efter middag"/></label>
+  <label style={{display:"flex",alignItems:"center",gap:10,fontSize:14}}><input type="checkbox" checked={daily} disabled={saving} onChange={e=>{setDaily(e.target.checked);dailyRequest.current=null}}/> Dagligen under en period</label>
+  {daily&&<div className="daily-task-settings"><p>Barnen checkar själva av uppgiften varje dag. Varje klar dag ger XP en gång.</p><div className="daily-task-dates"><label className="family-admin-field"><span>Från och med</span><input type="date" min={today} value={startDate} disabled={saving} onChange={e=>{setStartDate(e.target.value);dailyRequest.current=null}}/></label><label className="family-admin-field"><span>Till och med</span><input type="date" min={startDate||today} value={endDate} disabled={saving} onChange={e=>{setEndDate(e.target.value);dailyRequest.current=null}}/></label></div><fieldset><legend>Tilldela barn</legend>{members.filter(m=>m.role==="barn").map(child=><label key={child.id}><input type="checkbox" disabled={saving} checked={dailyChildren.includes(child.id)} onChange={e=>{setDailyChildren(current=>e.target.checked?[...current,child.id]:current.filter(id=>id!==child.id));dailyRequest.current=null}}/>{child.display_name}</label>)}{!members.some(m=>m.role==="barn")&&<p>Lägg till ett barn i familjen först.</p>}</fieldset></div>}
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
-   <label className="family-admin-field"><span>Ansvarig</span><select value={assigned} onChange={e=>setAssigned(e.target.value)}><option value="">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label>
-   <label className="family-admin-field"><span>Klart senast (valfritt)</span><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>
-   <label className="family-admin-field"><span>XP</span><input type="number" min="0" step="1" value={xp} onChange={e=>setXp(e.target.value)}/></label>
+   {!daily&&<label className="family-admin-field"><span>Ansvarig</span><select value={assigned} onChange={e=>setAssigned(e.target.value)}><option value="">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label>}
+   {!daily&&<label className="family-admin-field"><span>Klart senast (valfritt)</span><input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)}/></label>}
+   <label className="family-admin-field"><span>{daily?"XP per dag":"XP"}</span><input type="number" min="0" max="10000" step="1" value={xp} disabled={saving} onChange={e=>{setXp(e.target.value);dailyRequest.current=null}}/></label>
   </div>
-  <div><button className="primary" type="button" onClick={add} disabled={saving||!title.trim()}>{saving?"Sparar...":"+ Lägg till uppgift"}</button></div>
+  <div><button className="primary" type="button" onClick={add} disabled={saving||!title.trim()||(daily&&(!dailyChildren.length||!startDate||!endDate))}>{saving?"Sparar...":"+ Lägg till uppgift"}</button></div>
   {error&&<p role="alert" style={{color:"#b42318",fontSize:13}}>{error}</p>}
  </div>
  </>}
  {member?.role==="barn"&&error&&<p role="alert" style={{padding:16}}>{error}</p>}
  <div style={{padding:"20px 22px 4px"}}><h3 style={{color:"var(--text)",marginBottom:12}}>XP per familjemedlem</h3><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10}}>{leaderboard.map(person=><div key={person.id} style={{border:"1px solid var(--line)",borderRadius:12,padding:12,background:"#edf7ef",color:"var(--text)"}}><strong style={{display:"block",color:"var(--text)",fontSize:13}}>{person.name}</strong><strong style={{display:"block",fontSize:22,color:"var(--text)",marginTop:5}}>{person.xp} XP</strong><small style={{color:"var(--muted)"}}>{person.done} klara · {person.open} kvar</small></div>)}</div></div>
  {canManageGoals&&<div style={{padding:"18px 22px",borderBottom:"1px solid var(--line)"}}><h3 style={{color:"var(--text)",marginBottom:12}}>Barnens XP-mål och belöningar</h3><div style={{display:"grid",gap:10}}>{members.filter(m=>m.role==="barn").map(child=><div key={child.id} style={{padding:12,border:"1px solid var(--line)",borderRadius:10,background:"#edf7ef",color:"#102a43"}}><strong>{child.display_name}</strong>{editingGoalId===child.id?<div style={{display:"grid",gap:9,marginTop:10}}><label className="family-admin-field"><span>XP-mål</span><input type="number" min="1" max="100000" value={goalDraft} onChange={e=>setGoalDraft(e.target.value)}/></label><label className="family-admin-field"><span>Belöning (valfri)</span><input maxLength={200} value={rewardDraft} onChange={e=>setRewardDraft(e.target.value)} placeholder="T.ex. Välja fredagsfilm"/></label><div style={{display:"flex",gap:8}}><button className="primary" type="button" disabled={savingGoal} onClick={()=>void saveGoal()}>{savingGoal?"Sparar...":"Spara"}</button><button className="secondary" type="button" onClick={()=>setEditingGoalId(null)}>Avbryt</button></div></div>:<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginTop:6}}><span>{child.xp_goal} XP{child.xp_reward?` · ${child.xp_reward}`:""}</span><button className="secondary" type="button" onClick={()=>{setEditingGoalId(child.id);setGoalDraft(String(child.xp_goal));setRewardDraft(child.xp_reward??"")}}>Ändra mål</button></div>}</div>)}</div></div>}
- <div className="card-heading" style={{margin:"24px 22px 12px",gap:12,flexWrap:"wrap"}}><div><h3>Familjens uppgifter</h3><p className="muted">{completed} av {tasks.length} klara · {total} XP intjänade</p></div><div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}><label style={{display:"grid",gap:4,fontSize:12,color:"var(--text)"}}>Visa uppgifter för<select aria-label="Filtrera uppgifter efter person" value={filterMember} onChange={e=>setFilterMember(e.target.value)} style={{border:"1px solid var(--line)",borderRadius:8,padding:"7px 10px",background:"white",color:"var(--text)"}}><option value="all">Alla</option><option value="family">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label><label style={{display:"flex",alignItems:"center",gap:7,fontSize:12,color:"var(--text)"}}><input type="checkbox" checked={showCompleted} onChange={e=>setShowCompleted(e.target.checked)}/> Visa klara</label></div></div>
+ <div className="card-heading" style={{margin:"24px 22px 12px",gap:12,flexWrap:"wrap"}}><div><h3>Familjens uppgifter</h3><p className="muted">{completed} av {tasks.length} klara · {total} XP intjänade</p></div><div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}><label style={{display:"grid",gap:4,fontSize:12,color:"var(--text)"}}>Visa uppgifter för<select aria-label="Filtrera uppgifter efter person" value={filterMember} onChange={e=>setFilterMember(e.target.value)} style={{border:"1px solid var(--line)",borderRadius:8,padding:"7px 10px",background:"white",color:"var(--text)"}}><option value="all">Alla</option><option value="family">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label><label style={{display:"flex",alignItems:"center",gap:7,fontSize:12,color:"var(--text)"}}><input type="checkbox" checked={showOtherDays} onChange={e=>setShowOtherDays(e.target.checked)}/> Visa tidigare och kommande dagar</label><label style={{display:"flex",alignItems:"center",gap:7,fontSize:12,color:"var(--text)"}}><input type="checkbox" checked={showCompleted} onChange={e=>setShowCompleted(e.target.checked)}/> Visa klara</label></div></div>
  {loading?<p className="muted" style={{padding:22}}>Laddar uppgifter...</p>:visible.map(t=>{
   const who=members.find(m=>m.id===t.assigned_member_id);
   const overdue=Boolean(t.due_at&&!t.completed_at&&localDate(t.due_at)<localDate(new Date().toISOString()));
-  return <div className="section-row" key={t.id} style={{flexWrap:"wrap",gap:12}}>{editingId===t.id?<div style={{width:"100%",display:"grid",gap:12,color:"var(--text)"}}><label className="family-admin-field"><span>Uppgift</span><input value={editTitle} onChange={e=>setEditTitle(e.target.value)}/></label><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:10}}><label className="family-admin-field"><span>Ansvarig</span><select value={editAssigned} onChange={e=>setEditAssigned(e.target.value)}><option value="">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label><label className="family-admin-field"><span>Klart senast</span><input type="date" value={editDue} onChange={e=>setEditDue(e.target.value)}/></label><label className="family-admin-field"><span>XP</span><input type="number" min="0" step="1" value={editXp} onChange={e=>setEditXp(e.target.value)}/></label></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="button" className="primary" disabled={!editTitle.trim()||workingId!==null} onClick={()=>void saveEdit()}>{workingId===t.id?"Sparar...":"Spara ändringar"}</button><button type="button" className="secondary" disabled={workingId!==null} onClick={()=>setEditingId(null)}>Avbryt</button></div></div>:<><div><strong style={{color:"var(--text)",textDecoration:t.completed_at?"line-through":"none"}}>{t.title}</strong><p>{who?.display_name??"Hela familjen"} · +{t.xp} XP</p>{t.due_at&&<p style={{color:overdue?"#b42318":"var(--muted)"}}>{overdue?"Försenad · ":"Klart senast "}{dateLabel(t.due_at)}</p>}</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{member?.role!=="barn"&&<button className="secondary" type="button" disabled={workingId!==null||editingId!==null} onClick={()=>beginEdit(t)}>Ändra</button>}<button className="secondary" type="button" disabled={workingId!==null||editingId!==null||(member?.role==="barn"&&t.assigned_member_id!==member.id)} onClick={()=>void toggle(t)}>{workingId===t.id?"Sparar...":t.completed_at?"Ångra":"Markera klar"}</button></div></>}</div>;
+  return <div className="section-row" key={t.id} style={{flexWrap:"wrap",gap:12}}>{editingId===t.id?<div style={{width:"100%",display:"grid",gap:12,color:"var(--text)"}}><label className="family-admin-field"><span>Uppgift</span><input value={editTitle} onChange={e=>setEditTitle(e.target.value)}/></label><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(145px,1fr))",gap:10}}><label className="family-admin-field"><span>Ansvarig</span><select value={editAssigned} onChange={e=>setEditAssigned(e.target.value)}><option value="">Hela familjen</option>{members.map(m=><option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label><label className="family-admin-field"><span>Klart senast</span><input type="date" value={editDue} onChange={e=>setEditDue(e.target.value)}/></label><label className="family-admin-field"><span>XP</span><input type="number" min="0" step="1" value={editXp} onChange={e=>setEditXp(e.target.value)}/></label></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="button" className="primary" disabled={!editTitle.trim()||workingId!==null} onClick={()=>void saveEdit()}>{workingId===t.id?"Sparar...":"Spara ändringar"}</button><button type="button" className="secondary" disabled={workingId!==null} onClick={()=>setEditingId(null)}>Avbryt</button></div></div>:<><div><strong style={{color:"var(--text)",textDecoration:t.completed_at?"line-through":"none"}}>{t.title}</strong><p>{who?.display_name??"Hela familjen"} · +{t.xp} XP</p>{t.scheduled_date&&<p className="daily-status">Dagligen {t.series_start} – {t.series_end} · {t.scheduled_date===today?"Idag":t.scheduled_date}</p>}{t.due_at&&!t.scheduled_date&&<p style={{color:overdue?"#b42318":"var(--muted)"}}>{overdue?"Försenad · ":"Klart senast "}{dateLabel(t.due_at)}</p>}</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{member?.role!=="barn"&&!t.scheduled_date&&<button className="secondary" type="button" disabled={workingId!==null||editingId!==null} onClick={()=>beginEdit(t)}>Ändra</button>}{member?.role!=="barn"&&t.scheduled_date&&!t.completed_at&&t.scheduled_date>=today&&<button type="button" className="secondary" disabled={workingId!==null} onClick={()=>void cancelPeriod(t)}>Avsluta perioden</button>}{t.scheduled_date?(t.completed_at?<span className="daily-done" role="img" aria-label="Klar">✓</span>:canCompleteDailyTask(t,member,today)?<button className="primary" type="button" disabled={workingId!==null} onClick={()=>void toggle(t)}>{workingId===t.id?"Sparar…":"Markera klar idag"}</button>:<span className="daily-status">{t.scheduled_date<today?"Missad":t.scheduled_date>today?"Kommande":"Väntar på barnet"}</span>):<button className="secondary" type="button" disabled={workingId!==null||editingId!==null||(member?.role==="barn"&&t.assigned_member_id!==member.id)} onClick={()=>void toggle(t)}>{workingId===t.id?"Sparar...":t.completed_at?"Ångra":"Markera klar"}</button>}</div></>}</div>;
  })}
  {!loading&&!visible.length&&<p className="muted" style={{padding:22}}>{tasks.length?"Inga uppgifter matchar filtret.":"Inga uppgifter ännu."}</p>}
  </section></main>;
