@@ -18,7 +18,7 @@
 .home-summary-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
 .home-summary-grid:empty{display:none}
 /* A compact, shared grid lets every visible widget pair with the next one. */
-.home-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;margin-top:16px}
+.home-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch;margin-top:16px}
 .home-widget-grid>.home-summary-grid{display:contents}
 .home-widget-grid .card{min-width:0;margin:0!important;padding:16px;border-radius:16px;overflow-wrap:anywhere;box-shadow:0 5px 18px #102a4306}
 .home-widget-grid .card-heading{align-items:flex-start;gap:8px;margin-bottom:10px}
