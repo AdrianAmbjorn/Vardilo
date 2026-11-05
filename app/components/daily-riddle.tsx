@@ -14,6 +14,12 @@ type Riddle = {
 export default function DailyRiddle({ memberId }: { memberId: string }) {
   const supabase = useMemo(() => createClient(), []);
   const [riddle, setRiddle] = useState<Riddle | null>(null);
+  const [previous, setPrevious] = useState<Riddle | null>(null);
+  const [showPrevious, setShowPrevious] = useState(false);
+  const [previousLoading, setPreviousLoading] = useState(false);
+  const [previousError, setPreviousError] = useState("");
+  const previousRequest = useRef(0);
+  const previousLock = useRef(false);
   const [guess, setGuess] = useState("");
   const [showHint, setShowHint] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -28,7 +34,7 @@ export default function DailyRiddle({ memberId }: { memberId: string }) {
 
   const apply = useCallback((next: Riddle, saved = false) => {
     if (day.current !== next.puzzle_date) {
-      day.current = next.puzzle_date; dirty.current = false; setShowHint(false); setNotice(""); setSaveError("");
+      day.current = next.puzzle_date; dirty.current = false; previousRequest.current++; previousLock.current = false; setPrevious(null); setShowPrevious(false); setPreviousError(""); setPreviousLoading(false); setShowHint(false); setNotice(""); setSaveError("");
     }
     setRiddle(next);
     if (saved || !dirty.current) { setGuess(next.own_guess ?? ""); dirty.current = false; }
@@ -51,7 +57,7 @@ export default function DailyRiddle({ memberId }: { memberId: string }) {
     const refresh = () => { if (document.visibilityState === "visible" && !lock.current) void load(); };
     const timer = window.setInterval(refresh, 30_000);
     document.addEventListener("visibilitychange", refresh); window.addEventListener("focus", refresh);
-    return () => { request.current++; window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("focus", refresh); };
+    return () => { request.current++; previousRequest.current++; window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("focus", refresh); };
   }, [load]);
 
   useEffect(() => {
@@ -61,6 +67,21 @@ export default function DailyRiddle({ memberId }: { memberId: string }) {
     const timer = window.setTimeout(() => { if (!lock.current) void load(); }, Math.max(500, remaining + 150));
     return () => window.clearTimeout(timer);
   }, [riddle, load]);
+
+  async function togglePrevious(retry = false) {
+    if (showPrevious && !retry) { setShowPrevious(false); return; }
+    setShowPrevious(true);
+    if ((!retry && previous) || previousLock.current) return;
+    previousLock.current = true; setPreviousLoading(true); setPreviousError("");
+    const id = ++previousRequest.current;
+    try {
+      const result = await supabase.rpc("get_previous_family_riddle");
+      if (id !== previousRequest.current) return;
+      if (result.error || !result.data?.closed || !result.data?.solution) throw result.error;
+      setPrevious(result.data as Riddle);
+    } catch { if (id === previousRequest.current) setPreviousError("Kunde inte hämta gårdagens kluring. Försök igen."); }
+    finally { if (id === previousRequest.current) { previousLock.current = false; setPreviousLoading(false); } }
+  }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -102,5 +123,19 @@ export default function DailyRiddle({ memberId }: { memberId: string }) {
     </>}
     {notice && <p className="daily-riddle-saved" role="status">✓ {notice}</p>}
     {saveError && <p role="alert">{saveError}</p>}
+    {!loading && riddle && <div className="daily-riddle-history">
+      <button className="daily-riddle-hint-button" type="button" aria-expanded={showPrevious} onClick={() => void togglePrevious()}>{showPrevious ? "Stäng gårdagens kluring" : "Missade du igår? Se kluringen och familjens svar"}</button>
+      {showPrevious && <div className="daily-riddle-history-content">
+        {previousLoading && <p role="status">Hämtar gårdagens kluring…</p>}
+        {previousError && <div><p role="alert">{previousError}</p><button type="button" className="secondary" onClick={() => void togglePrevious(true)}>Försök igen</button></div>}
+        {previous && <>
+          <h4>Gårdagens kluring <span>{new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "long", timeZone: "Europe/Stockholm" }).format(new Date(`${previous.puzzle_date}T12:00:00Z`))}</span></h4>
+          <p className="daily-riddle-question">{previous.question}</p>
+          <div className="daily-riddle-solution"><span>Svaret är</span><strong>{previous.solution}</strong>{previous.explanation && <p>{previous.explanation}</p>}</div>
+          <h4>Så tänkte familjen</h4>
+          {previous.guesses.length ? <ul className="daily-riddle-guesses">{previous.guesses.map(answer => <li key={answer.member_id}><strong>{answer.name}</strong><p>{answer.guess}</p></li>)}</ul> : <p className="muted">Familjen lämnade inga gissningar igår.</p>}
+        </>}
+      </div>}
+    </div>}
   </section>;
 }

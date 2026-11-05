@@ -1,7 +1,7 @@
 -- Transactional integration tests. All fixture data is rolled back.
 begin;
 do $$
-declare actor_uid uuid:=gen_random_uuid(); family_a uuid:=gen_random_uuid(); family_b uuid:=gen_random_uuid(); actor_id uuid:=gen_random_uuid(); peer_id uuid:=gen_random_uuid(); outsider_id uuid:=gen_random_uuid(); data jsonb; state record; denied boolean;
+declare actor_uid uuid:=gen_random_uuid(); family_a uuid:=gen_random_uuid(); family_b uuid:=gen_random_uuid(); actor_id uuid:=gen_random_uuid(); peer_id uuid:=gen_random_uuid(); outsider_id uuid:=gen_random_uuid(); data jsonb; state record; denied boolean; pinned_question text; pinned_solution text;
 begin
  insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data)
  values(actor_uid,'riddle-test-'||actor_uid||'@test.vardilo.invalid',now(),'{"parent_managed_child":true}'::jsonb,'{}'::jsonb);
@@ -33,6 +33,17 @@ begin
  data:=vardilo_private.get_family_riddle('2026-11-05T21:00:00+01');
  assert data->>'solution' is not null and jsonb_array_length(data->'guesses')=1,'reveal at cutoff';
  assert data->'guesses'->0->>'guess'='Min ändrade gissning','late save did not overwrite';
+ pinned_question:=data->>'question'; pinned_solution:=data->>'solution';
+ update vardilo_private.riddle_catalog set question='Edited test question',solution='Edited test solution' where id=(select riddle_id from vardilo_private.riddle_days where puzzle_date='2026-11-05');
+ insert into vardilo_private.riddle_catalog(id,question,hint,solution,explanation) select max(id)+1,'New test question','Hint','Solution','Explanation' from vardilo_private.riddle_catalog;
+ data:=vardilo_private.get_family_riddle('2026-11-05T21:01:00+01');
+ assert data->>'question'=pinned_question and data->>'solution'=pinned_solution,'catalog additions and edits do not change an active day';
+ data:=vardilo_private.get_previous_family_riddle('2026-11-06T20:59:59+01');
+ assert data->>'puzzle_date'='2026-11-05' and (data->>'closed')::boolean and data->>'solution'=pinned_solution,'yesterday is revealed without revealing today';
+ assert data->'guesses'->0->>'guess'='Min ändrade gissning','yesterday keeps family guesses';
+ assert not has_function_privilege('authenticated','vardilo_private.get_previous_family_riddle(timestamptz)','EXECUTE'),'client cannot supply archive time';
+ assert not has_function_privilege('anon','public.get_previous_family_riddle()','EXECUTE'),'archive requires authentication';
+
  data:=vardilo_private.get_family_riddle('2026-11-06T00:00:00+01');
  assert data->>'own_guess' is null and data->>'solution' is null,'new day clears own response and hides new solution';
 
@@ -51,4 +62,4 @@ begin
 end;$$;
 reset role;
 rollback;
-select 'PASS: Swedish cutoff, DST, midnight, answer visibility, save/update/late rejection, family RLS and private helper isolation' as integration_tests;
+select 'PASS: Swedish cutoff, DST, midnight, answer visibility, save/update/late rejection, family RLS, daily snapshots, yesterday results and private helper isolation' as integration_tests;
