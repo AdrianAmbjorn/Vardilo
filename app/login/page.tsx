@@ -4,6 +4,7 @@ import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginDestination } from "@/lib/login-destination";
 import { childLoginEmail, validChildUsername } from "@/lib/child-login";
+import "./login.css";
 import { createClient } from "@/lib/supabase/client";
 
 function HouseIcon() {
@@ -26,6 +27,12 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  function changeMode(next: "login" | "signup" | "child") {
+    setMode(next); setPassword(""); setShowPassword(false); setMessage("");
+  }
+
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,7 +55,7 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage(error.message);
+        setMessage(error.code === "user_already_exists" ? "E-postadressen har redan ett konto. Välj Logga in istället." : error.code === "weak_password" ? "Välj ett starkare lösenord med minst 6 tecken." : "Det gick inte att skapa kontot. Kontrollera uppgifterna och försök igen.");
       } else if (!data.session) {
         setMessage("Kontot är skapat. Kontrollera din e-post för att bekräfta kontot.");
       } else {
@@ -63,7 +70,7 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setMessage(mode === "child" ? "Kunde inte logga in. Kontrollera förälderns e-post, barnets användarnamn och lösenord." : error.message);
+        setMessage(error.code === "email_not_confirmed" ? "Bekräfta din e-postadress via länken i mejlet innan du loggar in." : mode === "child" ? "Uppgifterna stämmer inte. Kontrollera din förälders e-post, ditt användarnamn och ditt lösenord." : error.code === "invalid_credentials" ? "E-postadressen eller lösenordet stämmer inte. Försök igen." : "Det gick inte att logga in just nu. Försök igen om en stund.");
       } else {
         router.push(destination);
         router.refresh();
@@ -79,86 +86,44 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <div className="brand auth-brand">
-          <div className="brand-mark house-brand-mark" aria-label="Vardilo"><HouseIcon /></div>
-          <div>
-            <strong>VARDILO</strong>
-            <span>Family life, together.</span>
+    <main className="auth-shell login-page">
+      <section className="auth-card login-card">
+        <div className="login-brand" aria-label="Vardilo">
+          <span className="login-house"><HouseIcon /></span>
+          <div><strong>VARDILO</strong><span>Mer tid tillsammans.</span></div>
+        </div>
+
+        <div className="login-heading">
+          <h1>{mode === "signup" ? "Skapa ditt konto" : mode === "child" ? "Hej där!" : "Välkommen tillbaka"}</h1>
+          <p>{mode === "signup" ? "Skapa en familj eller gå med via en inbjudan." : mode === "child" ? "Använd din förälders e-post och dina egna inloggningsuppgifter." : "Här samlar ni familjens vardag."}</p>
+        </div>
+
+        {mode !== "signup" && <div className="login-modes" role="group" aria-label="Välj inloggning">
+          <button type="button" aria-pressed={mode === "login"} disabled={loading} onClick={() => changeMode("login")}>För vuxna</button>
+          <button type="button" aria-pressed={mode === "child"} disabled={loading} onClick={() => changeMode("child")}>För barn</button>
+        </div>}
+
+        <form onSubmit={handleSubmit} className="auth-form login-form">
+          {mode === "signup" && <label htmlFor="login-name">Ditt namn<input id="login-name" value={name} disabled={loading} onChange={event => setName(event.target.value)} placeholder="Förnamn" autoComplete="name" required /></label>}
+          <label htmlFor="login-email">{mode === "child" ? "Din förälders e-post" : "E-postadress"}
+            <input id="login-email" type="email" value={email} disabled={loading} onChange={event => setEmail(event.target.value)} placeholder="namn@exempel.se" autoComplete="email" autoCapitalize="none" spellCheck={false} required />
+          </label>
+          {mode === "child" && <label htmlFor="login-username">Ditt användarnamn<input id="login-username" value={childUsername} disabled={loading} onChange={event => setChildUsername(event.target.value)} placeholder="Användarnamn" autoCapitalize="none" autoCorrect="off" autoComplete="username" maxLength={30} required /></label>}
+          <div className="login-password-field">
+            <label htmlFor="login-password">Lösenord</label>
+            <div className="login-password-input">
+              <input id="login-password" type={showPassword ? "text" : "password"} value={password} disabled={loading} onChange={event => setPassword(event.target.value)} placeholder={mode === "signup" ? "Välj ett lösenord" : "Ditt lösenord"} autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={mode === "signup" ? 6 : undefined} required />
+              <button type="button" className="login-reveal" aria-label={showPassword ? "Dölj lösenord" : "Visa lösenord"} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? "Dölj" : "Visa"}</button>
+            </div>
+            {mode === "signup" && <small>Välj minst 6 tecken.</small>}
           </div>
-        </div>
-
-        <div className="auth-heading">
-          <p className="eyebrow">{mode === "child" ? "BARNENS VARDILO" : mode === "login" ? "VÄLKOMMEN TILLBAKA" : "NYTT KONTO"}</p>
-          <h1>{mode === "child" ? "Barninloggning" : mode === "login" ? "Logga in" : "Skapa ditt Vardilo-konto"}</h1>
-          <p className="muted">
-            {mode === "child" ? "Använd förälderns e-post och din egen inloggning. Be din förälder om hjälp om du glömt lösenordet." : mode === "login"
-              ? "Logga in för att komma till familjens Vardilo."
-              : "Börja med ditt eget konto. Sedan skapar du familjen."}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          {mode === "signup" && (
-            <label>
-              Namn
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Ditt namn"
-                required
-              />
-            </label>
-          )}
-
-          <label>
-            {mode === "child" ? "Förälderns e-post" : "E-post"}
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="du@exempel.se"
-              autoComplete="email"
-              required
-            />
-          </label>
-
-          {mode === "child" && <label>Ditt användarnamn<input value={childUsername} onChange={event => setChildUsername(event.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="username" maxLength={30} required /></label>}
-
-          <label>
-            Lösenord
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Minst 6 tecken"
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              minLength={6}
-              required
-            />
-          </label>
-
-          {message && <p className="auth-message" role="status">{message}</p>}
-
-          <button className="primary auth-submit" type="submit" disabled={loading}>
-            {loading ? "Arbetar..." : mode !== "signup" ? "Logga in" : "Skapa konto"}
-          </button>
+          {message && <p className="login-message" role="status">{message}</p>}
+          <button className="primary auth-submit login-submit" type="submit" disabled={loading}>{loading ? mode === "signup" ? "Skapar konto…" : "Loggar in…" : mode === "signup" ? "Skapa konto" : "Logga in"}</button>
         </form>
 
-        <button
-          className="auth-switch"
-          disabled={loading}
-          type="button"
-          onClick={() => {
-            setMode(mode === "signup" ? "login" : "signup");
-            setPassword("");
-            setMessage("");
-          }}
-        >
-          {mode === "signup" ? "Har du redan ett konto? Logga in" : "Har du inget vuxenkonto? Skapa ett"}
-        </button>
-        <button className="auth-switch" type="button" disabled={loading} onClick={() => { setMode(mode === "child" ? "login" : "child"); setPassword(""); setMessage(""); }}>{mode === "child" ? "Till vuxeninloggning" : "Barninloggning"}</button>
+        <footer className="login-footer">
+          {mode === "child" ? <p>Glömt dina uppgifter? Be din förälder om hjälp.</p> : mode === "signup" ? <p>Har du redan ett konto? <button type="button" disabled={loading} onClick={() => changeMode("login")}>Logga in</button></p> : <p>Ny på Vardilo? <button type="button" disabled={loading} onClick={() => changeMode("signup")}>Skapa konto</button></p>}
+        </footer>
       </section>
     </main>
   );

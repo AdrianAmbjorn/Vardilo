@@ -56,8 +56,8 @@ body { background: var(--bg); }
 .section-header h1, .section-header h2 { color: var(--text); }
 .back-link { color: var(--accent); }
 .auth-shell { background: var(--bg); }
-.auth-brand .brand, .auth-brand .brand strong { color: var(--text); }
-.auth-brand .brand span { color: var(--muted); }
+.auth-brand, .auth-brand strong { color: var(--text); }
+.auth-brand span { color: var(--muted); }
 .auth-card h1, .auth-card h2 { color: var(--text); }
 
 /* All text entered by the user uses Vardilo's blue text. */
