@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PullToRefresh from "./components/pull-to-refresh";
 import "./globals.css";
 import "./vardilo-theme.css";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sv">
-      <body>{children}</body>
+      <body><PullToRefresh />{children}</body>
     </html>
   );
 }
