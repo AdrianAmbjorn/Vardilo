@@ -1,0 +1,27 @@
+.daily-riddle { margin-top: 18px; border-radius: 22px; background: linear-gradient(135deg, #f5f8fb, #fff); }
+.daily-riddle-heading, .daily-riddle-heading > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.daily-riddle-heading { justify-content: space-between; margin-bottom: 18px; }
+.daily-riddle-heading h3 { margin: 0; color: var(--text); }
+.daily-riddle-icon { font-size: 26px; }
+.daily-riddle-deadline { border: 1px solid #dce3e9; background: white; border-radius: 20px; padding: 6px 10px; color: #526579; font-size: 11px; font-weight: 600; }
+.daily-riddle-question { color: #102a43; font-size: clamp(17px, 4vw, 21px); font-weight: 700; line-height: 1.5; margin: 0 0 12px; overflow-wrap: anywhere; }
+.daily-riddle-help { color: #526579; font-size: 13px; line-height: 1.6; margin: 0 0 8px; }
+.daily-riddle-hint-button { appearance: none; border: 0; background: transparent; color: #102a43; padding: 10px 0; font: inherit; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; cursor: pointer; }
+.daily-riddle-hint { background: #fff8e9; border: 1px solid #efe5d0; color: #102a43; border-radius: 12px; padding: 12px; font-size: 13px; line-height: 1.5; }
+.daily-riddle-form { display: grid; gap: 9px; margin-top: 12px; }
+.daily-riddle-form label { font-size: 13px; font-weight: 600; color: #102a43; }
+.daily-riddle-form textarea { width: 100%; min-width: 0; min-height: 80px; resize: vertical; font: inherit; font-size: 16px; padding: 12px; border: 1px solid #d9dfe3; border-radius: 12px; color: #102a43; background: #fff; box-sizing: border-box; }
+.daily-riddle-form textarea:focus { outline: 2px solid #102a43; outline-offset: 2px; }
+.daily-riddle-form > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.daily-riddle-form button { min-height: 44px; }
+.daily-riddle-form button:disabled { opacity: .6; }
+.daily-riddle-footnote { color: #526579; font-size: 12px; line-height: 1.5; margin: 14px 0 0; }
+.daily-riddle-saved { color: #356449; font-size: 12px; }
+.daily-riddle-solution { padding: 16px; border: 1px solid #dce6df; border-radius: 14px; background: #f1f7f2; color: #102a43; margin: 16px 0 22px; }
+.daily-riddle-solution > span { display: block; font-size: 12px; margin-bottom: 5px; }
+.daily-riddle-solution > strong { font-size: 20px; }
+.daily-riddle-solution p { font-size: 13px; line-height: 1.5; margin: 8px 0 0; }
+.daily-riddle-guesses { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.daily-riddle-guesses li { border-bottom: 1px solid #e5eaee; padding: 10px 0; min-width: 0; overflow-wrap: anywhere; }
+.daily-riddle-guesses strong { font-size: 13px; color: #102a43; }
+.daily-riddle-guesses p { font-size: 14px; line-height: 1.5; white-space: pre-wrap; margin: 5px 0 0; color: #526579; }
