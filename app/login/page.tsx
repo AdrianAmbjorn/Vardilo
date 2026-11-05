@@ -2,6 +2,7 @@
 
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { childLoginEmail, validChildUsername } from "@/lib/child-login";
 import { createClient } from "@/lib/supabase/client";
 
 function HouseIcon() {
@@ -17,9 +18,10 @@ export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
   const submitLock = useRef(false);
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "child">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [childUsername, setChildUsername] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,13 +54,14 @@ export default function LoginPage() {
         router.refresh();
       }
     } else {
+      if (mode === "child" && !validChildUsername(childUsername)) { setMessage("Kontrollera barnets användarnamn."); return; }
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: mode === "child" ? await childLoginEmail(email, childUsername) : email.trim(),
         password,
       });
 
       if (error) {
-        setMessage(error.message);
+        setMessage(mode === "child" ? "Kunde inte logga in. Kontrollera förälderns e-post, barnets användarnamn och lösenord." : error.message);
       } else {
         router.push("/familj");
         router.refresh();
@@ -85,10 +88,10 @@ export default function LoginPage() {
         </div>
 
         <div className="auth-heading">
-          <p className="eyebrow">{mode === "login" ? "VÄLKOMMEN TILLBAKA" : "NYTT KONTO"}</p>
-          <h1>{mode === "login" ? "Logga in" : "Skapa ditt Vardilo-konto"}</h1>
+          <p className="eyebrow">{mode === "child" ? "BARNENS VARDILO" : mode === "login" ? "VÄLKOMMEN TILLBAKA" : "NYTT KONTO"}</p>
+          <h1>{mode === "child" ? "Barninloggning" : mode === "login" ? "Logga in" : "Skapa ditt Vardilo-konto"}</h1>
           <p className="muted">
-            {mode === "login"
+            {mode === "child" ? "Använd förälderns e-post och din egen inloggning. Be din förälder om hjälp om du glömt lösenordet." : mode === "login"
               ? "Logga in för att komma till familjens Vardilo."
               : "Börja med ditt eget konto. Sedan skapar du familjen."}
           </p>
@@ -108,7 +111,7 @@ export default function LoginPage() {
           )}
 
           <label>
-            E-post
+            {mode === "child" ? "Förälderns e-post" : "E-post"}
             <input
               type="email"
               value={email}
@@ -119,6 +122,8 @@ export default function LoginPage() {
             />
           </label>
 
+          {mode === "child" && <label>Ditt användarnamn<input value={childUsername} onChange={event => setChildUsername(event.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="username" maxLength={30} required /></label>}
+
           <label>
             Lösenord
             <input
@@ -126,7 +131,7 @@ export default function LoginPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Minst 6 tecken"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
               minLength={6}
               required
             />
@@ -135,7 +140,7 @@ export default function LoginPage() {
           {message && <p className="auth-message" role="status">{message}</p>}
 
           <button className="primary auth-submit" type="submit" disabled={loading}>
-            {loading ? "Arbetar..." : mode === "login" ? "Logga in" : "Skapa konto"}
+            {loading ? "Arbetar..." : mode !== "signup" ? "Logga in" : "Skapa konto"}
           </button>
         </form>
 
@@ -144,12 +149,14 @@ export default function LoginPage() {
           disabled={loading}
           type="button"
           onClick={() => {
-            setMode(mode === "login" ? "signup" : "login");
+            setMode(mode === "signup" ? "login" : "signup");
+            setPassword("");
             setMessage("");
           }}
         >
-          {mode === "login" ? "Har du inget konto? Skapa ett" : "Har du redan ett konto? Logga in"}
+          {mode === "signup" ? "Har du redan ett konto? Logga in" : "Har du inget vuxenkonto? Skapa ett"}
         </button>
+        <button className="auth-switch" type="button" disabled={loading} onClick={() => { setMode(mode === "child" ? "login" : "child"); setPassword(""); setMessage(""); }}>{mode === "child" ? "Till vuxeninloggning" : "Barninloggning"}</button>
       </section>
     </main>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import ChildLogins from "./child-logins";
 import { createClient } from "@/lib/supabase/client";
 
 type FamilyMember = {
@@ -253,6 +254,7 @@ export default function FamilyAdminPage() {
           </div>
         )}
 
+        {canManageMembers && <ChildLogins members={members} onChanged={loadFamily} />}
         <div className="family-admin-list">
           <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
             <h3>Familjemedlemmar</h3>
