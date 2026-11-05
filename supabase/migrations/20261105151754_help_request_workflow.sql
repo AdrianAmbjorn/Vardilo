@@ -1,5 +1,6 @@
 -- Creates the workflow and tightens write access. No existing request is changed or deleted here.
-revoke update,delete on public.help_requests from public,anon,authenticated;
+revoke all on public.help_requests from public,anon,authenticated;
+grant select,insert on public.help_requests to authenticated;
 create policy help_request_own_insert on public.help_requests as restrictive for insert to authenticated
 with check(claimed_by_member_id is null and claimed_at is null and completed_at is null and exists(
  select 1 from public.family_members me where me.user_id=(select auth.uid()) and me.id=created_by_member_id and me.family_id=help_requests.family_id
@@ -40,10 +41,6 @@ begin
   if item.completed_at is null then return to_jsonb(item); end if;
   update public.help_requests set completed_at=null where id=item.id returning * into item;
   notification_title:='Hjälpärendet har öppnats igen';
- when 'cancel' then
-  if me.id<>item.created_by_member_id and me.role<>'admin' then raise exception 'Bara den som skapade ärendet eller Admin kan ta bort det.'; end if;
-  delete from public.help_requests where id=item.id;
-  return jsonb_build_object('id',item.id,'deleted',true);
  else raise exception 'Ogiltig ändring av hjälpärendet.';
  end case;
  if notification_title is not null then

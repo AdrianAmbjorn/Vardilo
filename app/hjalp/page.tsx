@@ -72,19 +72,18 @@ export default function HelpPage() {
     });
   }
 
-  function change(request: Request, action: "claim" | "release" | "complete" | "reopen" | "cancel") {
+  function change(request: Request, action: "claim" | "release" | "complete" | "reopen") {
     if (!member) return;
     if (action === "release" && !window.confirm("Lämna tillbaka ärendet så att någon annan kan hjälpa till?")) return;
-    if (action === "cancel" && !window.confirm(`Ta bort ”${request.title}”?`)) return;
     void run(async () => {
       const { data, error } = await supabase.rpc("change_help_request", { p_request_id: request.id, p_action: action });
       if (error || !data?.id) {
         await load();
         throw new Error(error?.code === "P0001" ? error.message : "Kunde inte ändra ärendet. Kontrollera senaste status och försök igen.");
       }
-      setItems(current => data.deleted ? current.filter(item => item.id !== data.id) : current.map(item => item.id === data.id ? data as Request : item));
+      setItems(current => current.map(item => item.id === data.id ? data as Request : item));
       if (action === "reopen") setShowCompleted(false);
-      setNotice(action === "claim" ? "Tack! Familjen ser nu att du hjälper till." : action === "release" ? "Ärendet är ledigt igen." : action === "complete" ? "Hjälpen är markerad som klar. Tack för hjälpen!" : action === "reopen" ? "Ärendet är öppet igen." : "Hjälpärendet är borttaget.");
+      setNotice(action === "claim" ? "Tack! Familjen ser nu att du hjälper till." : action === "release" ? "Ärendet är ledigt igen." : action === "complete" ? "Hjälpen är markerad som klar. Tack för hjälpen!" : "Ärendet är öppet igen.");
     });
   }
 
@@ -127,7 +126,6 @@ export default function HelpPage() {
                 {(request.created_by_member_id===member?.id||request.claimed_by_member_id===member?.id||member?.role==="admin") && <button className="secondary" type="button" disabled={busy} onClick={()=>change(request,"complete")}>Markera klart</button>}
                 {request.claimed_by_member_id && (request.claimed_by_member_id===member?.id||member?.role==="admin") && <button className="secondary" type="button" disabled={busy} onClick={()=>change(request,"release")}>{request.claimed_by_member_id===member?.id?"Lämna tillbaka":"Gör ledig"}</button>}
               </>}
-              {(request.created_by_member_id===member?.id||member?.role==="admin") && <button className="secondary" type="button" disabled={busy} onClick={()=>change(request,"cancel")}>Ta bort</button>}
             </div>
           </div>
         ))}

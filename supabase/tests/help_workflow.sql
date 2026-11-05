@@ -26,10 +26,8 @@ begin
  denied:=false;begin perform public.change_help_request(request_id,'release');exception when raise_exception then denied:=true;end;assert denied,'only helper or admin can release';
  perform set_config('request.jwt.claim.sub',helper_uid::text,true);
  data:=public.change_help_request(request_id,'release');assert data->>'claimed_by_member_id' is null and data->>'claimed_at' is null,'helper releases';
- denied:=false;begin perform public.change_help_request(request_id,'cancel');exception when raise_exception then denied:=true;end;assert denied,'helper cannot delete owner request';
  perform set_config('request.jwt.claim.sub',peer_uid::text,true);perform public.change_help_request(request_id,'claim');
- perform set_config('request.jwt.claim.sub',owner_uid::text,true);data:=public.change_help_request(request_id,'cancel');assert (data->>'deleted')::boolean,'owner cancels';
- assert not exists(select 1 from public.help_requests where id=request_id),'cancel removed request';
+ perform set_config('request.jwt.claim.sub',owner_uid::text,true);data:=public.change_help_request(request_id,'complete');assert data->>'completed_at' is not null,'owner confirms completion';
  assert not has_function_privilege('anon','public.change_help_request(uuid,text)','EXECUTE'),'anonymous denied';
  assert not has_table_privilege('authenticated','public.help_requests','UPDATE'),'no direct update bypass';
  assert not has_table_privilege('authenticated','public.help_requests','DELETE'),'no direct delete bypass';
@@ -43,4 +41,4 @@ do $$ declare denied boolean:=false; begin
 end;$$;
 reset role;
 rollback;
-select 'PASS: help claims, competing claims, completion, reopening, release, cancellation, notifications and family/actor authorization' as integration_tests;
+select 'PASS: help claims, competing claims, completion, reopening, release, notifications and family/actor authorization' as integration_tests;
