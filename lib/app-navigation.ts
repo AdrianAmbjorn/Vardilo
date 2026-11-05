@@ -1,6 +1,6 @@
 const sections = [
  ["Hem","Överblick","/"], ["Kalender","Familjens vecka","/kalender"], ["Check-in","Var är jag?","/check-in"],
- ["Uppgifter","Ansvar & XP","/uppgifter"], ["Hjälp","Jag kan","/hjalp"], ["Listor","Gemensamt","/listor"],
+ ["Uppgifter","Ansvar & XP","/uppgifter"], ["Hjälp","Hjälp i familjen","/hjalp"], ["Listor","Gemensamt","/listor"],
  ["Önskelistor","Presenter","/onskelistor"], ["Budget","För föräldrar","/budget"], ["Mina pengar","Min sparplan","/sparande"],
  ["Chat","Familjen","/chat"], ["Notiser","Det senaste","/notiser"], ["Galleri","Minnen","/galleri"],
 ] as const;

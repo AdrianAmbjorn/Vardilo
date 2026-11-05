@@ -2,7 +2,6 @@ export const homeSections = [
   { id: "countdown", label: "Nedräkning", emoji: "🎉" },
   { id: "xp", label: "Mina XP och mitt mål", emoji: "⭐" },
   { id: "calendar", label: "Nästa händelse", emoji: "📅" },
-  { id: "help", label: "Hjälp i familjen", emoji: "🤝" },
   { id: "lists", label: "Listor", emoji: "📝" },
   { id: "wishlists", label: "Önskelistor", emoji: "🎁" },
   { id: "savings", label: "Mina pengar", emoji: "🐷" },
