@@ -64,12 +64,11 @@ export default function WishlistsPage() {
 
   async function open(list: Wishlist) {
     if (!member) return;
-    const { data, error } = await supabase.from("family_wishlist_items")
-      .select("id,title,url,price,purchased").eq("wishlist_id", list.id).order("created_at");
+    const { data, error } = await supabase.rpc("get_wishlist_items", { p_wishlist_id: list.id });
     if (error) throw new Error("Kunde inte läsa önskningarna.");
     let nextReservations: Record<string, string> = {};
     if (member.role !== "barn" && data.length) {
-      const result = await supabase.from("family_wishlist_reservations").select("item_id,reserved_by").in("item_id", data.map(item => item.id));
+      const result = await supabase.from("family_wishlist_reservations").select("item_id,reserved_by").in("item_id", data.map((item: Wish) => item.id));
       if (result.error) throw new Error("Kunde inte läsa reservationerna. Försök igen.");
       nextReservations = Object.fromEntries(result.data.map(item => [item.item_id, item.reserved_by]));
     }
@@ -98,9 +97,9 @@ export default function WishlistsPage() {
     if (!selected || !item.trim() || editing) return;
     void run(async () => {
       const result = await supabase.from("family_wishlist_items").insert({ wishlist_id: selected.id, title: item.trim(), url: wishUrl(url), price: wishPrice(price) })
-        .select("id,title,url,price,purchased").single();
+        .select("id,title,url,price").single();
       if (result.error) throw new Error("Kunde inte lägga till önskningen. Din text finns kvar.");
-      setSelected({ ...selected, items: [...selected.items, result.data] });
+      setSelected({ ...selected, items: [...selected.items, { ...result.data, purchased: false }] });
       setItem(""); setUrl(""); setPrice("");
     });
   }
@@ -116,9 +115,9 @@ export default function WishlistsPage() {
     void run(async () => {
       const { data, error } = await supabase.from("family_wishlist_items")
         .update({ title: editTitle.trim(), url: wishUrl(editUrl), price: wishPrice(editPrice) })
-        .eq("id", editing).eq("wishlist_id", selected.id).select("id,title,url,price,purchased").single();
+        .eq("id", editing).eq("wishlist_id", selected.id).select("id,title,url,price").single();
       if (error) throw new Error("Kunde inte spara ändringarna. Din text finns kvar.");
-      setSelected({ ...selected, items: selected.items.map(wish => wish.id === data.id ? data : wish) }); setEditing(null);
+      setSelected({ ...selected, items: selected.items.map(wish => wish.id === data.id ? { ...data, purchased: wish.purchased } : wish) }); setEditing(null);
     });
   }
 
@@ -134,12 +133,12 @@ export default function WishlistsPage() {
   }
 
   function toggle(wish: Wish) {
-    if (!selected) return;
+    if (!selected || !member || member.role === "barn") return;
     void run(async () => {
       const result = await supabase.from("family_wishlist_items").update({ purchased: !wish.purchased })
-        .eq("id", wish.id).eq("wishlist_id", selected.id).select("id,purchased").single();
+        .eq("id", wish.id).eq("wishlist_id", selected.id).select("id").single();
       if (result.error) throw new Error("Kunde inte ändra köpstatus. Försök igen.");
-      setSelected({ ...selected, items: selected.items.map(item => item.id === wish.id ? { ...item, purchased: result.data.purchased } : item) });
+      setSelected({ ...selected, items: selected.items.map(item => item.id === wish.id ? { ...item, purchased: !wish.purchased } : item) });
     });
   }
 
@@ -181,7 +180,7 @@ export default function WishlistsPage() {
                   {error && <p role="alert" className="wishlist-inline-error">{error}</p>}
                   <div className="wishlist-actions"><button className="primary" disabled={busy || !editTitle.trim()}>{busy ? "Sparar…" : "Spara ändringar"}</button><button className="secondary" type="button" disabled={busy} onClick={() => { setEditing(null); setError(""); }}>Avbryt</button></div>
                 </form> : <>
-                  <div className="wishlist-item-main"><button className="wish-check" type="button" role="checkbox" aria-checked={wish.purchased} disabled={busy || Boolean(editing)} onClick={() => toggle(wish)} aria-label={`${wish.purchased ? "Markera som inte köpt" : "Markera som köpt"}: ${wish.title}`}>{wish.purchased ? "✓" : ""}</button><div><h3 style={{ textDecoration: wish.purchased ? "line-through" : "none" }}>{wish.title}</h3>{wish.price !== null && <p className="wish-price">Cirka {formatWishPrice(wish.price)}</p>}<p className="wish-status">{wish.purchased ? "Köpt" : member?.role === "barn" ? "En önskning" : reservations[wish.id] ? reservations[wish.id] === member?.id ? "Reserverad av dig" : "Reserverad" : "Ledig att reservera"}</p></div></div>
+                  <div className="wishlist-item-main">{member?.role !== "barn" && <button className="wish-check" type="button" role="checkbox" aria-checked={wish.purchased} disabled={busy || Boolean(editing)} onClick={() => toggle(wish)} aria-label={`${wish.purchased ? "Markera som inte köpt" : "Markera som köpt"}: ${wish.title}`}>{wish.purchased ? "✓" : ""}</button>}<div><h3 style={{ textDecoration: member?.role !== "barn" && wish.purchased ? "line-through" : "none" }}>{wish.title}</h3>{wish.price !== null && <p className="wish-price">Cirka {formatWishPrice(wish.price)}</p>}<p className="wish-status">{member?.role === "barn" ? "En önskning" : wish.purchased ? "Köpt" : reservations[wish.id] ? reservations[wish.id] === member?.id ? "Reserverad av dig" : "Reserverad" : "Ledig att reservera"}</p></div></div>
                   <div className="wishlist-actions">{source && <a className="secondary" href={source} target="_blank" rel="noopener noreferrer">Se önskningen ↗</a>}<button className="secondary" type="button" disabled={busy || Boolean(editing)} onClick={() => beginEdit(wish)}>Ändra</button>{member && member.role !== "barn" && <button className={reservations[wish.id] ? "secondary" : "primary"} type="button" disabled={busy || Boolean(editing) || Boolean(reservations[wish.id] && reservations[wish.id] !== member.id)} onClick={() => reserve(wish)}>{reservations[wish.id] === member.id ? "Ångra reservation" : reservations[wish.id] ? "Reserverad" : "Reservera"}</button>}</div>
                   {member && member.role !== "barn" && reservations[wish.id] === member.id && <details className="wishlist-compare"><summary>Jämför priser</summary><div><a href={`https://www.prisjakt.nu/search?search=${encodeURIComponent(wish.title)}`} target="_blank" rel="noopener noreferrer">Prisjakt ↗</a><a href={`https://www.amazon.se/s?k=${encodeURIComponent(wish.title)}`} target="_blank" rel="noopener noreferrer">Amazon.se ↗</a><a href={`https://www.google.com/search?tbm=shop&q=${encodeURIComponent(wish.title)}`} target="_blank" rel="noopener noreferrer">Google Shopping ↗</a></div></details>}
                 </>}

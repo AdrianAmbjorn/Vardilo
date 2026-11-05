@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const categoryEmoji: Record<string, string> = { Mathandling: "🛒", Storhelg: "🎄", Fest: "🎉", Hemmet: "🏠" };
+const categoryEmoji: Record<string, string> = { Mathandling: "🛒", Storhelg: "🎄", Fest: "🎉", Hemmet: "🏠", "Till hemmet": "🏠" };
 
 export default function HomeLists({ familyId }: { familyId: string }) {
   const supabase = useMemo(() => createClient(), []);
@@ -34,9 +34,9 @@ export default function HomeLists({ familyId }: { familyId: string }) {
         lists.length ? <div style={{ display: "grid" }}>
           {lists.map(list => (
             <Link key={list.id} href={`/listor?lista=${encodeURIComponent(list.id)}`}
-              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 48, padding: "10px 0", borderBottom: "1px solid var(--line)", color: "var(--text)", textDecoration: "none", fontWeight: 600 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><span aria-hidden="true" style={{ flexShrink: 0 }}>{categoryEmoji[list.category ?? ""] ?? "📝"}</span><span style={{ overflowWrap: "anywhere", minWidth: 0 }}>{list.name}</span></span>
-              <span aria-hidden="true" style={{ color: "var(--muted)" }}>›</span>
+              className="home-list-link">
+              <span><span aria-hidden="true" className="home-list-emoji">{categoryEmoji[list.category ?? ""] ?? "📝"}</span><span className="home-list-name">{list.name}</span></span>
+              <span aria-hidden="true" className="home-list-arrow">›</span>
             </Link>
           ))}
         </div> : <p className="muted">Inga listor ännu. <Link href="/listor">Skapa en lista</Link></p>}

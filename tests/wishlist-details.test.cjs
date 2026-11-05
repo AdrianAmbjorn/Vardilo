@@ -33,8 +33,8 @@ test('editing a wish scopes the write to its list and preserves the other wishes
 function openHandler(env){const s=readFileSync('app/onskelistor/page.tsx','utf8');const start=s.indexOf('  async function open(');const code=stripTypeScriptTypes(s.slice(start,s.indexOf('  function addList',start)));return new Function(...Object.keys(env),`${code};return open;`)(...Object.values(env))}
 test('child opening a wishlist never fetches or retains reservation details',async()=>{
  const tables=[];let reservations,selected;
- const env={member:{id:'child',role:'barn'},selected:null,setSelected:value=>selected=value,setReservations:value=>reservations=value,setEditing(){},setItem(){},setUrl(){},setPrice(){},supabase:{from:table=>{tables.push(table);return {select:()=>({eq:()=>({order:async()=>({data:[{id:'wish',title:'Book',url:null,price:99,purchased:false}],error:null})})})}}}};
- await openHandler(env)({id:'list',member_id:'child',title:'Birthday'});assert.deepEqual(tables,['family_wishlist_items']);assert.deepEqual(reservations,{});assert.equal(selected.items[0].price,99);
+ const env={member:{id:'child',role:'barn'},selected:null,setSelected:value=>selected=value,setReservations:value=>reservations=value,setEditing(){},setItem(){},setUrl(){},setPrice(){},supabase:{rpc:async(name,args)=>{tables.push(name);assert.deepEqual(args,{p_wishlist_id:'list'});return {data:[{id:'wish',title:'Book',url:null,price:99,purchased:false}],error:null}},from:()=>{throw Error('Child must not query reservation table')}}};
+ await openHandler(env)({id:'list',member_id:'child',title:'Birthday'});assert.deepEqual(tables,['get_wishlist_items']);assert.deepEqual(reservations,{});assert.equal(selected.items[0].price,99);
 });
 test('an adult can reserve and undo their own reservation, refreshing status after each action',async()=>{
  for(const mine of [false,true]){

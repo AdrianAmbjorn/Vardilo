@@ -70,4 +70,15 @@ input::placeholder, textarea::placeholder {
   color: var(--muted) !important;
   -webkit-text-fill-color: var(--muted) !important;
   opacity: 1;
-}
+}/* Quiet, consistent shortcuts in the home cards. */
+.shell .card-heading{gap:12px;flex-wrap:wrap}
+.shell .card-heading>a{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:#faf9f6;color:var(--text);font-size:12px;font-weight:650;line-height:1.3;text-decoration:none;white-space:normal;transition:background .15s,border-color .15s}
+.shell .card-heading>a:hover{background:var(--accent-soft);border-color:#bbc8d3}
+.shell .card-heading>a:focus-visible,.home-list-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.home-list-link{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:12px;border-radius:12px;color:var(--text);text-decoration:none;font-size:15px;font-weight:600;transition:background .15s}
+.home-list-link:hover{background:#f7f5f0}
+.home-list-link+.home-list-link{margin-top:4px}
+.home-list-link>span:first-child{display:flex;align-items:center;gap:12px;min-width:0}
+.home-list-link .home-list-emoji{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:11px;background:#f6f2eb;font-size:19px}
+.home-list-link .home-list-name{overflow-wrap:anywhere;min-width:0}
+.home-list-link .home-list-arrow{color:var(--muted);font-size:22px;font-weight:400}
