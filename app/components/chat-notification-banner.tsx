@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import "./chat-notification-banner.css";
 
-export default function ChatNotificationBanner() {
+export default function ChatNotificationBanner({ variant = "banner" }: { variant?: "banner" | "badge" }) {
   const pathname = usePathname();
   const supabase = useMemo(() => createClient(), []);
   const [unread, setUnread] = useState(0);
@@ -44,13 +44,14 @@ export default function ChatNotificationBanner() {
       } catch { /* A transient connection failure keeps the last confirmed count. */ }
     };
     void refresh();
-    const channel = supabase.channel(`global-chat-unread-${memberId}`)
+    const channel = supabase.channel(`global-chat-unread-${variant}-${memberId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `recipient_member_id=eq.${memberId}` }, () => void refresh())
       .subscribe(status => { if (status === "SUBSCRIBED") void refresh(); });
     const timer = window.setInterval(refresh, 15_000);
     window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh); window.addEventListener("vardilo-chat-read", refresh);
     return () => { active = false; request++; window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("vardilo-chat-read", refresh); void supabase.removeChannel(channel); };
-  }, [memberId, supabase]);
+  }, [memberId, supabase, variant]);
   if (!memberId || !unread) return null;
+  if (variant === "badge") return <span className="home-chat-unread" role="status" aria-label={unread === 1 ? "Ett oläst meddelande" : `${unread} olästa meddelanden`} title="Olästa meddelanden"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span>;
   return <aside className="chat-notification-banner" aria-label="Olästa meddelanden"><Link href="/chat"><span className="chat-unread-count" aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span role="status">{unread === 1 ? "Du har ett oläst meddelande" : `Du har ${unread} olästa meddelanden`}</span><strong>Öppna chatten <span aria-hidden="true">›</span></strong></Link></aside>;
 }

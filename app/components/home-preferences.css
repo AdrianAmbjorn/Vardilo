@@ -56,3 +56,14 @@
 @media(max-width:600px){.home-widget-grid{gap:10px}.home-widget-grid .card{padding:12px;border-radius:14px}.home-widget-grid .card-heading{flex-direction:column;gap:5px}.home-widget-grid h3{font-size:14px}.home-widget-grid .card-heading>a{font-size:11px;max-width:100%;min-height:40px;padding:6px 9px}.home-widget-grid .card .primary,.home-widget-grid .card .secondary{white-space:normal;max-width:100%}.home-widget-grid .home-countdown>div:first-child{flex-direction:column;align-items:flex-start!important}.home-widget-grid .avatar.small{width:25px;height:25px;flex:none;font-size:11px}}
 @media(max-width:359px){.home-widget-grid{grid-template-columns:minmax(0,1fr)}}
 .home-list-more summary{display:flex;align-items:center;min-height:40px;cursor:pointer;font-size:12px;font-weight:650;color:var(--accent);list-style:none}.home-list-more summary::after{content:'⌄';margin-left:7px}.home-list-more summary::-webkit-details-marker{display:none}.home-list-more[open] summary::after{content:'⌃'}
+
+/* Match the conversation bubbles in the full family chat. */
+.home-chat-preview{display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding-top:4px;min-width:0}
+.home-chat-sender{font-size:11px;font-weight:600;color:var(--muted);padding:0 5px}
+.home-chat-bubble{position:relative;max-width:100%;margin:0;padding:10px 13px;border-radius:18px 18px 18px 5px;background:#ebedf1;color:var(--text);font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.home-chat-own{align-items:flex-end}
+.home-chat-own .home-chat-bubble{border-radius:18px 18px 5px 18px;background:#0065cf;color:#fff}
+.home-chat-time{font-size:10px;line-height:1.5;color:var(--muted);padding:0 5px}
+.home-chat-empty{padding:6px 0}.home-chat-empty p{margin:0 0 9px;color:var(--muted);font-size:13px}.home-chat-empty a{display:inline-flex;align-items:center;min-height:40px;color:#0065cf;font-size:12px;font-weight:600;text-decoration:none}
+
+.home-chat-title{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.home-chat-unread{display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;background:#d9232b;color:#fff;box-shadow:0 2px 5px #d9232b22}
