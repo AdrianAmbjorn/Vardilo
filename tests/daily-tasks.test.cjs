@@ -41,6 +41,6 @@ test('daily task UI gives parents status only and shows a green check for a comp
 });
 test('global chat banner displays the unread count with a direct chat link',()=>{
  let cursor=0;const hooks={...React,useMemo:fn=>fn(),useEffect:()=>{},useState:()=>[[2,'child'][cursor++],()=>{}]};
- const Banner=component('app/components/chat-notification-banner.tsx',{react:hooks,'next/navigation':{usePathname:()=>'/uppgifter'},'@/lib/supabase/client':{createClient:()=>({})}});
+ const Banner=component('app/components/chat-notification-banner.tsx',{react:hooks,'./language-provider':{useLanguage:()=>({language:'sv',locale:'sv-SE',t:text=>text})},'next/navigation':{usePathname:()=>'/uppgifter'},'@/lib/supabase/client':{createClient:()=>({})}});
  const html=renderToStaticMarkup(React.createElement(Banner));assert.match(html,/2 olästa meddelanden/);assert.match(html,/href="\/chat"/);
 });

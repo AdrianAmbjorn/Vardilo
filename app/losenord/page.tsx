@@ -1,10 +1,13 @@
 "use client";
+import { useLanguage } from "../components/language-provider";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import "../login/login.css";
 
 export default function PasswordPage() {
+ const { t, language, locale } = useLanguage();
+
  const supabase = useMemo(() => createClient(), []);
  const [reset, setReset] = useState(false);
  const [ready, setReady] = useState(false);
@@ -48,7 +51,7 @@ export default function PasswordPage() {
   } catch { setMessage(reset ? "Kunde inte ändra lösenordet. Länken kan ha gått ut; begär då en ny." : "Kunde inte begära mejlet just nu. Försök igen om en stund."); }
   finally { lock.current = false; setBusy(false); }
  }
- return <main className="auth-shell login-page"><section className="auth-card login-card"><div className="login-heading"><h1>{reset ? "Välj nytt lösenord" : "Glömt lösenord?"}</h1><p>{reset ? "Välj ett lösenord som du inte använder någon annanstans." : "Ange din e-postadress så hjälper vi dig tillbaka. Barnets lösenord ändras av en förälder i familjeinställningarna."}</p></div>
- {!done && <form className="auth-form login-form" onSubmit={submit}>{reset ? <><label>Nytt lösenord<input type="password" autoComplete="new-password" minLength={10} maxLength={128} required disabled={busy} value={password} onChange={event => setPassword(event.target.value)} /></label><label>Upprepa lösenordet<input type="password" autoComplete="new-password" minLength={10} maxLength={128} required disabled={busy} value={confirm} onChange={event => setConfirm(event.target.value)} /></label></> : <label>E-postadress<input type="email" autoComplete="email" autoCapitalize="none" required disabled={busy} value={email} onChange={event => setEmail(event.target.value)} /></label>}<button className="primary" disabled={busy || !ready}>{busy ? "Vänta…" : reset ? "Spara nytt lösenord" : "Skicka återställningslänk"}</button></form>}
- {message && <p className="login-message" role="status" style={{marginTop:16}}>{message}</p>}<footer className="login-footer"><Link href="/login">Till inloggningen</Link></footer></section></main>;
+ return <main className="auth-shell login-page"><section className="auth-card login-card"><div className="login-heading"><h1>{reset ? t("Välj nytt lösenord") : t("Glömt lösenord?")}</h1><p>{reset ? t("Välj ett lösenord som du inte använder någon annanstans.") : t("Ange din e-postadress så hjälper vi dig tillbaka. Barnets lösenord ändras av en förälder i familjeinställningarna.")}</p></div>
+ {!done && <form className="auth-form login-form" onSubmit={submit}>{reset ? <><label>{t("Nytt lösenord")}<input type="password" autoComplete="new-password" minLength={10} maxLength={128} required disabled={busy} value={password} onChange={event => setPassword(event.target.value)} /></label><label>{t("Upprepa lösenordet")}<input type="password" autoComplete="new-password" minLength={10} maxLength={128} required disabled={busy} value={confirm} onChange={event => setConfirm(event.target.value)} /></label></> : <label>{t("E-postadress")}<input type="email" autoComplete="email" autoCapitalize="none" required disabled={busy} value={email} onChange={event => setEmail(event.target.value)} /></label>}<button className="primary" disabled={busy || !ready}>{busy ? t("Vänta…") : reset ? t("Spara nytt lösenord") : t("Skicka återställningslänk")}</button></form>}
+ {message && <p className="login-message" role="status" style={{marginTop:16}}>{t(message)}</p>}<footer className="login-footer"><Link href="/login">{t("Till inloggningen")}</Link></footer></section></main>;
 }

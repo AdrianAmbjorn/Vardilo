@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage, LanguagePicker } from "../components/language-provider";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -19,6 +20,8 @@ function HouseIcon() {
 }
 
 export default function LoginPage() {
+ const { t, language, locale } = useLanguage();
+
   const router = useRouter();
   const supabase = createClient();
   const submitLock = useRef(false);
@@ -71,7 +74,7 @@ export default function LoginPage() {
         email: email.trim(),
         password,
         options: {
-          data: { display_name: name, birth_date: birthDate },
+          data: { display_name: name, birth_date: birthDate, language },
           emailRedirectTo: redirectTo,
         },
       });
@@ -114,42 +117,43 @@ export default function LoginPage() {
       <section className="auth-card login-card">
         <div className="login-brand" aria-label="Vardilo">
           <span className="login-house"><HouseIcon /></span>
-          <div><strong>VARDILO</strong><span>Mer tid tillsammans.</span></div>
+          <div><strong>VARDILO</strong><span>{t("Mer tid tillsammans.")}</span></div>
         </div>
 
+        <LanguagePicker />
         <div className="login-heading">
-          <h1>{mode === "confirm" ? "Saknar du mejlet?" : mode === "signup" ? "Skapa ditt konto" : mode === "child" ? "Hej där!" : "Välkommen tillbaka"}</h1>
-          <p>{mode === "confirm" ? "Ange e-postadressen du använde när du skapade kontot, så kan du begära en ny bekräftelselänk." : mode === "signup" ? "Skapa en familj eller gå med via en inbjudan." : mode === "child" ? "Använd din förälders e-post och dina egna inloggningsuppgifter." : "Här samlar ni familjens vardag."}</p>
+          <h1>{mode === "confirm" ? t("Saknar du mejlet?") : mode === "signup" ? t("Skapa ditt konto") : mode === "child" ? t("Hej där!") : t("Välkommen tillbaka")}</h1>
+          <p>{mode === "confirm" ? t("Ange e-postadressen du använde när du skapade kontot, så kan du begära en ny bekräftelselänk.") : mode === "signup" ? t("Skapa en familj eller gå med via en inbjudan.") : mode === "child" ? t("Använd din förälders e-post och dina egna inloggningsuppgifter.") : t("Här samlar ni familjens vardag.")}</p>
         </div>
 
-        {(mode === "login" || mode === "child") && <div className="login-modes" role="group" aria-label="Välj inloggning">
-          <button type="button" aria-pressed={mode === "login"} disabled={loading} onClick={() => changeMode("login")}>För vuxna</button>
-          <button type="button" aria-pressed={mode === "child"} disabled={loading} onClick={() => changeMode("child")}>För barn</button>
+        {(mode === "login" || mode === "child") && <div className="login-modes" role="group" aria-label={t("Välj inloggning")}>
+          <button type="button" aria-pressed={mode === "login"} disabled={loading} onClick={() => changeMode("login")}>{t("För vuxna")}</button>
+          <button type="button" aria-pressed={mode === "child"} disabled={loading} onClick={() => changeMode("child")}>{t("För barn")}</button>
         </div>}
 
         <form onSubmit={handleSubmit} className="auth-form login-form">
-          {mode === "signup" && <label htmlFor="login-name">Ditt namn<input id="login-name" value={name} disabled={loading} onChange={event => setName(event.target.value)} placeholder="Förnamn" autoComplete="name" required /></label>}
-          {mode === "signup" && <label htmlFor="login-birthday">När är du född?<input id="login-birthday" type="date" value={birthDate} onChange={event => setBirthDate(event.target.value)} min="1900-01-01" max={new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Stockholm"}).format(new Date())} autoComplete="bday" disabled={loading} required /><small>Så kan familjen bli påmind när du fyller år.</small></label>}
-          <label htmlFor="login-email">{mode === "child" ? "Din förälders e-post" : "E-postadress"}
+          {mode === "signup" && <label htmlFor="login-name">{t("Ditt namn")}<input id="login-name" value={name} disabled={loading} onChange={event => setName(event.target.value)} placeholder={t("Förnamn")} autoComplete="name" required /></label>}
+          {mode === "signup" && <label htmlFor="login-birthday">{t("När är du född?")}<input id="login-birthday" type="date" value={birthDate} onChange={event => setBirthDate(event.target.value)} min="1900-01-01" max={new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Stockholm"}).format(new Date())} autoComplete="bday" disabled={loading} required /><small>{t("Så kan familjen bli påmind när du fyller år.")}</small></label>}
+          <label htmlFor="login-email">{mode === "child" ? t("Din förälders e-post") : t("E-postadress")}
             <input id="login-email" type="email" value={email} disabled={loading} onChange={event => setEmail(event.target.value)} placeholder="namn@exempel.se" autoComplete="email" autoCapitalize="none" spellCheck={false} required />
           </label>
-          {mode === "child" && <label htmlFor="login-username">Ditt användarnamn<input id="login-username" value={childUsername} disabled={loading} onChange={event => setChildUsername(event.target.value)} placeholder="Användarnamn" autoCapitalize="none" autoCorrect="off" autoComplete="username" maxLength={30} required /></label>}
+          {mode === "child" && <label htmlFor="login-username">{t("Ditt användarnamn")}<input id="login-username" value={childUsername} disabled={loading} onChange={event => setChildUsername(event.target.value)} placeholder={t("Användarnamn")} autoCapitalize="none" autoCorrect="off" autoComplete="username" maxLength={30} required /></label>}
           {mode !== "confirm" && <div className="login-password-field">
-            <label htmlFor="login-password">Lösenord</label>
+            <label htmlFor="login-password">{t("Lösenord")}</label>
             <div className="login-password-input">
-              <input id="login-password" type={showPassword ? "text" : "password"} value={password} disabled={loading} onChange={event => setPassword(event.target.value)} placeholder={mode === "signup" ? "Välj ett lösenord" : "Ditt lösenord"} autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={mode === "signup" ? 6 : undefined} required />
-              <button type="button" className="login-reveal" aria-label={showPassword ? "Dölj lösenord" : "Visa lösenord"} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? "Dölj" : "Visa"}</button>
+              <input id="login-password" type={showPassword ? "text" : "password"} value={password} disabled={loading} onChange={event => setPassword(event.target.value)} placeholder={mode === "signup" ? t("Välj ett lösenord") : t("Ditt lösenord")} autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={mode === "signup" ? 6 : undefined} required />
+              <button type="button" className="login-reveal" aria-label={showPassword ? t("Dölj lösenord") : t("Visa lösenord")} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? t("Dölj") : t("Visa")}</button>
             </div>
-            {mode === "signup" && <small>Välj minst 6 tecken.</small>}
+            {mode === "signup" && <small>{t("Välj minst 6 tecken.")}</small>}
           </div>}
-          {message && <p className="login-message" role="status">{message}</p>}
-          <button className="primary auth-submit login-submit" type="submit" disabled={loading || (mode === "confirm" && resendWait > 0)}>{loading ? mode === "confirm" ? "Begär mejl…" : mode === "signup" ? "Skapar konto…" : "Loggar in…" : mode === "confirm" ? resendWait > 0 ? `Nytt mejl kan begäras om ${resendWait} s` : "Skicka nytt bekräftelsemejl" : mode === "signup" ? "Skapa konto" : "Logga in"}</button>
+          {message && <p className="login-message" role="status">{t(message)}</p>}
+          <button className="primary auth-submit login-submit" type="submit" disabled={loading || (mode === "confirm" && resendWait > 0)}>{loading ? mode === "confirm" ? t("Begär mejl…") : mode === "signup" ? t("Skapar konto…") : t("Loggar in…") : mode === "confirm" ? resendWait > 0 ? language === "en" ? `Request another email in ${resendWait} s` : `Nytt mejl kan begäras om ${resendWait} s` : t("Skicka nytt bekräftelsemejl") : mode === "signup" ? t("Skapa konto") : t("Logga in")}</button>
         </form>
 
         <footer className="login-footer">
-          {mode === "login" && <p><Link href="/losenord">Glömt lösenord?</Link></p>}
-          {mode === "confirm" ? <p>Har du bekräftat adressen? <button type="button" disabled={loading} onClick={() => changeMode("login")}>Till inloggningen</button></p> : mode === "child" ? <p>Glömt dina uppgifter? Be din förälder om hjälp.</p> : mode === "signup" ? <p>Har du redan ett konto? <button type="button" disabled={loading} onClick={() => changeMode("login")}>Logga in</button></p> : <p>Ny på Vardilo? <button type="button" disabled={loading} onClick={() => changeMode("signup")}>Skapa konto</button></p>}
-          {mode === "login" && <p><button type="button" disabled={loading} onClick={() => changeMode("confirm")}>Jag har inte fått mitt bekräftelsemejl</button></p>}
+          {mode === "login" && <p><Link href="/losenord">{t("Glömt lösenord?")}</Link></p>}
+          {mode === "confirm" ? <p>{t("Har du bekräftat adressen?")} <button type="button" disabled={loading} onClick={() => changeMode("login")}>{t("Till inloggningen")}</button></p> : mode === "child" ? <p>{t("Glömt dina uppgifter? Be din förälder om hjälp.")}</p> : mode === "signup" ? <p>{t("Har du redan ett konto?")} <button type="button" disabled={loading} onClick={() => changeMode("login")}>{t("Logga in")}</button></p> : <p>{t("Ny på Vardilo?")} <button type="button" disabled={loading} onClick={() => changeMode("signup")}>{t("Skapa konto")}</button></p>}
+          {mode === "login" && <p><button type="button" disabled={loading} onClick={() => changeMode("confirm")}>{t("Jag har inte fått mitt bekräftelsemejl")}</button></p>}
         </footer>
       </section>
     </main>

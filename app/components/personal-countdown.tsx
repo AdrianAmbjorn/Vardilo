@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "./language-provider";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +9,8 @@ const months = ["Januari", "Februari", "Mars", "April", "Maj", "Juni", "Juli", "
 const emojis = ["🎂", "🎄", "🎉", "🏖️", "⚽", "✨", "🏡", "🎁"];
 
 export default function PersonalCountdown({ memberId }: { memberId: string }) {
+ const { t, language, locale } = useLanguage();
+
   const supabase = useMemo(() => createClient(), []);
   const [countdown, setCountdown] = useState<Countdown | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ export default function PersonalCountdown({ memberId }: { memberId: string }) {
   }
 
   async function remove() {
-    if (lock.current || !window.confirm("Ta bort din nedräkning från startsidan?")) return;
+    if (lock.current || !window.confirm(t("Ta bort din nedräkning från startsidan?"))) return;
     lock.current = true; setBusy(true); setError("");
     try {
       const result = await supabase.from("member_countdowns").delete().eq("member_id", memberId).select("member_id").single();
@@ -76,18 +79,18 @@ export default function PersonalCountdown({ memberId }: { memberId: string }) {
   }
 
   const remaining = countdown && countdownRemaining(countdown, today);
-  return <section className="card home-countdown" style={{ marginTop: 18, borderRadius: 22, background: "linear-gradient(130deg, #fff8ec, #ffffff)", overflow: "hidden" }} aria-label="Min nedräkning">
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}><h3 style={{ margin: 0 }}>Nedräkning ✨</h3>{!loading && !loadFailed && <button type="button" className="secondary" disabled={busy} onClick={edit}>{countdown ? "Ändra" : "Välj nedräkning"}</button>}</div>
-    {loading ? <p className="muted" role="status">Laddar nedräkning…</p> : countdown && remaining ? <div style={{ display: "flex", gap: 18, alignItems: "center", padding: "18px 0 6px", flexWrap: "wrap" }}>
-      <span aria-hidden="true" style={{ fontSize: 44 }}>{countdown.emoji}</span><div style={{ minWidth: 0, overflowWrap: "anywhere" }}>{remaining.past ? <strong>Dagen har varit – välj något nytt att längta till 💛</strong> : remaining.days === 0 ? <strong style={{ fontSize: 23 }}>Idag är det dags! 🎉</strong> : <div><strong className="countdown-value" style={{ color: "var(--red)", fontSize: 42, lineHeight: 1 }}>{remaining.days}</strong><span style={{ marginLeft: 9 }}>{remaining.days === 1 ? "dag kvar" : "dagar kvar"}</span></div>}<p style={{ margin: "8px 0 0", fontWeight: 700 }}>{countdown.title}</p><p className="muted" style={{ margin: "4px 0 0" }}>{new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "long", year: "numeric" }).format(remaining.target)}</p></div>
-    </div> : !loadFailed && <p className="muted">Hur långt är det till din födelsedag, julafton eller nästa äventyr?</p>}
+  return <section className="card home-countdown" style={{ marginTop: 18, borderRadius: 22, background: "linear-gradient(130deg, #fff8ec, #ffffff)", overflow: "hidden" }} aria-label={t("Min nedräkning")}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}><h3 style={{ margin: 0 }}>{t("Nedräkning ✨")}</h3>{!loading && !loadFailed && <button type="button" className="secondary" disabled={busy} onClick={edit}>{countdown ? t("Ändra") : t("Välj nedräkning")}</button>}</div>
+    {loading ? <p className="muted" role="status">{t("Laddar nedräkning…")}</p> : countdown && remaining ? <div style={{ display: "flex", gap: 18, alignItems: "center", padding: "18px 0 6px", flexWrap: "wrap" }}>
+      <span aria-hidden="true" style={{ fontSize: 44 }}>{countdown.emoji}</span><div style={{ minWidth: 0, overflowWrap: "anywhere" }}>{remaining.past ? <strong>{t("Dagen har varit – välj något nytt att längta till 💛")}</strong> : remaining.days === 0 ? <strong style={{ fontSize: 23 }}>{t("Idag är det dags! 🎉")}</strong> : <div><strong className="countdown-value" style={{ color: "var(--red)", fontSize: 42, lineHeight: 1 }}>{remaining.days}</strong><span style={{ marginLeft: 9 }}>{remaining.days === 1 ? t("dag kvar") : t("dagar kvar")}</span></div>}<p style={{ margin: "8px 0 0", fontWeight: 700 }}>{countdown.kind === "custom" ? countdown.title : t(countdown.kind === "birthday" ? "Min födelsedag" : "Julafton")}</p><p className="muted" style={{ margin: "4px 0 0" }}>{new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(remaining.target)}</p></div>
+    </div> : !loadFailed && <p className="muted">{t("Hur långt är det till din födelsedag, julafton eller nästa äventyr?")}</p>}
     {editing && <form onSubmit={event => void save(event)} style={{ display: "grid", gap: 12, maxWidth: 480, marginTop: 18 }}>
-      <label className="family-admin-field"><span>Vad längtar du till?</span><select disabled={busy} value={kind} onChange={event => setKind(event.target.value as CountdownKind)}><option value="birthday">🎂 Min födelsedag</option><option value="christmas">🎄 Julafton</option><option value="custom">✨ Eget evenemang</option></select></label>
-      {kind === "birthday" && <><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><label className="family-admin-field"><span>Dag</span><select disabled={busy} value={day} onChange={event => setDay(event.target.value)}>{Array.from({ length: 31 }, (_, i) => <option key={i} value={String(i + 1)}>{i + 1}</option>)}</select></label><label className="family-admin-field"><span>Månad</span><select disabled={busy} value={month} onChange={event => setMonth(event.target.value)}>{months.map((name, i) => <option key={name} value={String(i + 1)}>{name}</option>)}</select></label></div><small className="muted">Födelseår behövs inte. Den 29 februari räknas som 28 februari under år utan skottdag.</small></>}
-      {kind === "christmas" && <p className="muted">Räknar till den 24 december och börjar om inför nästa jul.</p>}
-      {kind === "custom" && <><label className="family-admin-field"><span>Namn</span><input disabled={busy} value={title} onChange={event => setTitle(event.target.value)} maxLength={60} placeholder="T.ex. Sommarlov eller fotbollscup" required /></label><label className="family-admin-field"><span>Datum</span><input disabled={busy} type="date" value={date} onChange={event => setDate(event.target.value)} required /></label><label className="family-admin-field"><span>Emoji</span><select disabled={busy} value={emoji} onChange={event => setEmoji(event.target.value)}>{emojis.map(value => <option key={value} value={value}>{value}</option>)}</select></label></>}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="primary" disabled={busy} type="submit">{busy ? "Sparar…" : "Spara nedräkning"}</button><button className="secondary" disabled={busy} type="button" onClick={() => { setEditing(false); setError(""); }}>Avbryt</button>{countdown && <button className="secondary" disabled={busy} type="button" onClick={() => void remove()}>Ta bort</button>}</div>
+      <label className="family-admin-field"><span>{t("Vad längtar du till?")}</span><select disabled={busy} value={kind} onChange={event => setKind(event.target.value as CountdownKind)}><option value="birthday">{t("🎂 Min födelsedag")}</option><option value="christmas">{t("🎄 Julafton")}</option><option value="custom">{t("✨ Eget evenemang")}</option></select></label>
+      {kind === "birthday" && <><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}><label className="family-admin-field"><span>{t("Dag")}</span><select disabled={busy} value={day} onChange={event => setDay(event.target.value)}>{Array.from({ length: 31 }, (_, i) => <option key={i} value={String(i + 1)}>{i + 1}</option>)}</select></label><label className="family-admin-field"><span>{t("Månad")}</span><select disabled={busy} value={month} onChange={event => setMonth(event.target.value)}>{months.map((name, i) => <option key={name} value={String(i + 1)}>{t(name)}</option>)}</select></label></div><small className="muted">{t("Födelseår behövs inte. Den 29 februari räknas som 28 februari under år utan skottdag.")}</small></>}
+      {kind === "christmas" && <p className="muted">{t("Räknar till den 24 december och börjar om inför nästa jul.")}</p>}
+      {kind === "custom" && <><label className="family-admin-field"><span>{t("Namn")}</span><input disabled={busy} value={title} onChange={event => setTitle(event.target.value)} maxLength={60} placeholder={t("T.ex. Sommarlov eller fotbollscup")} required /></label><label className="family-admin-field"><span>{t("Datum")}</span><input disabled={busy} type="date" value={date} onChange={event => setDate(event.target.value)} required /></label><label className="family-admin-field"><span>Emoji</span><select disabled={busy} value={emoji} onChange={event => setEmoji(event.target.value)}>{emojis.map(value => <option key={value} value={value}>{value}</option>)}</select></label></>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button className="primary" disabled={busy} type="submit">{busy ? t("Sparar…") : t("Spara nedräkning")}</button><button className="secondary" disabled={busy} type="button" onClick={() => { setEditing(false); setError(""); }}>{t("Avbryt")}</button>{countdown && <button className="secondary" disabled={busy} type="button" onClick={() => void remove()}>{t("Ta bort")}</button>}</div>
     </form>}
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert">{t(error)}</p>}
   </section>;
 }

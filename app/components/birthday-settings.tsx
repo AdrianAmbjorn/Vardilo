@@ -1,8 +1,11 @@
 "use client";
+import { useLanguage } from "./language-provider";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function BirthdaySettings({ memberId, name }: { memberId: string; name?: string }) {
+ const { t, language, locale } = useLanguage();
+
  const supabase = useMemo(() => createClient(), []);
  const [date, setDate] = useState("");
  const [ready, setReady] = useState(false);
@@ -29,9 +32,9 @@ export default function BirthdaySettings({ memberId, name }: { memberId: string;
   finally { setBusy(false); }
  }
  return <form onSubmit={save} style={{ display: "grid", gap: 10, margin: "20px 0", maxWidth: 420 }}>
-  <label className="family-admin-field"><span>{name ? `Födelsedatum · ${name}` : "När är du född?"}</span><input type="date" value={date} min="1900-01-01" max={new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Stockholm"}).format(new Date())} required disabled={!ready || busy} onChange={event => setDate(event.target.value)} /></label>
-  <p className="muted" style={{ margin: 0 }}>Familjen påminns klockan 09 på födelsedagen. Push behöver vara påslaget på varje enhet.</p>
-  <div><button className="secondary" disabled={!ready || busy || !date}>{busy ? "Sparar…" : "Spara födelsedatum"}</button></div>
-  {message && <p role="status">{message}</p>}
+  <label className="family-admin-field"><span>{name ? language === "en" ? `Date of birth · ${name}` : `Födelsedatum · ${name}` : t("När är du född?")}</span><input type="date" value={date} min="1900-01-01" max={new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Stockholm"}).format(new Date())} required disabled={!ready || busy} onChange={event => setDate(event.target.value)} /></label>
+  <p className="muted" style={{ margin: 0 }}>{t("Familjen påminns klockan 09 på födelsedagen. Push behöver vara påslaget på varje enhet.")}</p>
+  <div><button className="secondary" disabled={!ready || busy || !date}>{busy ? t("Sparar…") : t("Spara födelsedatum")}</button></div>
+  {message && <p role="status">{t(message)}</p>}
  </form>;
 }

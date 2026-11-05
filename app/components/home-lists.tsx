@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "./language-provider";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -7,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 const categoryEmoji: Record<string, string> = { Mathandling: "🛒", Storhelg: "🎄", Fest: "🎉", Hemmet: "🏠", "Till hemmet": "🏠" };
 
 export default function HomeLists({ familyId }: { familyId: string }) {
+ const { t, language, locale } = useLanguage();
+
   const supabase = useMemo(() => createClient(), []);
   const [lists, setLists] = useState<{ id: string; name: string; category: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,13 +41,13 @@ export default function HomeLists({ familyId }: { familyId: string }) {
 
   return (
     <section className="card" style={{ marginTop: 18 }}>
-      <div className="card-heading"><h3>Listor</h3><Link href="/listor">Alla listor</Link></div>
-      {loading ? <p className="muted" role="status">Laddar listor…</p> :
-        error ? <p className="muted">Kunde inte läsa listorna. <Link href="/listor">Öppna Listor</Link></p> :
+      <div className="card-heading"><h3>{t("Listor")}</h3><Link href="/listor">{t("Alla listor")}</Link></div>
+      {loading ? <p className="muted" role="status">{t("Laddar listor…")}</p> :
+        error ? <p className="muted">{t("Kunde inte läsa listorna.")} <Link href="/listor">{t("Öppna Listor")}</Link></p> :
         lists.length ? <div style={{ display: "grid" }}>
           {listLinks.slice(0,3)}
-          {listLinks.length>3&&<details className="home-list-more"><summary>Fler listor ({listLinks.length-3})</summary>{listLinks.slice(3)}</details>}
-        </div> : <p className="muted">Inga listor ännu. <Link href="/listor">Skapa en lista</Link></p>}
+          {listLinks.length>3&&<details className="home-list-more"><summary>{language === "en" ? `More lists (${listLinks.length-3})` : `Fler listor (${listLinks.length-3})`}</summary>{listLinks.slice(3)}</details>}
+        </div> : <p className="muted">{t("Inga listor ännu.")} <Link href="/listor">{t("Skapa en lista")}</Link></p>}
     </section>
   );
 }

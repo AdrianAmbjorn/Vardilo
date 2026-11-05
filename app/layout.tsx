@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LanguageProvider } from "./components/language-provider";
 import ChatNotificationBanner from "./components/chat-notification-banner";
 import AppNavigation from "./components/app-navigation";
 import PullToRefresh from "./components/pull-to-refresh";
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sv">
-      <body><ChatNotificationBanner /><AppNavigation /><PullToRefresh />{children}</body>
+      <body><LanguageProvider><ChatNotificationBanner /><AppNavigation /><PullToRefresh />{children}</LanguageProvider></body>
     </html>
   );
 }

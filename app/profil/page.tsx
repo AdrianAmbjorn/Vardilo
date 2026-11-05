@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage, LanguagePicker } from "../components/language-provider";
 
 import Link from "next/link";
 import BirthdaySettings from "../components/birthday-settings";
@@ -49,6 +50,8 @@ function drawCrop(canvas: HTMLCanvasElement, image: HTMLImageElement, crop: type
 }
 
 export default function ProfilePage() {
+ const { t, language, locale } = useLanguage();
+
   const supabase = useMemo(() => createClient(), []);
   const bucket = useMemo(() => supabase.storage.from("family-profile-photos"), [supabase]);
   const [member, setMember] = useState<{ id: string; family_id: string; display_name: string } | null>(null);
@@ -148,7 +151,7 @@ export default function ProfilePage() {
   }
 
   async function remove() {
-    if (!member || busy || !window.confirm("Ta bort din profilbild?")) return;
+    if (!member || busy || !window.confirm(t("Ta bort din profilbild?"))) return;
     setBusy(true);
     setStatus("");
     try {
@@ -166,41 +169,42 @@ export default function ProfilePage() {
   return (
     <main className="section-shell">
       <header className="section-header">
-        <Link className="back-link" href="/">← Hem</Link>
-        <div><p className="eyebrow">VARDILO</p><h1>Min profil</h1></div>
+        <Link className="back-link" href="/">{t("← Hem")}</Link>
+        <div><p className="eyebrow">VARDILO</p><h1>{t("Min profil")}</h1></div>
       </header>
       <section className="section-card" style={{ padding: 20 }}>
-        {loading && <p role="status">Laddar profil…</p>}
+        {loading && <p role="status">{t("Laddar profil…")}</p>}
         {member && !loading && (
           <>
             <div className="avatar" style={{ width: 72, height: 72, overflow: "hidden", fontSize: 24 }}>
-              {preview ? <img src={preview} alt="Din sparade profilbild" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
+              {preview ? <img src={preview} alt={t("Din sparade profilbild")} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
             </div>
             <p>{member.display_name}</p>
+            <LanguagePicker />
             <BirthdaySettings memberId={member.id} />
-            {preparing && <p role="status">Förbereder förhandsvisning…</p>}
-            <p className="muted">Bilden visas för familjen och beskärs till en kvadrat.</p>
+            {preparing && <p role="status">{t("Förbereder förhandsvisning…")}</p>}
+            <p className="muted">{t("Bilden visas för familjen och beskärs till en kvadrat.")}</p>
             <form onSubmit={save} onReset={() => chooseFile(null)} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-              <input type="file" aria-label="Välj profilbild" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
+              <input type="file" aria-label={t("Välj profilbild")} accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
               {draft && (
                 <fieldset disabled={busy} style={{ flexBasis: "100%", minWidth: 0, margin: "8px 0", border: "1px solid var(--line)", borderRadius: 10, padding: 12 }}>
-                  <legend>Beskär profilbild</legend>
-                  <canvas ref={cropCanvas} width={256} height={256} role="img" aria-label="Förhandsvisning av beskuren profilbild" style={{ display: "block", width: "min(100%, 256px)", height: "auto", borderRadius: "50%" }} />
-                  <p className="muted">Justera bilden innan du sparar.</p>
+                  <legend>{t("Beskär profilbild")}</legend>
+                  <canvas ref={cropCanvas} width={256} height={256} role="img" aria-label={t("Förhandsvisning av beskuren profilbild")} style={{ display: "block", width: "min(100%, 256px)", height: "auto", borderRadius: "50%" }} />
+                  <p className="muted">{t("Justera bilden innan du sparar.")}</p>
                   <div style={{ display: "grid", gap: 10, maxWidth: 320 }}>
                     <label>Zoom <input type="range" min={1} max={3} step={0.01} value={crop.zoom} onChange={event => setCrop({ ...crop, zoom: event.target.valueAsNumber })} /></label>
-                    <label>Vänster till höger <input type="range" min={0} max={100} value={crop.horizontal} onChange={event => setCrop({ ...crop, horizontal: event.target.valueAsNumber })} /></label>
-                    <label>Uppifrån och ned <input type="range" min={0} max={100} value={crop.vertical} onChange={event => setCrop({ ...crop, vertical: event.target.valueAsNumber })} /></label>
+                    <label>{t("Vänster till höger")} <input type="range" min={0} max={100} value={crop.horizontal} onChange={event => setCrop({ ...crop, horizontal: event.target.valueAsNumber })} /></label>
+                    <label>{t("Uppifrån och ned")} <input type="range" min={0} max={100} value={crop.vertical} onChange={event => setCrop({ ...crop, vertical: event.target.valueAsNumber })} /></label>
                   </div>
                 </fieldset>
               )}
-              <button className="primary" type="submit" disabled={!draft || preparing || busy}>Spara profilbild</button>
-              {file && <button className="secondary" type="reset" disabled={busy}>Avbryt bildval</button>}
-              {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>Ta bort bild</button>}
+              <button className="primary" type="submit" disabled={!draft || preparing || busy}>{t("Spara profilbild")}</button>
+              {file && <button className="secondary" type="reset" disabled={busy}>{t("Avbryt bildval")}</button>}
+              {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>{t("Ta bort bild")}</button>}
             </form>
           </>
         )}
-        {status && <p role="status">{status}</p>}
+        {status && <p role="status">{t(status)}</p>}
       </section>
     </main>
   );

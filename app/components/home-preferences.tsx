@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "./language-provider";
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -8,6 +9,8 @@ import "./home-preferences.css";
 const PreferencesContext = createContext<{ hidden: HomeSectionId[]; ready: boolean }>({ hidden: [], ready: false });
 
 export function HomePreferences({ memberId, isChild, children }: { memberId: string | null; isChild: boolean; children: ReactNode }) {
+ const { t, language, locale } = useLanguage();
+
   const supabase = useMemo(() => createClient(), []);
   const [hidden, setHidden] = useState<HomeSectionId[]>([]);
   const [draft, setDraft] = useState<HomeSectionId[]>([]);
@@ -50,18 +53,18 @@ export function HomePreferences({ memberId, isChild, children }: { memberId: str
 
   return <PreferencesContext.Provider value={{ hidden, ready }}>
     <div className="home-personalize">
-      <div><h2>Din startsida</h2><p>Det du vill ha nära till hands.</p></div>
-      <button type="button" className="secondary" disabled={!ready || busy || failed} aria-expanded={editing} aria-controls="home-preferences-editor" onClick={() => { setDraft(hidden); setEditing(!editing); setSaved(false); setError(""); }}>Anpassa startsidan</button>
+      <div><h2>{t("Din startsida")}</h2><p>{t("Det du vill ha nära till hands.")}</p></div>
+      <button type="button" className="secondary" disabled={!ready || busy || failed} aria-expanded={editing} aria-controls="home-preferences-editor" onClick={() => { setDraft(hidden); setEditing(!editing); setSaved(false); setError(""); }}>{t("Anpassa startsidan")}</button>
     </div>
-    {error && <p role="alert" className="home-preferences-error">{error}{failed && <button type="button" className="secondary" onClick={() => setAttempt(value => value + 1)}>Försök igen</button>}</p>}
-    {saved && <p role="status" className="home-preferences-status">Din startsida är sparad.</p>}
-    {editing && <section id="home-preferences-editor" className="card home-preferences-editor" aria-label="Anpassa startsidan">
-      <h3>Vad vill du se?</h3><p>Välj det som passar dig. Dina val gäller bara din startsida och följer med när du loggar in på en annan enhet.</p>
-      <div className="home-preferences-options">{homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").map(section => <label key={section.id}><span aria-hidden="true">{section.emoji}</span><span>{section.label}</span><input type="checkbox" checked={!draft.includes(section.id)} disabled={busy} onChange={event => setDraft(current => event.target.checked ? current.filter(id => id !== section.id) : [...current, section.id])} /></label>)}</div>
-      <div className="home-preferences-actions"><button className="primary" type="button" disabled={busy} onClick={() => void save()}>{busy ? "Sparar…" : "Spara mina val"}</button><button className="secondary" type="button" disabled={busy} onClick={() => { setEditing(false); setError(""); }}>Avbryt</button></div>
-      <p className="home-preferences-note">Allt finns kvar i menyn, även det du döljer här.</p>
+    {error && <p role="alert" className="home-preferences-error">{t(error)}{failed && <button type="button" className="secondary" onClick={() => setAttempt(value => value + 1)}>{t("Försök igen")}</button>}</p>}
+    {saved && <p role="status" className="home-preferences-status">{t("Din startsida är sparad.")}</p>}
+    {editing && <section id="home-preferences-editor" className="card home-preferences-editor" aria-label={t("Anpassa startsidan")}>
+      <h3>{t("Vad vill du se?")}</h3><p>{t("Välj det som passar dig. Dina val gäller bara din startsida och följer med när du loggar in på en annan enhet.")}</p>
+      <div className="home-preferences-options">{homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").map(section => <label key={section.id}><span aria-hidden="true">{section.emoji}</span><span>{t(section.label)}</span><input type="checkbox" checked={!draft.includes(section.id)} disabled={busy} onChange={event => setDraft(current => event.target.checked ? current.filter(id => id !== section.id) : [...current, section.id])} /></label>)}</div>
+      <div className="home-preferences-actions"><button className="primary" type="button" disabled={busy} onClick={() => void save()}>{busy ? t("Sparar…") : t("Spara mina val")}</button><button className="secondary" type="button" disabled={busy} onClick={() => { setEditing(false); setError(""); }}>{t("Avbryt")}</button></div>
+      <p className="home-preferences-note">{t("Allt finns kvar i menyn, även det du döljer här.")}</p>
     </section>}
-    {ready && homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").every(section => hidden.includes(section.id)) && <p className="home-preferences-status">Du har valt en lugn startsida. Öppna menyn för att hitta allt, eller välj vad du vill visa här.</p>}
+    {ready && homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").every(section => hidden.includes(section.id)) && <p className="home-preferences-status">{t("Du har valt en lugn startsida. Öppna menyn för att hitta allt, eller välj vad du vill visa här.")}</p>}
     <div className="home-widget-grid">{children}</div>
   </PreferencesContext.Provider>;
 }

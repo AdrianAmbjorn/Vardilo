@@ -16,7 +16,7 @@ function harness(initial = [], result = { error: null }) {
   const states = [...initial]; let cursor = 0; const effects = []; const writes = [];
   const supabase = { from(table) { return { upsert: async (row, options) => { writes.push({table,row,options}); return result; } }; } };
   const hooks = { ...React, useState(value) { const id = cursor++; if (!(id in states)) states[id] = value; return [states[id], value => states[id] = typeof value === 'function' ? value(states[id]) : value]; }, useMemo: fn => fn(), useRef: value => ({current:value}), useEffect: fn => effects.push(fn) };
-  const component = requireFromTs('app/components/home-preferences.tsx', { react: hooks, '@/lib/supabase/client': { createClient: () => supabase }, '@/lib/home-preferences': preferences });
+  const component = requireFromTs('app/components/home-preferences.tsx', { react: hooks, './language-provider': {useLanguage:()=>({language:'sv',locale:'sv-SE',t:text=>text})}, '@/lib/supabase/client': { createClient: () => supabase }, '@/lib/home-preferences': preferences });
   function render(isChild = false) { cursor = 0; return component.HomePreferences({memberId:'member-a',isChild,children:React.createElement('span',null,'content')}); }
   return { render, states, writes };
 }

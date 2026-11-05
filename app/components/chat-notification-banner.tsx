@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "./language-provider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -6,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import "./chat-notification-banner.css";
 
 export default function ChatNotificationBanner({ variant = "banner" }: { variant?: "banner" | "badge" }) {
+ const { t, language, locale } = useLanguage();
+
   const pathname = usePathname();
   const supabase = useMemo(() => createClient(), []);
   const [unread, setUnread] = useState(0);
@@ -52,6 +55,6 @@ export default function ChatNotificationBanner({ variant = "banner" }: { variant
     return () => { active = false; request++; window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("vardilo-chat-read", refresh); void supabase.removeChannel(channel); };
   }, [memberId, supabase, variant]);
   if (!memberId || !unread) return null;
-  if (variant === "badge") return <span className="home-chat-unread" role="status" aria-label={unread === 1 ? "Ett oläst meddelande" : `${unread} olästa meddelanden`} title="Olästa meddelanden"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span>;
-  return <aside className="chat-notification-banner" aria-label="Olästa meddelanden"><Link href="/chat"><span className="chat-unread-count" aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span role="status">{unread === 1 ? "Du har ett oläst meddelande" : `Du har ${unread} olästa meddelanden`}</span><strong>Öppna chatten <span aria-hidden="true">›</span></strong></Link></aside>;
+  if (variant === "badge") return <span className="home-chat-unread" role="status" aria-label={unread === 1 ? t("Ett oläst meddelande") : language === "en" ? `${unread} unread messages` : `${unread} olästa meddelanden`} title={t("Olästa meddelanden")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span>;
+  return <aside className="chat-notification-banner" aria-label={t("Olästa meddelanden")}><Link href="/chat"><span className="chat-unread-count" aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span role="status">{unread === 1 ? t("Du har ett oläst meddelande") : language === "en" ? `You have ${unread} unread messages` : `Du har ${unread} olästa meddelanden`}</span><strong>{t("Öppna chatten")} <span aria-hidden="true">›</span></strong></Link></aside>;
 }
