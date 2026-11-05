@@ -58,3 +58,5 @@
   .wishlist-page { padding-top: 24px; }
 }
 .wishlist-inline-error { color: #b42318; font-size: 13px; line-height: 1.5; margin: 0; }
+
+.wishlist-delete{color:#b42318;border-color:#e6c8c8;margin-top:10px}.wishlist-delete:hover{background:#fff3f2}

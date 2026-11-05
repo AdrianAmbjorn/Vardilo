@@ -1,0 +1,74 @@
+"use client";
+import Link from "next/link";
+import { useEffect,useMemo,useRef,useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { budgetAmount,budgetSummary,kronor,type BudgetEntry } from "@/lib/budget";
+import { stockholmDate } from "@/lib/daily-tasks";
+import "./budget.css";
+type Parent={id:string;display_name:string};
+const empty={title:"",amount:"",kind:"expense" as "expense"|"income",member_id:"",shared:false};
+export default function BudgetPage(){
+ const supabase=useMemo(()=>createClient(),[]);const [month,setMonth]=useState(()=>stockholmDate().slice(0,7));
+ const [member,setMember]=useState<{id:string;family_id:string}|null>(null);const [parents,setParents]=useState<Parent[]>([]);const [rows,setRows]=useState<BudgetEntry[]>([]);
+ const authUser=useRef<string|null>(null);const authEpoch=useRef(0);
+ const [savedAt,setSavedAt]=useState<string|null>(null);const [archive,setArchive]=useState<{month:string;saved_at:string}[]>([]);
+ const [denied,setDenied]=useState(false);const [loading,setLoading]=useState(true);const [failed,setFailed]=useState(false);const [error,setError]=useState("");const [tab,setTab]=useState<"overview"|"share">("overview");
+ const [draft,setDraft]=useState(empty);const [editing,setEditing]=useState<string|null>(null);const [busy,setBusy]=useState(false);const [retry,setRetry]=useState(0);const lock=useRef(false);const draftId=useRef<string|null>(null);
+ useEffect(()=>{
+  const {data}=supabase.auth.onAuthStateChange((event,session)=>{
+   if(event==="SIGNED_OUT"||(event==="SIGNED_IN"&&session?.user.id!==authUser.current)){
+    authEpoch.current++;authUser.current=session?.user.id??null;setRows([]);setParents([]);setArchive([]);setMember(null);setSavedAt(null);setDraft(empty);setEditing(null);setDenied(!session);setRetry(value=>value+1);
+   }
+  });return()=>data.subscription.unsubscribe();
+ },[supabase]);
+ useEffect(()=>{let active=true;const epoch=authEpoch.current;setLoading(true);setError("");setFailed(false);setRows([]);setMember(null);setSavedAt(null);setEditing(null);setDraft(empty);draftId.current=null;
+ void(async()=>{try{
+  const {data:auth}=await supabase.auth.getUser();if(!auth.user)throw Error("Logga in för att öppna budgeten.");if(epoch!==authEpoch.current)return;authUser.current=auth.user.id;
+  const me=await supabase.from("family_members").select("id,family_id,role").eq("user_id",auth.user.id).maybeSingle();if(me.error||!me.data)throw Error("Kunde inte hitta din familj.");
+  if(!["admin","förälder"].includes(me.data.role)){if(active)setDenied(true);return}if(active)setDenied(false);
+  const people=await supabase.from("family_members").select("id,display_name").eq("family_id",me.data.family_id).in("role",["admin","förälder"]).order("created_at");if(people.error)throw people.error;
+  const [snapshotResult,archiveResult]=await Promise.all([
+   supabase.from("family_budget_months").select("saved_at,snapshot").eq("family_id",me.data.family_id).eq("month",`${month}-01`).maybeSingle(),
+   supabase.from("family_budget_months").select("month,saved_at").eq("family_id",me.data.family_id).not("saved_at","is",null).order("month",{ascending:false})]);
+  if(snapshotResult.error||archiveResult.error)throw snapshotResult.error??archiveResult.error;
+  const snapshot=snapshotResult.data?.snapshot as {entries:BudgetEntry[];parents:Parent[]}|undefined;
+  const entries:BudgetEntry[]=[];
+  if(snapshotResult.data?.saved_at&&snapshot)entries.push(...snapshot.entries);
+  else for(let offset=0;;offset+=500){const result=await supabase.from("family_budget_entries").select("id,title,kind,amount_cents,member_id,shared").eq("family_id",me.data.family_id).eq("month",`${month}-01`).order("created_at").order("id").range(offset,offset+499);if(result.error)throw result.error;entries.push(...(result.data??[]));if((result.data??[]).length<500)break}
+  if(active&&epoch===authEpoch.current){setMember(me.data);setParents(snapshotResult.data?.saved_at&&snapshot?snapshot.parents:people.data??[]);setRows(entries);setSavedAt(snapshotResult.data?.saved_at??null);setArchive((archiveResult.data??[]) as {month:string;saved_at:string}[]);setDraft({...empty,member_id:me.data.id})}
+
+ }catch{if(active){setFailed(true);setError("Budgeten kunde inte hämtas. Försök igen.")}}finally{if(active)setLoading(false)}})();return()=>{active=false};
+ },[supabase,month,retry]);
+ const totals=budgetSummary(rows,parents.map(p=>p.id));
+ function changeDraft(patch:Partial<typeof empty>){setDraft(current=>({...current,...patch}));draftId.current=null}
+ function edit(row:BudgetEntry){setEditing(row.id);setDraft({title:row.title,amount:(row.amount_cents/100).toFixed(2).replace(".",","),kind:row.kind,member_id:row.member_id,shared:row.shared});setError("");draftId.current=null}
+ async function save(event:React.FormEvent){event.preventDefault();if(!member||busy||lock.current||failed||savedAt)return;let cents:number;try{cents=budgetAmount(draft.amount);if(!draft.title.trim()||!parents.some(p=>p.id===draft.member_id))throw Error("Ange ett namn och välj en förälder.")}catch(e){setError(e instanceof Error?e.message:"Kontrollera posten.");return}
+ const actionEpoch=authEpoch.current;lock.current=true;setBusy(true);setError("");draftId.current??=crypto.randomUUID();
+ const id=editing??draftId.current;
+ try{const payload={title:draft.title.trim(),kind:draft.kind,amount_cents:cents,member_id:draft.member_id,shared:draft.shared};
+  const result=editing?await supabase.from("family_budget_entries").update(payload).eq("id",id).eq("family_id",member.family_id).eq("month",`${month}-01`).select("id").single():await supabase.from("family_budget_entries").upsert({id,family_id:member.family_id,month:`${month}-01`,...payload},{onConflict:"id"}).select("id").single();if(result.error)throw result.error;if(actionEpoch!==authEpoch.current)return;
+  setRows(current=>editing?current.map(row=>row.id===id?{id,...payload}:row):[...current.filter(row=>row.id!==id),{id,...payload}]);setDraft({...empty,member_id:member.id});setEditing(null);draftId.current=null;
+ }catch{setError("Posten kunde inte sparas. Dina uppgifter finns kvar – försök igen.")}finally{lock.current=false;setBusy(false)}}
+ async function share(row:BudgetEntry){if(!member||lock.current||failed||savedAt)return;const actionEpoch=authEpoch.current;lock.current=true;setBusy(true);setError("");try{const result=await supabase.from("family_budget_entries").update({shared:!row.shared}).eq("id",row.id).eq("family_id",member.family_id).select("id").single();if(result.error)throw result.error;if(actionEpoch!==authEpoch.current)return;setRows(current=>current.map(item=>item.id===row.id?{...item,shared:!row.shared}:item))}catch{setError("Valet kunde inte sparas. Försök igen.")}finally{lock.current=false;setBusy(false)}}
+ async function remove(row:BudgetEntry){if(!member||lock.current||savedAt||!window.confirm(`Ta bort ”${row.title}” från månadens budget?`))return;const actionEpoch=authEpoch.current;lock.current=true;setBusy(true);setError("");try{const result=await supabase.from("family_budget_entries").delete().eq("id",row.id).eq("family_id",member.family_id).select("id").single();if(result.error)throw result.error;if(actionEpoch!==authEpoch.current)return;setRows(current=>current.filter(item=>item.id!==row.id))}catch{setError("Posten kunde inte tas bort. Försök igen.")}finally{lock.current=false;setBusy(false)}}
+ async function saveMonth(){
+  if(!member||lock.current||failed||loading||editing||draft.title.trim()||draft.amount)return;
+  if(savedAt&&!window.confirm("Öppna den sparade månaden för redigering? Du kan spara den igen när ändringarna är klara."))return;
+  const actionEpoch=authEpoch.current;lock.current=true;setBusy(true);setError("");
+  try{const result=await supabase.rpc("save_budget_month",{p_month:`${month}-01`,p_action:savedAt?"reopen":"save"});if(result.error)throw result.error;if(actionEpoch!==authEpoch.current)return;setRetry(value=>value+1)}
+  catch{setError("Månaden kunde inte uppdateras. Försök igen.")}finally{lock.current=false;setBusy(false)}
+ }
+ return <main className="section-shell budget-page"><header className="section-header"><div><p className="eyebrow">FÖR FÖRÄLDRAR</p><h1>Vår budget</h1><p className="muted">Koll på månaden, tillsammans.</p></div><Link className="secondary" href="/">Hem</Link></header>
+ {denied?<section className="section-card budget-denied"><h2>Budgeten är för föräldrarna</h2><p>Här finns familjens privata ekonomi.</p><Link className="secondary" href="/sparande">Till Mina pengar</Link></section>:<div className="budget-content">
+ <div className="budget-toolbar"><label>Månad<input type="month" value={month} disabled={busy} onChange={event=>{if(/^\d{4}-\d{2}$/.test(event.target.value))setMonth(event.target.value)}}/></label>{archive.length>0&&<label>Sparade månader<select aria-label="Sparade budgetmånader" value={archive.some(item=>item.month===`${month}-01`)?month:""} disabled={busy} onChange={event=>{if(event.target.value)setMonth(event.target.value)}}><option value="">Välj en sparad månad</option>{archive.map(item=><option key={item.month} value={item.month.slice(0,7)}>{new Intl.DateTimeFormat("sv-SE",{month:"long",year:"numeric"}).format(new Date(`${item.month}T12:00:00`))}</option>)}</select></label>}<div className="budget-tabs" role="group" aria-label="Budgetvy"><button aria-pressed={tab==="overview"} onClick={()=>setTab("overview")}>Översikt</button><button aria-pressed={tab==="share"} onClick={()=>setTab("share")}>Dela</button></div></div>
+ {error&&<p role="alert" className="budget-error">{error}{failed&&<button className="secondary" onClick={()=>setRetry(value=>value+1)}>Försök igen</button>}</p>}
+ {loading?<p role="status">Hämtar månadens budget…</p>:!failed&&<>
+ <div className="budget-save-month"><div><strong>{savedAt?"Sparad månadsbudget":"Pågående månadsbudget"}</strong><p>{savedAt?`Sparad ${new Intl.DateTimeFormat("sv-SE",{day:"numeric",month:"long",year:"numeric"}).format(new Date(savedAt))}. Belopp och fördelning är låsta.`:"Poster sparas löpande. Spara månaden när budgeten är klar för att låsa och arkivera den."}</p></div><button className="secondary" type="button" disabled={busy||Boolean(editing)||Boolean(draft.title.trim())||Boolean(draft.amount)} onClick={()=>void saveMonth()}>{busy?"Sparar…":savedAt?"Öppna för redigering":"Spara månaden"}</button></div>
+ <div className="budget-totals"><section><span>Intäkter</span><strong className="budget-positive">+ {kronor(totals.income)}</strong></section><section><span>Kostnader</span><strong>− {kronor(totals.expense)}</strong></section><section><span>Kvar i budgeten</span><strong className={totals.balance<0?"budget-negative":""}>{kronor(totals.balance)}</strong></section></div>
+ {tab==="share"&&<section className="card budget-sharing"><h2>Det här delar ni på</h2><p>Kryssa i Dela på de poster som ska räknas gemensamt. Delade intäkter dras av från delade kostnader.</p><dl><div><dt>Delade kostnader</dt><dd>{kronor(totals.sharedExpense)}</dd></div><div><dt>Delade intäkter</dt><dd>− {kronor(totals.sharedIncome)}</dd></div><div><dt>{totals.net<0?"Gemensamt överskott":"Att dela denna månad"}</dt><dd>{kronor(Math.abs(totals.net))}</dd></div></dl><p>Fördelas lika mellan er. Eventuella ören fördelas så att summan blir rätt.</p>{totals.people.map(person=><div className="budget-person" key={person.id}><strong>{parents.find(p=>p.id===person.id)?.display_name}</strong><span>Andel: {kronor(person.share)} · Redan betalat netto: {kronor(person.paid)}</span><b>{person.settlement>0?`Ska få tillbaka ${kronor(person.settlement)}`:person.settlement<0?`Ska bidra med ${kronor(-person.settlement)}`:"Jämnt fördelat"}</b></div>)}{parents.length<2&&<p>Lägg till ytterligare en förälder i familjen för att dela mellan er.</p>}</section>}
+ <section className="card budget-entries"><h2>{tab==="share"?"Välj vad ni delar":"Månadens poster"}</h2>{!rows.length?<p className="muted">Börja med att lägga till en intäkt eller kostnad.</p>:<div className="budget-table-wrap"><table><thead><tr><th>Post</th><th>{tab==="share"?"Betalat / mottagit av":"Person"}</th><th>Belopp</th><th>Dela</th><th><span className="budget-sr-only">Hantera</span></th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><th scope="row">{row.title}<small>{row.kind==="income"?"Intäkt":"Kostnad"}</small></th><td>{parents.find(p=>p.id===row.member_id)?.display_name??"Tidigare förälder"}</td><td className={row.kind==="income"?"budget-positive":""}>{row.kind==="income"?"+":"−"} {kronor(row.amount_cents)}</td><td><input type="checkbox" checked={row.shared} disabled={busy||editing!==null||Boolean(savedAt)} onChange={()=>void share(row)} aria-label={`Dela ${row.title}`}/></td><td><div className="budget-row-actions"><button className="secondary" disabled={busy||editing!==null||Boolean(savedAt)} onClick={()=>edit(row)}>Ändra</button><button className="secondary" disabled={busy||editing!==null||Boolean(savedAt)} onClick={()=>void remove(row)}>Ta bort</button></div></td></tr>)}</tbody></table></div>}</section>
+ {!savedAt&&<section className="card budget-editor"><h2>{editing?"Ändra post":"Lägg till en post"}</h2><form onSubmit={save}><label>Typ<select value={draft.kind} disabled={busy} onChange={event=>changeDraft({kind:event.target.value as "income"|"expense"})}><option value="expense">− Kostnad</option><option value="income">+ Intäkt</option></select></label><label>Namn<input value={draft.title} disabled={busy} maxLength={160} required placeholder="Till exempel hyra eller lön" onChange={event=>changeDraft({title:event.target.value})}/></label><label>Belopp (kr)<input value={draft.amount} disabled={busy} inputMode="decimal" required placeholder="0,00" onChange={event=>changeDraft({amount:event.target.value})}/></label><label>{draft.kind==="income"?"Mottaget av":"Betalat av"}<select value={draft.member_id} disabled={busy} required onChange={event=>changeDraft({member_id:event.target.value})}>{parents.map(parent=><option key={parent.id} value={parent.id}>{parent.display_name}</option>)}</select></label><label className="budget-checkbox"><input type="checkbox" checked={draft.shared} disabled={busy} onChange={event=>changeDraft({shared:event.target.checked})}/> Dela denna post</label><div className="budget-form-actions"><button className="primary" disabled={busy}>{busy?"Sparar…":editing?"Spara ändringar":"Lägg till"}</button>{editing&&<button className="secondary" type="button" disabled={busy} onClick={()=>{setEditing(null);setDraft({...empty,member_id:member?.id??""});draftId.current=null}}>Avbryt</button>}</div></form></section>}
+ </>}
+ </div>}
+ </main>;
+}

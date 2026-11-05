@@ -44,6 +44,7 @@ export default function WishlistsPage() {
       ]);
       if (family.error || lists.error) throw new Error("Kunde inte läsa önskelistorna.");
       setMember(me.data);
+      if(me.data.role==="barn")setPerson(me.data.id);
       setMembers(family.data);
       setLists(lists.data);
     } catch (error) { setError(error instanceof Error ? error.message : "Kunde inte läsa önskelistorna."); }
@@ -78,9 +79,19 @@ export default function WishlistsPage() {
     setReservations(nextReservations);
   }
 
+  function deleteList() {
+    if(!member||!selected||busy||editing)return;
+    if(!window.confirm(`Ta bort önskelistan ”${selected.title}” och alla önskningar i den?`))return;
+    void run(async()=>{
+      const {data,error}=await supabase.from("family_wishlists").delete().eq("id",selected.id).eq("family_id",member.family_id).select("id").maybeSingle();
+      if(error||!data)throw new Error("Kunde inte ta bort önskelistan. Försök igen.");
+      setLists(current=>current.filter(list=>list.id!==selected.id));setSelected(null);setReservations({});setEditing(null);setItem("");setUrl("");setPrice("");
+    });
+  }
+
   function addList(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!member || !title.trim() || !person) return;
+    if (!member || !title.trim() || !person || (member.role === "barn" && person !== member.id)) return;
     void run(async () => {
       const result = await supabase.from("family_wishlists")
         .insert({ family_id: member.family_id, member_id: person, title: title.trim() }).select("id,member_id,title").single();
@@ -88,7 +99,7 @@ export default function WishlistsPage() {
       setLists(current => [...current, result.data]);
       setSelected({ ...result.data, items: [] }); setReservations({}); setEditing(null); setItem(""); setUrl(""); setPrice("");
       setTitle("");
-      setPerson("");
+      setPerson(member.role === "barn" ? member.id : "");
     });
   }
 
@@ -155,14 +166,14 @@ export default function WishlistsPage() {
           <details className="wishlist-create"><summary>+ Ny önskelista</summary>
             <form onSubmit={addList} className="wishlist-form">
               <label>Listans namn<input value={title} disabled={busy || Boolean(editing)} maxLength={100} onChange={event => setTitle(event.target.value)} placeholder="Till exempel födelsedag" required /></label>
-              <label>Vems önskningar?<select value={person} disabled={busy || Boolean(editing)} onChange={event => setPerson(event.target.value)} required><option value="">Välj person</option>{members.map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}</select></label>
+              <label>Vems önskningar?<select value={person} disabled={busy || Boolean(editing)} onChange={event => setPerson(event.target.value)} required><option value="">Välj person</option>{members.filter(person => member?.role !== "barn" || person.id === member.id).map(person => <option key={person.id} value={person.id}>{person.display_name}</option>)}</select></label>
               <button className="primary" disabled={!member || busy || Boolean(editing) || !title.trim() || !person}>Skapa önskelista</button>
             </form>
           </details>
         </aside>
         <section className="wishlist-detail" data-empty={!selected}>
           {selected ? <>
-            <header className="wishlist-detail-heading"><button className="secondary wishlist-back" type="button" disabled={busy || Boolean(editing)} onClick={() => { setSelected(null); setEditing(null); }}>‹ Alla önskelistor</button><p className="eyebrow">{members.find(person => person.id === selected.member_id)?.display_name ?? "Familjen"}</p><h2>{selected.title}</h2><p className="muted">{selected.items.length} {selected.items.length === 1 ? "önskning" : "önskningar"}</p></header>
+            <header className="wishlist-detail-heading"><button className="secondary wishlist-back" type="button" disabled={busy || Boolean(editing)} onClick={() => { setSelected(null); setEditing(null); }}>‹ Alla önskelistor</button><p className="eyebrow">{members.find(person => person.id === selected.member_id)?.display_name ?? "Familjen"}</p><h2>{selected.title}</h2>{member&&(selected.member_id===member.id||["admin","förälder"].includes(member.role))&&<button type="button" className="secondary wishlist-delete" disabled={busy||Boolean(editing)} onClick={deleteList}>Ta bort önskelistan</button>}<p className="muted">{selected.items.length} {selected.items.length === 1 ? "önskning" : "önskningar"}</p></header>
             <details className="wishlist-add" key={selected.id} open={selected.items.length === 0 ? true : undefined}><summary>+ Lägg till en önskning</summary>
               <form className="wishlist-form" onSubmit={addItem}>
                 <label>Vad önskar du dig?<input value={item} disabled={busy || Boolean(editing)} maxLength={160} onChange={event => setItem(event.target.value)} placeholder="Till exempel en bok eller ett spel" required /></label>

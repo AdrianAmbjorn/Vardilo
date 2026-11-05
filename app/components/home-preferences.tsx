@@ -57,11 +57,11 @@ export function HomePreferences({ memberId, isChild, children }: { memberId: str
     {saved && <p role="status" className="home-preferences-status">Din startsida är sparad.</p>}
     {editing && <section id="home-preferences-editor" className="card home-preferences-editor" aria-label="Anpassa startsidan">
       <h3>Vad vill du se?</h3><p>Välj det som passar dig. Dina val gäller bara din startsida och följer med när du loggar in på en annan enhet.</p>
-      <div className="home-preferences-options">{homeSections.filter(section => isChild || section.id !== "xp").map(section => <label key={section.id}><span aria-hidden="true">{section.emoji}</span><span>{section.label}</span><input type="checkbox" checked={!draft.includes(section.id)} disabled={busy} onChange={event => setDraft(current => event.target.checked ? current.filter(id => id !== section.id) : [...current, section.id])} /></label>)}</div>
+      <div className="home-preferences-options">{homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").map(section => <label key={section.id}><span aria-hidden="true">{section.emoji}</span><span>{section.label}</span><input type="checkbox" checked={!draft.includes(section.id)} disabled={busy} onChange={event => setDraft(current => event.target.checked ? current.filter(id => id !== section.id) : [...current, section.id])} /></label>)}</div>
       <div className="home-preferences-actions"><button className="primary" type="button" disabled={busy} onClick={() => void save()}>{busy ? "Sparar…" : "Spara mina val"}</button><button className="secondary" type="button" disabled={busy} onClick={() => { setEditing(false); setError(""); }}>Avbryt</button></div>
       <p className="home-preferences-note">Allt finns kvar i menyn, även det du döljer här.</p>
     </section>}
-    {ready && homeSections.filter(section => isChild || section.id !== "xp").every(section => hidden.includes(section.id)) && <p className="home-preferences-status">Du har valt en lugn startsida. Öppna menyn för att hitta allt, eller välj vad du vill visa här.</p>}
+    {ready && homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").every(section => hidden.includes(section.id)) && <p className="home-preferences-status">Du har valt en lugn startsida. Öppna menyn för att hitta allt, eller välj vad du vill visa här.</p>}
     {children}
   </PreferencesContext.Provider>;
 }

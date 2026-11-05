@@ -42,3 +42,16 @@ test('an adult can reserve and undo their own reservation, refreshing status aft
   handler('reserve','  function toggle',env)({id:'wish'});await pending;assert.equal(called[0],mine?'unreserve_wishlist_item':'reserve_wishlist_item');assert.deepEqual(called[1],{p_item_id:'wish'});assert(refreshed);
  }
 });
+test('deleting a wishlist clears the selection only after the scoped deletion succeeds',async()=>{
+ let pending,filters={},nextLists,selected='old';const q={delete:()=>q,eq:(key,value)=>{filters[key]=value;return q},select:()=>q,maybeSingle:async()=>({data:{id:'list'},error:null})};
+ const env={member:{id:'child',family_id:'family',role:'barn'},selected:{id:'list',title:'Birthday'},busy:false,editing:null,window:{confirm:()=>true},run:action=>pending=action(),supabase:{from:()=>q},setLists:update=>nextLists=update([{id:'list'},{id:'other'}]),setSelected:value=>selected=value,setReservations(){},setEditing(){},setItem(){},setUrl(){},setPrice(){}};
+ handler('deleteList','  function addList',env)();await pending;assert.deepEqual(filters,{id:'list',family_id:'family'});assert.deepEqual(nextLists,[{id:'other'}]);assert.equal(selected,null);
+});
+test('child wishlist UI hides purchase and reservation signals even if stale data contains them',()=>{
+ const React=require('react');const {renderToStaticMarkup}=require('react-dom/server');const babel=require('next/dist/compiled/babel/core');
+ const states=[{id:'child',family_id:'family',role:'barn'},[{id:'child',display_name:'Child'}],[{id:'list',member_id:'child',title:'Birthday'}],{id:'list',member_id:'child',title:'Birthday',items:[{id:'wish',title:'Surprise',url:null,price:100,purchased:true}]}];states[14]=false;states[15]={wish:'adult'};
+ let cursor=0;const hooks={...React,useMemo:fn=>fn(),useCallback:fn=>fn,useEffect(){},useRef:()=>({current:false}),useState:initial=>[cursor in states?states[cursor++]: (cursor++,initial),()=>{}]};
+ const code=babel.transformSync(readFileSync('app/onskelistor/page.tsx','utf8'),{filename:'page.tsx',presets:[[require('next/babel'),{'preset-env':{targets:{node:'current'}},'preset-react':{runtime:'automatic'},'transform-runtime':{helpers:false,regenerator:false}}]],envName:'test',babelrc:false,configFile:false}).code;
+ const exports={};require('node:vm').runInNewContext(code,{exports,require:name=>name==='react'?hooks:name==='@/lib/supabase/client'?{createClient:()=>({})}:name==='@/lib/wishlist-details'?helpers:name.endsWith('.css')?{}:require(name)});
+ const html=renderToStaticMarkup(React.createElement(exports.default));assert.match(html,/En önskning/);assert.doesNotMatch(html,/Reserverad|Köpt|line-through|wish-check/);assert.match(html,/Ta bort önskelistan/);
+});
