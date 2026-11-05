@@ -62,7 +62,7 @@ export function HomePreferences({ memberId, isChild, children }: { memberId: str
       <p className="home-preferences-note">Allt finns kvar i menyn, även det du döljer här.</p>
     </section>}
     {ready && homeSections.filter(section => isChild ? section.id !== "budget" : section.id !== "xp" && section.id !== "savings").every(section => hidden.includes(section.id)) && <p className="home-preferences-status">Du har valt en lugn startsida. Öppna menyn för att hitta allt, eller välj vad du vill visa här.</p>}
-    {children}
+    <div className="home-widget-grid">{children}</div>
   </PreferencesContext.Provider>;
 }
 

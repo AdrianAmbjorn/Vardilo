@@ -17,3 +17,42 @@
 @media(max-width:600px){.home-preferences-options{grid-template-columns:1fr}.home-personalize{gap:12px}.home-personalize button{font-size:13px}.home-preferences-actions button{flex:1}.home-preferences-options label{padding:10px 12px}}
 .home-summary-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
 .home-summary-grid:empty{display:none}
+/* A compact, shared grid lets every visible widget pair with the next one. */
+.home-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;margin-top:16px}
+.home-widget-grid>.home-summary-grid{display:contents}
+.home-widget-grid .card{min-width:0;margin:0!important;padding:16px;border-radius:16px;overflow-wrap:anywhere;box-shadow:0 5px 18px #102a4306}
+.home-widget-grid .card-heading{align-items:flex-start;gap:8px;margin-bottom:10px}
+.home-widget-grid h3{font-size:15px;line-height:1.35;margin:0}
+.home-widget-grid .card-heading>a{font-size:11px;min-height:40px;padding:7px 10px}
+.home-widget-grid .muted{font-size:12px;line-height:1.5}
+.home-widget-grid .event{grid-template-columns:minmax(0,1fr);gap:7px;padding:10px 0}
+.home-widget-grid .event .tag{display:none}
+.home-widget-grid .event .time{font-size:11px}
+.home-widget-grid .help-request{align-items:flex-start;flex-wrap:wrap;padding:10px 0;gap:7px}
+.home-widget-grid .help-request>a{font-size:12px;min-height:40px;display:inline-flex;align-items:center;color:var(--accent);font-weight:650}
+.home-widget-grid .task-row{flex-wrap:wrap;gap:7px;padding:10px 0}
+.home-widget-grid .task-row>.check{flex:none}
+.home-widget-grid .task-row>div{flex:1;min-width:65px}
+.home-widget-grid .task-row button{min-height:40px;font-size:11px}
+.home-widget-grid .message{padding:10px 0;gap:7px}
+.home-widget-grid .message>div{min-width:0}
+.home-widget-grid .message p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.home-widget-grid .home-list-link{min-height:45px;padding:7px 0;font-size:13px;gap:6px}
+.home-widget-grid .home-list-link>span:first-child{gap:7px}
+.home-widget-grid .home-list-link .home-list-emoji{width:28px;height:28px;border-radius:8px;font-size:16px}
+.home-widget-grid .home-countdown>div:first-child{gap:8px!important}
+.home-widget-grid .home-countdown>div:nth-child(2){gap:8px!important;padding-top:12px!important}
+.home-widget-grid .home-countdown>div:nth-child(2)>span{font-size:28px!important}
+.home-widget-grid .home-countdown .countdown-value{font-size:30px!important}
+.home-widget-grid .home-countdown>div:nth-child(2) strong:not(.countdown-value){font-size:17px!important}
+.home-widget-grid .home-countdown>div:nth-child(2) p{font-size:12px}
+.home-widget-grid .home-countdown .secondary{font-size:11px;padding:7px 10px;min-height:40px}
+.home-widget-grid .card:has(form),.home-widget-grid .card:has(.family-admin-form),.home-widget-grid .card:has(details[open]){grid-column:1/-1}
+.home-widget-grid>.family-admin-error{grid-column:1/-1}
+.home-meal-today{display:grid;gap:6px;padding:11px 0;border-top:1px solid var(--line)}
+.home-meal-today small{font-size:11px;color:var(--muted)}.home-meal-today strong{font-size:14px}
+.home-meal-week summary{font-size:12px;font-weight:600;color:var(--accent);cursor:pointer;min-height:40px;display:flex;align-items:center;gap:7px}
+.home-meal-week summary::after{content:'⌄';color:var(--muted)}.home-meal-week[open] summary::after{content:'⌃'}
+@media(max-width:600px){.home-widget-grid{gap:10px}.home-widget-grid .card{padding:12px;border-radius:14px}.home-widget-grid .card-heading{flex-direction:column;gap:5px}.home-widget-grid h3{font-size:14px}.home-widget-grid .card-heading>a{font-size:11px;max-width:100%;min-height:40px;padding:6px 9px}.home-widget-grid .card .primary,.home-widget-grid .card .secondary{white-space:normal;max-width:100%}.home-widget-grid .home-countdown>div:first-child{flex-direction:column;align-items:flex-start!important}.home-widget-grid .avatar.small{width:25px;height:25px;flex:none;font-size:11px}}
+@media(max-width:359px){.home-widget-grid{grid-template-columns:minmax(0,1fr)}}
+.home-list-more summary{display:flex;align-items:center;min-height:40px;cursor:pointer;font-size:12px;font-weight:650;color:var(--accent);list-style:none}.home-list-more summary::after{content:'⌄';margin-left:7px}.home-list-more summary::-webkit-details-marker{display:none}.home-list-more[open] summary::after{content:'⌃'}

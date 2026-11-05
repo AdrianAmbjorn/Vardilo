@@ -23,8 +23,18 @@ export default function HomeLists({ familyId }: { familyId: string }) {
         setError(Boolean(error));
         setLoading(false);
       });
-    return () => { active = false; };
+
+  return () => { active = false; };
   }, [familyId, supabase]);
+
+  const listLinks = lists.map(list => (
+            <Link key={list.id} href={`/listor?lista=${encodeURIComponent(list.id)}`}
+              className="home-list-link">
+              <span><span aria-hidden="true" className="home-list-emoji">{categoryEmoji[list.category ?? ""] ?? "📝"}</span><span className="home-list-name">{list.name}</span></span>
+              <span aria-hidden="true" className="home-list-arrow">›</span>
+            </Link>
+          ));
+
 
   return (
     <section className="card" style={{ marginTop: 18 }}>
@@ -32,13 +42,8 @@ export default function HomeLists({ familyId }: { familyId: string }) {
       {loading ? <p className="muted" role="status">Laddar listor…</p> :
         error ? <p className="muted">Kunde inte läsa listorna. <Link href="/listor">Öppna Listor</Link></p> :
         lists.length ? <div style={{ display: "grid" }}>
-          {lists.map(list => (
-            <Link key={list.id} href={`/listor?lista=${encodeURIComponent(list.id)}`}
-              className="home-list-link">
-              <span><span aria-hidden="true" className="home-list-emoji">{categoryEmoji[list.category ?? ""] ?? "📝"}</span><span className="home-list-name">{list.name}</span></span>
-              <span aria-hidden="true" className="home-list-arrow">›</span>
-            </Link>
-          ))}
+          {listLinks.slice(0,3)}
+          {listLinks.length>3&&<details className="home-list-more"><summary>Fler listor ({listLinks.length-3})</summary>{listLinks.slice(3)}</details>}
         </div> : <p className="muted">Inga listor ännu. <Link href="/listor">Skapa en lista</Link></p>}
     </section>
   );
