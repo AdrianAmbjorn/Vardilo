@@ -52,6 +52,11 @@ export default function FamilySetupPage() {
         return;
       }
 
+      if (user.app_metadata?.parent_managed_child === true) {
+        setLoadFailed(true);
+        setMessage("Barnkontot saknar familjekoppling. Be din förälder om hjälp att koppla kontot.");
+        return;
+      }
       const displayName = (user.user_metadata?.display_name as string | undefined) ?? "";
       setName(displayName);
       } catch {

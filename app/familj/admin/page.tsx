@@ -75,7 +75,7 @@ export default function FamilyAdminPage() {
     try {
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
-    if (!user) { setError("Logga in för att hantera familjen."); return; }
+    if (!user) { setCurrentRole("");setCanManageMembers(false);setMembers([]);setError("Logga in för att hantera familjen."); return; }
 
     const { data: currentMember } = await supabase
       .from("family_members")
@@ -85,7 +85,7 @@ export default function FamilyAdminPage() {
       .limit(1)
       .maybeSingle();
 
-    if (!currentMember) { setError("Kunde inte hitta din familj."); return; }
+    if (!currentMember) { setCurrentRole("");setCanManageMembers(false);setMembers([]);setError("Kunde inte hitta din familj."); return; }
 
     const [{ data: family }, { data: permissions }, { data: familyMembers, error: membersError }] =
       await Promise.all([
@@ -268,7 +268,7 @@ export default function FamilyAdminPage() {
           </div>
         )}
 
-        {canManageMembers && <Invitations members={members} />}
+        {canManageMembers && <Invitations members={members} onChanged={loadFamily} />}
         {["admin","förälder"].includes(currentRole) && <ChildLogins members={members} onChanged={loadFamily} />}
         <div className="family-admin-list">
           <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--line)" }}>
