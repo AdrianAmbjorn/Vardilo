@@ -56,6 +56,7 @@ export default function CheckInPage() {
   async function load() {
     setLoading(true);
     setError("");
+try {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) { setError("Logga in för att checka in."); setLoading(false); return; }
 
@@ -87,7 +88,9 @@ export default function CheckInPage() {
     else setCheckIns((checkInResult.data ?? []) as CheckIn[]);
     if (knownPlaceResult.error) setError(knownPlaceResult.error.message);
     else setKnownPlaces((knownPlaceResult.data ?? []) as KnownPlace[]);
-    setLoading(false);
+
+} catch { setError("Kunde inte läsa familjens check-in. Försök igen."); } finally { setLoading(false); }
+
   }
 
   useEffect(() => { void load(); }, []);
@@ -117,6 +120,7 @@ export default function CheckInPage() {
     setError("");
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+try {
         const latitude = position.coords.latitude;
         const longitude = position.coords.longitude;
         const cleanPlaceName = placeName.trim();
@@ -158,7 +162,8 @@ export default function CheckInPage() {
           setNote("");
           await load();
         }
-        setSaving(false);
+
+} catch { setError("Kunde inte bekräfta din check-in. Kontrollera senaste status innan du försöker igen."); } finally { setSaving(false); }
       },
       (positionError) => {
         setError(positionError.code === 1 ? "Vardilo behöver tillåtelse att använda din plats för att checka in." : "Kunde inte hämta din position.");

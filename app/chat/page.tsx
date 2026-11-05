@@ -29,17 +29,21 @@ export default function ChatPage() {
 
   const loadMessages = useCallback(async (id: string) => {
     const request = ++messageRequest.current;
+    try {
     const { data, error } = await supabase.from("family_chat_messages")
       .select("id,member_id,body,created_at").eq("family_id", id)
       .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100);
     if (request !== messageRequest.current) return;
     if (error) setError("Kunde inte läsa meddelandena.");
-    else setMessages(data.reverse());
-    setLoading(false);
+    else setMessages((data ?? []).reverse());
+    } catch {
+      if (request === messageRequest.current) setError("Kunde inte läsa meddelandena. Försök igen.");
+    } finally { if (request === messageRequest.current) setLoading(false); }
   }, [supabase]);
 
   useEffect(() => {
     async function load() {
+      try {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
         setError("Logga in för att öppna familjechatten.");
@@ -57,6 +61,7 @@ export default function ChatPage() {
       const { data: family } = await supabase.from("family_members")
         .select("id,display_name").eq("family_id", data.family_id);
       setMembers(family ?? []);
+      } catch { setError("Kunde inte öppna chatten. Ladda om och försök igen."); setLoading(false); }
     }
     void load();
   }, [supabase]);
@@ -101,6 +106,8 @@ export default function ChatPage() {
       followLatest.current = true;
       setBody("");
       await loadMessages(member.family_id);
+    } catch {
+      setError("Kunde inte bekräfta att meddelandet skickades. Kontrollera chatten innan du försöker igen.");
     } finally {
       setSending(false);
     }

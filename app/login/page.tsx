@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -16,6 +16,7 @@ function HouseIcon() {
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const submitLock = useRef(false);
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,13 +26,16 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
     setLoading(true);
     setMessage("");
 
+    try {
     if (mode === "signup") {
       const redirectTo = `${window.location.origin}/auth/callback?next=/familj`;
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
         options: {
           data: { display_name: name },
@@ -49,7 +53,7 @@ export default function LoginPage() {
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
@@ -61,7 +65,12 @@ export default function LoginPage() {
       }
     }
 
-    setLoading(false);
+    } catch {
+      setMessage("Kunde inte ansluta. Försök igen – dina uppgifter finns kvar.");
+    } finally {
+      submitLock.current = false;
+      setLoading(false);
+    }
   }
 
   return (
@@ -123,7 +132,7 @@ export default function LoginPage() {
             />
           </label>
 
-          {message && <p className="auth-message">{message}</p>}
+          {message && <p className="auth-message" role="status">{message}</p>}
 
           <button className="primary auth-submit" type="submit" disabled={loading}>
             {loading ? "Arbetar..." : mode === "login" ? "Logga in" : "Skapa konto"}
@@ -132,6 +141,7 @@ export default function LoginPage() {
 
         <button
           className="auth-switch"
+          disabled={loading}
           type="button"
           onClick={() => {
             setMode(mode === "login" ? "signup" : "login");

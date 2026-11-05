@@ -35,6 +35,7 @@ export default function TasksPage(){
  const [loading,setLoading]=useState(true);
 
  async function load(){
+try {
   const {data:u,error:authError}=await supabase.auth.getUser();
   if(authError||!u.user){setError("Logga in för att se uppgifterna.");setLoading(false);return}
   const {data:m,error:memberError}=await supabase.from("family_members").select("id,family_id,role").eq("user_id",u.user.id).maybeSingle();
@@ -48,12 +49,15 @@ export default function TasksPage(){
   setCanManageGoals(permissions.data?.can_manage_tasks===true);
   if(ms.error||ts.error)setError(ms.error?.message??ts.error?.message??"Kunde inte läsa uppgifterna.");
   else{setMembers(ms.data??[]);setTasks(ts.data??[]);setError("")}
-  setLoading(false);
+
+} catch { setError("Kunde inte läsa uppgifterna. Försök igen."); } finally { setLoading(false); }
+
  }
  useEffect(()=>{void load()},[supabase]);
  async function add(){
   if(!member||member.role==="barn"||!title.trim()||saving)return;
   setSaving(true);setError("");
+try {
   const {data:u}=await supabase.auth.getUser();
   if(!u.user){setError("Du behöver logga in igen.");setSaving(false);return}
   const {error:e}=await supabase.from("family_tasks").insert({
@@ -64,18 +68,21 @@ export default function TasksPage(){
   });
   if(e)setError("Kunde inte spara uppgiften: "+e.message);
   else{setTitle("");setAssigned("");setXp("20");setDueDate("");await load()}
-  setSaving(false);
+
+} catch { setError("Kunde inte spara uppgiften. Kontrollera listan innan du försöker igen."); } finally { setSaving(false); }
  }
  async function toggle(task:Task){
   if(workingId||!member||(member.role==="barn"&&task.assigned_member_id!==member.id))return;
   setWorkingId(task.id);setError("");
+try {
   const {error:e}=await supabase.from("family_tasks").update({completed_at:task.completed_at?null:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",task.id);
   if(e)setError("Kunde inte uppdatera uppgiften: "+e.message);else await load();
-  setWorkingId(null);
+
+} catch { setError("Kunde inte uppdatera uppgiften. Försök igen."); } finally { setWorkingId(null); }
  }
  function beginEdit(t:Task){if(member?.role==="barn")return;setEditingId(t.id);setEditTitle(t.title);setEditAssigned(t.assigned_member_id??"");setEditXp(String(t.xp));setEditDue(t.due_at?localDate(t.due_at):"");setError("")}
- async function saveEdit(){if(!editingId||!member||member.role==="barn"||!editTitle.trim()||workingId)return;setWorkingId(editingId);setError("");const {error:e}=await supabase.from("family_tasks").update({title:editTitle.trim(),assigned_member_id:editAssigned||null,xp:Math.max(0,Math.floor(Number(editXp)||0)),due_at:editDue?new Date(`${editDue}T12:00:00`).toISOString():null,updated_at:new Date().toISOString()}).eq("id",editingId).eq("family_id",member.family_id);if(e)setError("Kunde inte spara ändringarna: "+e.message);else{setEditingId(null);await load()}setWorkingId(null)}
- async function saveGoal(){if(!editingGoalId||savingGoal)return;const value=Number(goalDraft);if(!Number.isInteger(value)||value<1||value>100000){setError("Målet måste vara mellan 1 och 100 000 XP.");return}setSavingGoal(true);setError("");const {error:e}=await supabase.rpc("set_child_xp_goal",{p_member_id:editingGoalId,p_goal:value,p_reward:rewardDraft.trim()});if(e)setError("Kunde inte spara målet: "+e.message);else{setEditingGoalId(null);await load()}setSavingGoal(false)}
+ async function saveEdit(){if(!editingId||!member||member.role==="barn"||!editTitle.trim()||workingId)return;setWorkingId(editingId);setError("");try{const {error:e}=await supabase.from("family_tasks").update({title:editTitle.trim(),assigned_member_id:editAssigned||null,xp:Math.max(0,Math.floor(Number(editXp)||0)),due_at:editDue?new Date(`${editDue}T12:00:00`).toISOString():null,updated_at:new Date().toISOString()}).eq("id",editingId).eq("family_id",member.family_id);if(e)setError("Kunde inte spara ändringarna: "+e.message);else{setEditingId(null);await load()}}catch{setError("Kunde inte spara ändringarna. Försök igen.")}finally{setWorkingId(null)}}
+ async function saveGoal(){if(!editingGoalId||savingGoal)return;const value=Number(goalDraft);if(!Number.isInteger(value)||value<1||value>100000){setError("Målet måste vara mellan 1 och 100 000 XP.");return}setSavingGoal(true);setError("");try{const {error:e}=await supabase.rpc("set_child_xp_goal",{p_member_id:editingGoalId,p_goal:value,p_reward:rewardDraft.trim()});if(e)setError("Kunde inte spara målet: "+e.message);else{setEditingGoalId(null);await load()}}catch{setError("Kunde inte spara målet. Försök igen.")}finally{setSavingGoal(false)}}
  const visible=tasks.filter(t=>(showCompleted||!t.completed_at)&&(filterMember==="all"||(filterMember==="family"?t.assigned_member_id===null:t.assigned_member_id===filterMember))).sort((a,b)=>{
   if(Boolean(a.completed_at)!==Boolean(b.completed_at))return a.completed_at?1:-1;
   if(a.due_at&&!b.due_at)return -1;

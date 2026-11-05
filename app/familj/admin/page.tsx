@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type FamilyMember = {
@@ -52,7 +52,8 @@ const colorHex: Record<string, string> = {
 };
 
 export default function FamilyAdminPage() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  const actionLock = useRef(false);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [familyName, setFamilyName] = useState("");
   const [memberName, setMemberName] = useState("");
@@ -67,9 +68,10 @@ export default function FamilyAdminPage() {
 
   async function loadFamily() {
     setError("");
+    try {
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
-    if (!user) return;
+    if (!user) { setError("Logga in för att hantera familjen."); return; }
 
     const { data: currentMember } = await supabase
       .from("family_members")
@@ -79,7 +81,7 @@ export default function FamilyAdminPage() {
       .limit(1)
       .maybeSingle();
 
-    if (!currentMember) return;
+    if (!currentMember) { setError("Kunde inte hitta din familj."); return; }
 
     const [{ data: family }, { data: permissions }, { data: familyMembers, error: membersError }] =
       await Promise.all([
@@ -100,6 +102,7 @@ export default function FamilyAdminPage() {
     setFamilyName(family?.name ?? "");
     setCanManageMembers(Boolean(permissions?.can_manage_members));
     setMembers((familyMembers ?? []) as FamilyMember[]);
+    } catch { setError("Kunde inte läsa familjen. Försök igen."); }
   }
 
   useEffect(() => {
@@ -108,9 +111,12 @@ export default function FamilyAdminPage() {
 
   async function addMember() {
     if (!memberName.trim()) return;
+    if (actionLock.current || !canManageMembers) return;
+    actionLock.current = true;
     setSaving(true);
     setError("");
 
+    try {
     const { error: rpcError } = await supabase.rpc("add_family_member_for_current_user", {
       member_name: memberName.trim(),
       member_role: memberRole,
@@ -124,33 +130,45 @@ export default function FamilyAdminPage() {
       await loadFamily();
     }
 
-    setSaving(false);
+} catch { setError("Kunde inte spara ändringen. Kontrollera familjen och försök igen."); }
+    finally { actionLock.current = false; setSaving(false); }
+
   }
 
   async function changeColor(memberId: string, color: string) {
+    if (actionLock.current || !canManageMembers) return;
+    actionLock.current = true;
     setSavingColorId(memberId);
     setError("");
+    try {
     const { error: rpcError } = await supabase.rpc("set_family_member_color_for_current_user", {
       target_member_id: memberId,
       member_color: color,
     });
     if (rpcError) setError(rpcError.message);
     else setMembers((current) => current.map((member) => member.id === memberId ? { ...member, color } : member));
-    setSavingColorId(null);
+} catch { setError("Kunde inte spara ändringen. Kontrollera familjen och försök igen."); }
+    finally { actionLock.current = false; setSavingColorId(null); }
+
   }
 
   async function removeMember(member: FamilyMember) {
     if (!window.confirm(`Ta bort ${member.display_name} från familjen?`)) return;
 
+    if (actionLock.current || !canManageMembers) return;
+    actionLock.current = true;
     setRemovingId(member.id);
     setError("");
+    try {
     const { error: rpcError } = await supabase.rpc("delete_family_member_for_current_user", {
       target_member_id: member.id,
     });
 
     if (rpcError) setError(rpcError.message);
     else await loadFamily();
-    setRemovingId(null);
+} catch { setError("Kunde inte spara ändringen. Kontrollera familjen och försök igen."); }
+    finally { actionLock.current = false; setRemovingId(null); }
+
   }
 
   if (loading) {

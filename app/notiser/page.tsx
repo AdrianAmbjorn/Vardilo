@@ -107,6 +107,10 @@ export default function NotificationsPage() {
           ...current.filter(item => item.id !== notification.id),
         ].slice(0, 50));
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_member_id=eq.${memberId}` }, ({ new: row }) => {
+        const updated = row as Notification;
+        setNotifications(current => current.map(item => item.id === updated.id ? updated : item));
+      })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [memberId, supabase]);
