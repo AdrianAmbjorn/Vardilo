@@ -6,11 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const destination = loginDestination(searchParams.toString());
+  const recovery = searchParams.get("flow") === "recovery";
+  const destination = recovery ? "/losenord?nytt=1" : loginDestination(searchParams.toString());
 
   if (!code) {
     return NextResponse.redirect(
-      confirmationFailureUrl(origin, destination),
+      recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination),
     );
   }
 
@@ -20,12 +21,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        confirmationFailureUrl(origin, destination),
+        recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination),
       );
     }
 
     return NextResponse.redirect(`${origin}${destination}`);
   } catch {
-    return NextResponse.redirect(confirmationFailureUrl(origin, destination));
+    return NextResponse.redirect(recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination));
   }
 }

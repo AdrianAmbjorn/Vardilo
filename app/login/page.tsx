@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { confirmationRedirect, emailRequestError } from "@/lib/auth-messages";
 import { loginDestination } from "@/lib/login-destination";
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [childUsername, setChildUsername] = useState("");
   const [name, setName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendAt, setResendAt] = useState(0);
@@ -63,12 +65,13 @@ export default function LoginPage() {
       if (error) { setMessage(emailRequestError(error.code)); if (error.status === 429) { setResendAt(Date.now() + 60_000); setClock(Date.now()); } }
       else { setResendAt(Date.now() + 60_000); setClock(Date.now()); setMessage("Ett nytt bekräftelsemejl har begärts. Kontrollera inkorgen och skräpposten. Om kontot redan är bekräftat kan du logga in direkt."); }
     } else if (mode === "signup") {
+      if (!birthDate || birthDate < "1900-01-01" || birthDate > new Intl.DateTimeFormat("sv-SE", {timeZone:"Europe/Stockholm"}).format(new Date())) { setMessage("Ange ett giltigt födelsedatum."); return; }
       const redirectTo = confirmationRedirect(window.location.origin, destination);
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          data: { display_name: name },
+          data: { display_name: name, birth_date: birthDate },
           emailRedirectTo: redirectTo,
         },
       });
@@ -126,6 +129,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="auth-form login-form">
           {mode === "signup" && <label htmlFor="login-name">Ditt namn<input id="login-name" value={name} disabled={loading} onChange={event => setName(event.target.value)} placeholder="Förnamn" autoComplete="name" required /></label>}
+          {mode === "signup" && <label htmlFor="login-birthday">När är du född?<input id="login-birthday" type="date" value={birthDate} onChange={event => setBirthDate(event.target.value)} min="1900-01-01" max={new Intl.DateTimeFormat("sv-SE",{timeZone:"Europe/Stockholm"}).format(new Date())} autoComplete="bday" disabled={loading} required /><small>Så kan familjen bli påmind när du fyller år.</small></label>}
           <label htmlFor="login-email">{mode === "child" ? "Din förälders e-post" : "E-postadress"}
             <input id="login-email" type="email" value={email} disabled={loading} onChange={event => setEmail(event.target.value)} placeholder="namn@exempel.se" autoComplete="email" autoCapitalize="none" spellCheck={false} required />
           </label>
@@ -143,6 +147,7 @@ export default function LoginPage() {
         </form>
 
         <footer className="login-footer">
+          {mode === "login" && <p><Link href="/losenord">Glömt lösenord?</Link></p>}
           {mode === "confirm" ? <p>Har du bekräftat adressen? <button type="button" disabled={loading} onClick={() => changeMode("login")}>Till inloggningen</button></p> : mode === "child" ? <p>Glömt dina uppgifter? Be din förälder om hjälp.</p> : mode === "signup" ? <p>Har du redan ett konto? <button type="button" disabled={loading} onClick={() => changeMode("login")}>Logga in</button></p> : <p>Ny på Vardilo? <button type="button" disabled={loading} onClick={() => changeMode("signup")}>Skapa konto</button></p>}
           {mode === "login" && <p><button type="button" disabled={loading} onClick={() => changeMode("confirm")}>Jag har inte fått mitt bekräftelsemejl</button></p>}
         </footer>

@@ -22,7 +22,7 @@ export default function ChatNotificationBanner({ variant = "banner" }: { variant
         if (active && id === request) setMemberId(member.data?.id ?? null);
       } catch { /* Keep the private badge hidden until the identity is known. */ }
     };
-    if (pathname.startsWith("/login") || pathname.startsWith("/auth/")) { setMemberId(null); setUnread(0); return; }
+    if (pathname === "/losenord" || pathname.startsWith("/login") || pathname.startsWith("/auth/")) { setMemberId(null); setUnread(0); return; }
     void identify();
     const { data: listener } = supabase.auth.onAuthStateChange(event => {
       if (event === "SIGNED_OUT") { request++; setMemberId(null); setUnread(0); }

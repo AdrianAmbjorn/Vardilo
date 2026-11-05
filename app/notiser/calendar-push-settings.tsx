@@ -105,10 +105,10 @@ export default function CalendarPushSettings() {
   }
 
   return (
-    <section className="section-row" aria-label="Push för kalenderpåminnelser">
+    <section className="section-row" aria-label="Pushpåminnelser">
       <div>
-        <strong>Push för kalenderpåminnelser</strong>
-        <p>Kalenderpåminnelser kan visas även när Vardilo är stängd. Aktivitetens namn visas först i appen.</p>
+        <strong>Pushpåminnelser</strong>
+        <p>Kalender- och födelsedagspåminnelser kan visas även när Vardilo är stängd. Detaljerna visas i appen.</p>
         {message && <p role="status">{message}</p>}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

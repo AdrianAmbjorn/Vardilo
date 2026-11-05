@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BirthdaySettings from "../components/birthday-settings";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -176,6 +177,7 @@ export default function ProfilePage() {
               {preview ? <img src={preview} alt="Din sparade profilbild" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
             </div>
             <p>{member.display_name}</p>
+            <BirthdaySettings memberId={member.id} />
             {preparing && <p role="status">Förbereder förhandsvisning…</p>}
             <p className="muted">Bilden visas för familjen och beskärs till en kvadrat.</p>
             <form onSubmit={save} onReset={() => chooseFile(null)} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>

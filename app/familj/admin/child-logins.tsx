@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import BirthdaySettings from "../../components/birthday-settings";
 import { normalizeChildUsername, validChildUsername } from "@/lib/child-login";
 
 type Child = { id: string; display_name: string; role: string; user_id: string | null };
@@ -71,6 +72,7 @@ export default function ChildLogins({ members, onChanged }: { members: Child[]; 
       const canCreate = !child.user_id;
       return <div key={child.id} style={{ padding: "16px 0", borderBottom: "1px solid var(--line)", overflowWrap: "anywhere" }}>
         <strong>{child.display_name}</strong>
+        <BirthdaySettings memberId={child.id} name={child.display_name} />
         <p className="muted">{login ? `${login.username} · ${login.parent_email}` : child.user_id ? "Inloggning kopplad till ett annat konto." : "Ingen inloggning ännu."}</p>
         {editing === child.id ? <form onSubmit={event => void save(event, child)} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
           {!login && <><p className="muted">Kopplas till {parentEmail}</p><label className="family-admin-field"><span>Barnets användarnamn</span><input value={username} disabled={busy} onChange={event => setUsername(event.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="off" maxLength={30} required /></label></>}

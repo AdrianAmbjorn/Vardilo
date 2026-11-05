@@ -8,11 +8,12 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const destination = loginDestination(searchParams.toString());
+  const recovery = type === "recovery";
+  const destination = recovery ? "/losenord?nytt=1" : loginDestination(searchParams.toString());
 
-  if (!tokenHash || type !== "email") {
+  if (!tokenHash || (type !== "email" && type !== "recovery")) {
     return NextResponse.redirect(
-      confirmationFailureUrl(origin, destination),
+      recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination),
     );
   }
 
@@ -25,12 +26,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        confirmationFailureUrl(origin, destination),
+        recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination),
       );
     }
 
     return NextResponse.redirect(`${origin}${destination}`);
   } catch {
-    return NextResponse.redirect(confirmationFailureUrl(origin, destination));
+    return NextResponse.redirect(recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination));
   }
 }

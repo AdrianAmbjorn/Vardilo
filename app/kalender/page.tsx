@@ -265,7 +265,7 @@ export default function CalendarPage() {
     setCopyingEvent(false);
     const original = events.find((item) => event.id.startsWith(`${item.id}-`) || item.id === event.id) ?? event;
     setEditingEvent(original);
-    setForm(formValues(original, new Date(event.starts_at)));
+    setForm(formValues(original));
     setError(""); setShowForm(true);
   }
   function openBreakForm(date?: Date, item?: CalendarBreak) {
@@ -435,7 +435,7 @@ export default function CalendarPage() {
     if (!editingEvent || readOnly || deleting) return;
     if (editingEvent.import_batch_id) {
       setShowDeleteChoices(true);
-    } else if (window.confirm(`Ta bort "${editingEvent.title}" från kalendern?`)) {
+    } else if (window.confirm(editingEvent.recurrence_enabled ? `Ta bort hela serien ”${editingEvent.title}”? Alla återkommande tillfällen tas bort.` : `Ta bort "${editingEvent.title}" från kalendern?`)) {
       void handleDelete("single");
     }
   }
@@ -619,6 +619,7 @@ export default function CalendarPage() {
         <p className="muted"><span aria-hidden="true">🔒 </span>Synlig för {restrictedAudience(editingEvent)?.toLowerCase()}.</p>
       )}
       {copyingEvent && <p className="muted">Du redigerar en ny kopia. Välj datum innan du sparar.</p>}
+      {editingEvent?.recurrence_enabled && <p className="muted" role="status">Du redigerar hela den återkommande serien. Ändringar och borttagning gäller alla tillfällen.</p>}
       {readOnly && <p className="muted">Bara den som publicerade aktiviteten kan redigera den.</p>}
       <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <label className="calendar-field"><span>Titel</span><input autoFocus required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="T.ex. Fotbollsträning" /></label>

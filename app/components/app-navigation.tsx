@@ -7,7 +7,7 @@ import {navigationForRole} from "@/lib/app-navigation";
 import "./app-navigation.css";
 export default function AppNavigation(){
  const pathname=usePathname();const supabase=useMemo(()=>createClient(),[]);const [role,setRole]=useState<string|null>(null);const [revision,setRevision]=useState(0);const details=useRef<HTMLDetailsElement>(null);const epoch=useRef(0);
- const hidden=pathname==="/"||pathname.startsWith('/login')||pathname.startsWith('/auth/')||pathname==='/inbjudan';
+ const hidden=pathname==="/"||(pathname.startsWith('/login')||pathname==='/losenord')||pathname.startsWith('/auth/')||pathname==='/inbjudan';
  useEffect(()=>{details.current?.removeAttribute('open')},[pathname]);
  useEffect(()=>{const {data}=supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){epoch.current++;setRole(null);details.current?.removeAttribute('open')}else if(event==='SIGNED_IN'||event==='USER_UPDATED'){epoch.current++;setRole(null);setRevision(value=>value+1)}});return()=>data.subscription.unsubscribe()},[supabase]);
  useEffect(()=>{let active=true;const request=epoch.current;setRole(null);if(hidden)return;void(async()=>{try{const {data}=await supabase.auth.getUser();if(!data.user)return;const me=await supabase.from('family_members').select('role').eq('user_id',data.user.id).maybeSingle();if(active&&request===epoch.current&&!me.error)setRole(me.data?.role??null)}catch{/* Keep navigation hidden until a family identity is confirmed. */}})();return()=>{active=false}},[hidden,pathname,revision,supabase]);
