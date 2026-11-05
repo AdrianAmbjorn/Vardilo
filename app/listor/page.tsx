@@ -47,6 +47,7 @@ export default function ListsPage() {
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const operation = useRef(false);
+  const openedFromHome = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +82,16 @@ export default function ListsPage() {
   }, [supabase]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!member || openedFromHome.current || !lists.length) return;
+    const id = new URLSearchParams(window.location.search).get("lista");
+    if (!id) return;
+    const list = lists.find(list => list.id === id);
+    if (!list) return;
+    openedFromHome.current = true;
+    open(list);
+  }, [member, lists]);
 
   async function run(action: () => Promise<void>, message: string) {
     if (operation.current) return;
