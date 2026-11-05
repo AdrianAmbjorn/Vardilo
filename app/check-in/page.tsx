@@ -57,7 +57,7 @@ export default function CheckInPage() {
     setLoading(true);
     setError("");
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
+    if (!auth.user) { setError("Logga in för att checka in."); setLoading(false); return; }
 
     const { data: membership, error: membershipError } = await supabase
       .from("family_members")
@@ -96,7 +96,7 @@ export default function CheckInPage() {
   const latestByMember = new Map<string, CheckIn>();
   for (const item of checkIns) if (!latestByMember.has(item.member_id)) latestByMember.set(item.member_id, item);
   const visibleCheckIns = checkIns.filter((item) => currentMember?.role === "admin" || currentMember?.role === "förälder" || item.member_id === currentMember?.id);
-  const latest = visibleCheckIns[0];
+  const latest = visibleCheckIns.find(item => item.member_id === currentMember?.id);
 
   function selectKnownPlace(placeId: string) {
     setSelectedKnownPlaceId(placeId);
@@ -108,7 +108,7 @@ export default function CheckInPage() {
   }
 
   async function handleCheckIn() {
-    if (!familyId || !currentMember) return;
+    if (!familyId || !currentMember || saving) return;
     if (!navigator.geolocation) {
       setError("Din webbläsare stöder inte platsdelning.");
       return;
@@ -143,7 +143,15 @@ export default function CheckInPage() {
               created_by: (await supabase.auth.getUser()).data.user?.id ?? null,
               updated_at: new Date().toISOString(),
             }, { onConflict: "family_id,name" });
-            if (knownPlaceError) setError(knownPlaceError.message);
+            if (knownPlaceError) {
+              setPlaceName("");
+              setSelectedKnownPlaceId("");
+              setNote("");
+              await load();
+              setError("Din check-in är sparad, men platsen kunde inte sparas som snabbval.");
+              setSaving(false);
+              return;
+            }
           }
           setPlaceName("");
           setSelectedKnownPlaceId("");
@@ -206,7 +214,7 @@ export default function CheckInPage() {
             </div>
             <label className="family-admin-field"><span>Platsnamn <small>(sparas som känd plats)</small></span><input value={placeName} onChange={(event) => { setPlaceName(event.target.value); setSelectedKnownPlaceId(""); }} placeholder="t.ex. Hos Matteo" /></label>
             <label className="family-admin-field"><span>Meddelande <small>(valfritt)</small></span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="t.ex. Jag går hem 17:30" /></label>
-            <button className="primary" type="button" onClick={handleCheckIn} disabled={saving}>{saving ? "Hämtar plats..." : "Checka in här"}</button>
+            <button className="primary" type="button" onClick={handleCheckIn} disabled={saving || !currentMember}>{saving ? "Hämtar plats..." : "Checka in här"}</button>
             {error && <p className="error-text">{error}</p>}
             <p className="muted" style={{ marginTop: 12 }}>När du använder ett nytt platsnamn sparas platsen automatiskt som en känd plats. Nästa gång kan du bara välja den i menyn.</p>
           </section>

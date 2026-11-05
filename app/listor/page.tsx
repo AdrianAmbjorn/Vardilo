@@ -25,7 +25,7 @@ function categoryOptions() {
     <option key={category} value={category}>{categoryEmoji[category]} {categoryLabel(category)}</option>
   ));
 }
-type ListItem = { id: string; text: string; completed: boolean };
+type ListItem = { id: string; text: string; completed: boolean; created_by_member_id: string | null; completed_by_member_id: string | null };
 type OpenList = FamilyList & { items: ListItem[] };
 type Member = { id: string; family_id: string; userId: string };
 
@@ -34,6 +34,7 @@ const typedText = { color: "#102a43", WebkitTextFillColor: "#102a43", caretColor
 export default function ListsPage() {
   const supabase = useMemo(() => createClient(), []);
   const [member, setMember] = useState<Member | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<{ id: string; display_name: string }[]>([]);
   const [lists, setLists] = useState<FamilyList[]>([]);
   const [selected, setSelected] = useState<OpenList | null>(null);
   const [name, setName] = useState("");
@@ -67,6 +68,9 @@ export default function ListsPage() {
       const { data, error } = await supabase.from("family_lists")
         .select("id,name,category").eq("family_id", profile.family_id).order("created_at");
       if (error) throw error;
+      const family = await supabase.from("family_members").select("id,display_name").eq("family_id", profile.family_id);
+      if (family.error) throw family.error;
+      setFamilyMembers(family.data);
       setMember({ ...profile, userId: auth.user.id });
       setLists(data ?? []);
     } catch {
@@ -111,7 +115,7 @@ export default function ListsPage() {
     setDeleteTarget(null);
     void run(async () => {
       const { data, error } = await supabase.from("family_list_items")
-        .select("id,text,completed").eq("list_id", list.id).order("created_at");
+        .select("id,text,completed,created_by_member_id,completed_by_member_id").eq("list_id", list.id).order("created_at");
       if (error) throw error;
       setSelected({ ...list, items: data ?? [] });
       setListName(list.name);
@@ -152,7 +156,7 @@ export default function ListsPage() {
     void run(async () => {
       const { data, error } = await supabase.from("family_list_items")
         .insert({ list_id: selected.id, text: item.trim(), created_by_member_id: member.id })
-        .select("id,text,completed").single();
+        .select("id,text,completed,created_by_member_id,completed_by_member_id").single();
       if (error) throw error;
       setSelected({ ...selected, items: [...selected.items, data] });
       setItem("");
@@ -187,7 +191,7 @@ export default function ListsPage() {
     void run(async () => {
       const { data, error } = await supabase.from("family_list_items")
         .update({ completed: !entry.completed }).eq("id", entry.id).eq("list_id", selected.id)
-        .select("id,text,completed").single();
+        .select("id,text,completed,created_by_member_id,completed_by_member_id").single();
       if (error) throw error;
       setSelected({ ...selected, items: selected.items.map(item => item.id === data.id ? data : item) });
     }, "Kunde inte ändra listpunkten. Försök igen.");
@@ -296,7 +300,13 @@ export default function ListsPage() {
                   disabled={busy}
                   style={{ accentColor: "#334155", width: 18, height: 18, margin: 0, flexShrink: 0 }}
                 />
-                <strong style={{ ...typedText, flex: "1 1 80px", minWidth: 0, overflowWrap: "anywhere", textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
+                <div style={{ flex: "1 1 80px", minWidth: 0, overflowWrap: "anywhere" }}>
+                  <strong style={{ ...typedText, textDecoration: entry.completed ? "line-through" : "none" }}>{entry.text}</strong>
+                  <p style={{ color: "var(--muted)", fontSize: 12, margin: "4px 0 0" }}>
+                    Önskad av {familyMembers.find(person => person.id === entry.created_by_member_id)?.display_name ?? "okänd medlem"}
+                    {entry.completed && ` · Klar av ${familyMembers.find(person => person.id === entry.completed_by_member_id)?.display_name ?? "okänd medlem"}`}
+                  </p>
+                </div>
                 <button
                   className="secondary"
                   aria-label={`Ta bort ${entry.text}`}
