@@ -1,4 +1,5 @@
 "use client";
+import { signOutOnThisDevice } from "@/lib/device-signout";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,7 +11,7 @@ export default function InvitationPage(){
  const supabase=useMemo(()=>createClient(),[]);const router=useRouter();
  const [token,setToken]=useState("");const [email,setEmail]=useState<string|null>(null);const [loading,setLoading]=useState(true);const [busy,setBusy]=useState(false);const [error,setError]=useState("");const lock=useRef(false);const [attempt,setAttempt]=useState(0);const [sessionError,setSessionError]=useState(false);
  useEffect(()=>{let active=true;const code=new URLSearchParams(window.location.search).get("kod")??"";setLoading(true);setSessionError(false);setError("");if(!/^[a-f0-9]{64}$/.test(code)){setError("Inbjudningslänken är ogiltig. Be familjens administratör om en ny länk.");setLoading(false);return}setToken(code);void invitationAccount(supabase.auth).then(address=>{if(active)setEmail(address)}).catch(()=>{if(active){setSessionError(true);setError("Kunde inte kontrollera inloggningen. Kontrollera din anslutning och försök igen.")}}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[supabase,attempt]);
- async function switchAccount(){if(lock.current)return;lock.current=true;setBusy(true);setError("");try{const {error}=await supabase.auth.signOut({scope:"local"});if(error)throw error;router.replace(login)}catch{setSessionError(true);setError("Kunde inte slutföra utloggningen. Kontrollera anslutningen och försök igen.")}finally{lock.current=false;setBusy(false)}}
+ async function switchAccount(){if(lock.current)return;lock.current=true;setBusy(true);setError("");try{const {error}=await signOutOnThisDevice(supabase);if(error)throw error;router.replace(login)}catch{setSessionError(true);setError("Kunde inte slutföra utloggningen. Kontrollera anslutningen och försök igen.")}finally{lock.current=false;setBusy(false)}}
 
  async function accept(){if(lock.current||!email||!token)return;lock.current=true;setBusy(true);setError("");try{const result=await supabase.rpc("accept_family_invitation",{p_token:token});if(result.error)throw result.error;router.replace("/");router.refresh()}catch(error){setError(typeof error==="object"&&error&&"message" in error?String(error.message):"Kunde inte acceptera inbjudningen.")}finally{lock.current=false;setBusy(false)}}
  const login=`/login?next=${encodeURIComponent(`/inbjudan?kod=${token}`)}`;
