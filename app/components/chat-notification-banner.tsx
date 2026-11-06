@@ -14,6 +14,10 @@ export default function ChatNotificationBanner({ variant = "banner" }: { variant
   const [unread, setUnread] = useState(0);
   const [memberId, setMemberId] = useState<string | null>(null);
   useEffect(() => {
+    if ("serviceWorker" in navigator) void navigator.serviceWorker.getRegistration()
+      .then(registration => registration?.update()).catch(() => { /* Retry on the next visit. */ });
+  }, []);
+  useEffect(() => {
     let active = true; let request = 0;
     const identify = async () => {
       const id = ++request;

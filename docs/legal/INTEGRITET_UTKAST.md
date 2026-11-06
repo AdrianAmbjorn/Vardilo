@@ -43,3 +43,5 @@ Du kan begära information, tillgång, rättelse, radering och i tillämpliga fa
 ## Cookies och enhetslagring
 
 Vardilo använder sessionscookies för inloggning och en språkcookies för ditt språkval. Vi har inte identifierat annons- eller analysverktyg i appkoden. Leverantörernas egna driftloggar och konfiguration behöver kontrolleras separat. Du kan stänga av push i appens inställningar och i webbläsaren.
+
+Pushinnehåll (uppdatering 2026-11-06): när push är aktiverat innehåller notisen rubrik och text, som kan visas på enhetens låsskärm. Pushleverantören hanterar leveransen till prenumerationen. Mycket långa texter förkortas. Push kan stängas av i appen och i enhetens inställningar.

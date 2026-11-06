@@ -1,14 +1,18 @@
+self.addEventListener("install", event => event.waitUntil(self.skipWaiting()));
+self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
+
 self.addEventListener("push", event => {
-  let tag;
+  let payload = {};
   try {
-    tag = event.data?.json().tag;
+    const value = event.data?.json();
+    if (value && typeof value === "object") payload = value;
   } catch {
     // The notification remains useful without a tag.
   }
-  event.waitUntil(self.registration.showNotification("Notis från Vardilo", {
-    body: "Öppna Vardilo för att se vad som hänt.",
+  event.waitUntil(self.registration.showNotification(typeof payload.title === "string" && payload.title ? payload.title : "Notis från Vardilo", {
+    body: typeof payload.body === "string" ? payload.body : "Öppna Vardilo för att se vad som hänt.",
     icon: "/app-icon/192",
-    tag: typeof tag === "string" ? tag : undefined,
+    tag: typeof payload.tag === "string" ? payload.tag : undefined,
   }));
 });
 

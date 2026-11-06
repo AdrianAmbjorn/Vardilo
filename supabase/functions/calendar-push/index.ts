@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.106.2";
 // @ts-types="npm:@types/web-push@3.6.4"
 import webPush from "npm:web-push@3.6.7";
+import { composePushPayload } from "./payload.ts";
 
 type Delivery = { notification_id: string; endpoint: string; p256dh: string; auth_key: string };
 
@@ -33,9 +34,20 @@ Deno.serve(async request => {
     let finished = true;
     if (isPushEndpoint(delivery.endpoint)) {
       try {
-        await webPush.sendNotification(
+        const { data: notification, error: contentError } = await database.from("notifications")
+          .select("title,body,type,metadata,family_id").eq("id", delivery.notification_id).is("read_at", null).maybeSingle();
+        if (contentError) throw contentError;
+        let text = notification?.body ?? "";
+        let available = Boolean(notification);
+        if (notification?.type === "chat") {
+          const { data: message, error: messageError } = await database.from("family_chat_messages")
+            .select("body").eq("id", notification.metadata?.message_id).eq("family_id", notification.family_id).maybeSingle();
+          if (messageError) throw messageError;
+          available = Boolean(message); text = message?.body ?? "";
+        }
+        if (available) await webPush.sendNotification(
           { endpoint: delivery.endpoint, keys: { p256dh: delivery.p256dh, auth: delivery.auth_key } },
-          JSON.stringify({ tag: delivery.notification_id }),
+          JSON.stringify(composePushPayload(delivery.notification_id, notification!.title, text)),
           { vapidDetails: { subject: "https://vardilo.vercel.app/", publicKey: keys.publicKey, privateKey: keys.privateKey }, TTL: 60, timeout: 5000 }
         );
       } catch (error) {
