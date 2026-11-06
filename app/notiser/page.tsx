@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { notificationDestination } from "@/lib/notification-destination";
 import CalendarPushSettings from "./calendar-push-settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -135,6 +136,7 @@ export default function NotificationsPage() {
       setNotifications(current => current.map(notification =>
         updated.has(notification.id) ? { ...notification, read_at: readAt } : notification
       ));
+      window.dispatchEvent(new Event("vardilo-notifications-read"));
       return true;
     } catch {
       setSaveError("Kunde inte markera notisen som läst. Försök igen.");
@@ -146,21 +148,24 @@ export default function NotificationsPage() {
 
   async function openNotification(notification: Notification) {
     if (!notification.read_at && !await markRead(notification.id)) return;
-    const startsAt = notification.metadata?.starts_at;
-    if (notification.href === "/kalender" && typeof startsAt === "string") {
-      const date = new Date(startsAt);
-      if (Number.isFinite(date.getTime())) {
-        router.push(`/kalender?datum=${encodeURIComponent(date.toISOString())}`);
-        return;
-      }
-    }
-    if (notification.href) router.push(notification.href);
+    const destination = notificationDestination(notification.href, notification.metadata?.starts_at);
+    if (destination) router.push(destination);
   }
 
   const unread = notifications.some(notification => !notification.read_at);
 
   return (
-    <main className="section-shell">
+    <main className="section-shell notifications-page">
+      <style>{`
+        .notifications-page .section-row > div { min-width: 0; overflow-wrap: anywhere; }
+        .notifications-page .section-row > .secondary { flex-shrink: 0; min-height: 44px; }
+        .notifications-page .section-row strong { min-width: 0; }
+        .notifications-page .tag { flex-shrink: 0; }
+        @media(max-width: 480px) {
+          .notifications-page .section-row { flex-wrap: wrap; gap: 12px; padding: 16px; }
+          .notifications-page .section-row > div { flex-basis: 100%; }
+        }
+      `}</style>
       <header className="section-header">
         <Link className="back-link" href="/">← Hem</Link>
         <div>

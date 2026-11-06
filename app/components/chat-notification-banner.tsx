@@ -53,8 +53,8 @@ export default function ChatNotificationBanner({ variant = "banner" }: { variant
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `recipient_member_id=eq.${memberId}` }, () => void refresh())
       .subscribe(status => { if (status === "SUBSCRIBED") void refresh(); });
     const timer = window.setInterval(refresh, 15_000);
-    window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh); window.addEventListener("vardilo-chat-read", refresh);
-    return () => { active = false; request++; window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("vardilo-chat-read", refresh); void supabase.removeChannel(channel); };
+    window.addEventListener("focus", refresh); document.addEventListener("visibilitychange", refresh); window.addEventListener("vardilo-chat-read", refresh); window.addEventListener("vardilo-notifications-read", refresh);
+    return () => { active = false; request++; window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("vardilo-chat-read", refresh); window.removeEventListener("vardilo-notifications-read", refresh); void supabase.removeChannel(channel); };
   }, [memberId, supabase, variant]);
   if (!memberId || !unread) return null;
   if (variant === "badge") return <span className="home-chat-unread" role="status" aria-label={unread === 1 ? t("Ett oläst meddelande") : language === "en" ? `${unread} unread messages` : `${unread} olästa meddelanden`} title={t("Olästa meddelanden")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span>;
