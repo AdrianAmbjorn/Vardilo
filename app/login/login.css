@@ -46,3 +46,9 @@
 }
 
 .login-form select{width:100%;min-height:44px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd;color:var(--text);font:inherit}
+
+.invitation-card { display: grid; gap: 18px; overflow-wrap: anywhere; }
+.invitation-card h1 { font-size: clamp(25px, 6vw, 30px); line-height: 1.2; margin: 0; }
+.invitation-card > .primary, .invitation-card > .secondary { min-height: 48px; width: 100%; white-space: normal; text-align: center; }
+.login-form fieldset, .login-form label { min-width: 0; }
+.login-form select { min-width: 0; font-size: 16px; }
