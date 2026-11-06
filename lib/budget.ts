@@ -20,3 +20,5 @@ export function budgetSummary(entries:BudgetEntry[],parents:string[]){
  const net=sharedExpense-sharedIncome;const base=ids.length?Math.floor(net/ids.length):0;const remainder=ids.length?net-base*ids.length:0;
  return {income,expense,balance:income-expense,sharedIncome,sharedExpense,net,unassignedShared,people:ids.map((id,i)=>({id,share:base+(i<remainder?1:0),paid:paid[id]??0,settlement:unassignedShared?null:(paid[id]??0)-base-(i<remainder?1:0)}))};
 }
+
+export function isBudgetMonth(value:string):boolean { return /^(?!0000)\d{4}-(0[1-9]|1[0-2])$/.test(value); }

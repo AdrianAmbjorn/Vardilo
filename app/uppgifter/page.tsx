@@ -57,7 +57,8 @@ export default function TasksPage(){
  async function load(){
 try {
   const {data:u,error:authError}=await supabase.auth.getUser();
-  if(authError||!u.user){setError("Logga in för att se uppgifterna.");setLoading(false);return}
+  if(authError&&authError.name!=="AuthSessionMissingError")throw authError;
+  if(!u.user){setError("Logga in för att se uppgifterna.");setLoading(false);return}
   const {data:m,error:memberError}=await supabase.from("family_members").select("id,family_id,role").eq("user_id",u.user.id).maybeSingle();
   if(memberError||!m){setError("Kunde inte hitta din familj.");setLoading(false);return}
   setMember(m);
@@ -66,9 +67,9 @@ try {
    readTasks(m.family_id),
    supabase.from("family_permissions").select("can_manage_tasks").eq("family_member_id",m.id).maybeSingle()
   ]);
+  if(ms.error||permissions.error)throw ms.error??permissions.error;
   setCanManageGoals(permissions.data?.can_manage_tasks===true);
-  if(ms.error)setError(ms.error.message);
-  else{setMembers(ms.data??[]);setTasks(ts.data??[]);setError("")}
+  setMembers(ms.data??[]);setTasks(ts.data??[]);setError("");
 
 } catch { setError("Kunde inte läsa uppgifterna. Försök igen."); } finally { setLoading(false); }
 

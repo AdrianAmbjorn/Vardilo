@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect,useMemo,useRef,useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { budgetAmount,budgetSummary,kronor,type BudgetEntry } from "@/lib/budget";
+import { budgetAmount,budgetSummary,kronor,isBudgetMonth,type BudgetEntry } from "@/lib/budget";
 import { stockholmDate } from "@/lib/daily-tasks";
 import "./budget.css";
 type Parent={id:string;display_name:string};
@@ -41,6 +41,11 @@ export default function BudgetPage(){
  }catch{if(active){setFailed(true);setError("Budgeten kunde inte hämtas. Försök igen.")}}finally{if(active)setLoading(false)}})();return()=>{active=false};
  },[supabase,month,retry,personal]);
  const totals=budgetSummary(rows,parents.map(p=>p.id));
+ function changeMonth(next:string){
+  if(busy||lock.current||next===month||!isBudgetMonth(next))return;
+  if((editing||draft.title.trim()||draft.amount)&&!window.confirm("Byta månad och lämna den osparade posten?"))return;
+  setMonth(next);
+ }
  function changeDraft(patch:Partial<typeof empty>){setDraft(current=>({...current,...patch}));draftId.current=null}
  function edit(row:BudgetEntry){setEditing(row.id);setDraft({title:row.title,amount:(row.amount_cents/100).toFixed(2).replace(".",","),kind:row.kind,member_id:row.member_id??"",shared:row.shared});setError("");draftId.current=null}
  async function save(event:React.FormEvent){event.preventDefault();if(!member||busy||lock.current||failed||savedAt)return;let cents:number;try{cents=budgetAmount(draft.amount);if(!draft.title.trim())throw Error("Ange ett namn på posten.");if(draft.member_id&&!parents.some(p=>p.id===draft.member_id))throw Error("Välj en förälder i familjen eller välj senare.")}catch(e){setError(e instanceof Error?e.message:"Kontrollera posten.");return}
@@ -69,7 +74,7 @@ export default function BudgetPage(){
  return <main className="section-shell budget-page"><header className="section-header"><div><p className="eyebrow">FÖR FÖRÄLDRAR</p><h1>{personal?"Min budget":"Vår budget"}</h1><p className="muted">{personal?"Din egen ekonomi, bara för dig.":"Koll på månaden, tillsammans."}</p></div><Link className="secondary" href="/">Hem</Link></header>
  {denied?<section className="section-card budget-denied"><h2>Budgeten är för föräldrarna</h2><p>Här finns familjens privata ekonomi. Be familjens Admin kontrollera din roll om du ska ha tillgång.</p></section>:<div className="budget-content">
  <div className="budget-scope" role="group" aria-label="Välj budget"><button type="button" disabled={busy} aria-pressed={!personal} onClick={()=>{if(personal&&(!(draft.title.trim()||draft.amount)||window.confirm("Byta budget och lämna den osparade posten?"))){setPersonal(false);setTab("overview")}}}>Gemensam budget</button><button type="button" disabled={busy} aria-pressed={personal} onClick={()=>{if(!personal&&(!(draft.title.trim()||draft.amount)||window.confirm("Byta budget och lämna den osparade posten?"))){setPersonal(true);setTab("overview")}}}>Min budget</button></div><p className="budget-scope-note">{personal?"Bara du kan se och ändra den här budgeten och dess sparade månader.":"Familjens föräldrar och Admin kan se och ändra den här budgeten."}</p>
- <div className="budget-toolbar"><label>Månad<input type="month" value={month} disabled={busy} onChange={event=>{if(/^\d{4}-\d{2}$/.test(event.target.value))setMonth(event.target.value)}}/></label>{archive.length>0&&<label>Sparade månader<select aria-label="Sparade budgetmånader" value={archive.some(item=>item.month===`${month}-01`)?month:""} disabled={busy} onChange={event=>{if(event.target.value)setMonth(event.target.value)}}><option value="">Välj en sparad månad</option>{archive.map(item=><option key={item.month} value={item.month.slice(0,7)}>{new Intl.DateTimeFormat("sv-SE",{month:"long",year:"numeric"}).format(new Date(`${item.month}T12:00:00`))}</option>)}</select></label>}{!personal&&<div className="budget-tabs" role="group" aria-label="Budgetvy"><button aria-pressed={tab==="overview"} onClick={()=>setTab("overview")}>Översikt</button><button aria-pressed={tab==="share"} onClick={()=>setTab("share")}>Dela</button></div>}</div>
+ <div className="budget-toolbar"><label>Månad<input type="month" value={month} disabled={busy} onChange={event=>changeMonth(event.target.value)}/></label>{archive.length>0&&<label>Sparade månader<select aria-label="Sparade budgetmånader" value={archive.some(item=>item.month===`${month}-01`)?month:""} disabled={busy} onChange={event=>changeMonth(event.target.value)}><option value="">Välj en sparad månad</option>{archive.map(item=><option key={item.month} value={item.month.slice(0,7)}>{new Intl.DateTimeFormat("sv-SE",{month:"long",year:"numeric"}).format(new Date(`${item.month}T12:00:00`))}</option>)}</select></label>}{!personal&&<div className="budget-tabs" role="group" aria-label="Budgetvy"><button aria-pressed={tab==="overview"} onClick={()=>setTab("overview")}>Översikt</button><button aria-pressed={tab==="share"} onClick={()=>setTab("share")}>Dela</button></div>}</div>
  {error&&<p role="alert" className="budget-error">{error}{failed&&<button className="secondary" onClick={()=>setRetry(value=>value+1)}>Försök igen</button>}</p>}
  {loading?<p role="status">Hämtar månadens budget…</p>:!failed&&<>
  <div className="budget-save-month"><div><strong>{savedAt?"Sparad månadsbudget":"Pågående månadsbudget"}</strong><p>{savedAt?`Sparad ${new Intl.DateTimeFormat("sv-SE",{day:"numeric",month:"long",year:"numeric"}).format(new Date(savedAt))}. Välj Öppna för redigering om du vill ändra eller ta bort poster.`:"Poster sparas löpande. Spara månaden när budgeten är klar för att låsa och arkivera den."}</p></div><button className="secondary" type="button" disabled={busy||Boolean(editing)||Boolean(draft.title.trim())||Boolean(draft.amount)} onClick={()=>void saveMonth()}>{busy?"Sparar…":savedAt?"Öppna för redigering":"Spara månaden"}</button></div>
