@@ -31,3 +31,13 @@ Webbläsartest på dator respektive mobilbredd dokumenteras i slutrapporten. En 
 15 unika flöden PASS via verkliga Supabase Auth-, PostgREST-, Storage- och Edge-API:er: vuxeninloggning, familj/barnprofil, barnlogin med guardian-krav, föräldrainbjudan/acceptans, listor, maskerade reservationer, delad/privat budget och arkiv, riktad kalender, dagliga barnuppgifter, hjälpflöde, veckomeny, chatt/egna rader/notiser, check-in och privat barnspara, valfri födelsedag/språk/startsidesval samt nekad Galleri-uppladdning. Testfamiljen innehåller enbart syntetiska identiteter.
 
 Veckomenyn avslöjade ett faktiskt FK-fel: två triggers skrev Auth-ID i created_by som refererar familjemedlems-ID. Migration 20261106102247 använder rätt familjemedlem, tar bort den dubbla triggern och bevarar befintliga menyer. API-testet passerade efter rättningen.
+
+## Slutkontroll av publicering och testbegränsningar
+
+Appändringen 40b8c167645adcc48587734c80b2e10335499c57 publicerades av Git-integrationen som dpl_8HhPt7piWAzKcYtGEuuaGsHqBQn4, READY med alias vardilo.vercel.app. HTTP: /galleri 404, /login och alla tre juridiska sidor 200; licensnotiser och ical-källfil 200. nosniff-header verifierad. Inga error/fatal-runtime-loggar för denna deployment i den kontrollerade perioden 10:18–10:33 UTC (kort observationsfönster).
+
+Datorwebbläsare: registrerings-/barninloggningsformulär och barninformation inspekterade visuellt. Födelsedag är valfri dag/månad, vuxenförsäkran och juridiklänkar syns. Ingen inloggad UI-genomgång gjordes: API-testkontona användes endast genom API. Mobilbredd kunde inte ställas in med webbläsarens tillgängliga kontroller. Varken mobil layout, fysisk telefon eller alla interaktioner ska därför kallas färdigtestade.
+
+Extra Storage-test PASS: egen profilbild uppladdning/radering, familjens läsning, anonym läsning nekad, annat barns överskrivning nekad. Endast en genererad 8×8-pixelsbild användes och togs bort genom Storage-API.
+
+Städning av den syntetiska API-testfamiljen med tre Auth-konton fick utgången verktygsbekräftelse. SQL-transaktionen exekverades inte; testfamiljen och testkontona finns kvar för kontrollerad städning. Testbilden är redan borttagen. Inga verkliga familjer/konton/bilder har raderats.
