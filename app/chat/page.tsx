@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useFamilyProfilePhotos } from "@/lib/use-family-profile-photos";
 
 type Member = { id: string; display_name: string };
-type Message = { id: string; member_id: string; body: string; created_at: string };
+type Message = { id: string; member_id: string; body: string; announcement_title?: string | null; created_at: string };
 
 const dayLabel = new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "long", year: "numeric" });
 const timeLabel = new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit" });
@@ -22,6 +22,8 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [messageLoadError, setMessageLoadError] = useState("");
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState("");
   const thread = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const messageRequest = useRef(0);
@@ -32,7 +34,7 @@ export default function ChatPage() {
     const request = ++messageRequest.current;
     try {
     const { data, error } = await supabase.from("family_chat_messages")
-      .select("id,member_id,body,created_at").eq("family_id", id)
+      .select("id,member_id,body,announcement_title,created_at").eq("family_id", id)
       .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100);
     if (request !== messageRequest.current) return;
     if (error) setMessageLoadError("Kunde inte läsa meddelandena.");
@@ -116,17 +118,18 @@ export default function ChatPage() {
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!member || !body.trim() || sending) return;
+    if (isAnnouncement && (!announcementTitle.trim() || announcementTitle.trim().length > 140)) { setError("Skriv en rubrik på högst 140 tecken."); return; }
     setSending(true);
     setError("");
     try {
       const { error } = await supabase.from("family_chat_messages")
-        .insert({ family_id: member.family_id, member_id: member.id, body: body.trim() });
+        .insert({ family_id: member.family_id, member_id: member.id, body: body.trim(), ...(isAnnouncement ? { announcement_title: announcementTitle.trim() } : {}) });
       if (error) {
         setError("Kunde inte skicka. Ditt meddelande finns kvar.");
         return;
       }
       followLatest.current = true;
-      setBody("");
+      setBody(""); setAnnouncementTitle(""); setIsAnnouncement(false);
       await loadMessages(member.family_id);
     } catch {
       setError("Kunde inte bekräfta att meddelandet skickades. Kontrollera chatten innan du försöker igen.");
@@ -158,6 +161,11 @@ export default function ChatPage() {
     <main className="section-shell family-chat-page">
       <style>{`
         .family-chat-page .section-header { grid-template-columns: minmax(0, 1fr) auto; }
+        .chat-announcement { max-width: 100%; width: min(100%, 680px); padding: 16px; border: 1px solid var(--accent); border-radius: 18px; background: var(--accent-soft); }
+        .chat-announcement h2 { margin: 4px 0 10px; font-size: 22px; line-height: 1.3; overflow-wrap: anywhere; color: var(--text); }
+        .chat-announcement .chat-bubble { background: transparent !important; color: var(--text) !important; padding: 0; }
+        .chat-announcement-editor { display: grid; gap: 10px; padding: 12px; border-top: 1px solid var(--line); }
+        .chat-announcement-editor input { width: 100%; min-width: 0; min-height: 44px; font-size: 16px; padding: 10px; }
         .chat-thread { height: clamp(240px, 58dvh, 580px); overflow-y: auto; padding: 16px; }
         .chat-day { text-align: center; color: var(--muted); font-size: 12px; margin: 14px 0; }
         .chat-line { display: flex; align-items: flex-end; gap: 8px; margin: 0 0 10px; }
@@ -203,8 +211,9 @@ export default function ChatPage() {
                 {(!previous || dayLabel.format(new Date(previous.created_at)) !== day) && <p className="chat-day">{day}</p>}
                 <div className={own ? "chat-line chat-line-own" : "chat-line"}>
                   {!own && <span className="avatar" aria-hidden="true">{photo ? <img src={photo} alt="" /> : sender?.display_name.trim().charAt(0).toLocaleUpperCase("sv-SE") || "?"}</span>}
-                  <div className="chat-message">
+                  <div className={message.announcement_title ? "chat-message chat-announcement" : "chat-message"}>
                     <strong className="chat-sender">{own ? "Du" : sender?.display_name ?? "Familjemedlem"}</strong>
+                    {message.announcement_title && <><span className="chat-sender">🎉 Stort meddelande</span><h2>{message.announcement_title}</h2></>}
                     <p className="chat-bubble">{message.body}</p>
                     <div className="chat-message-meta">
                       <time className="chat-time" dateTime={message.created_at}>{timeLabel.format(date)}</time>
@@ -219,9 +228,13 @@ export default function ChatPage() {
           })}
         </div>
         {(error || messageLoadError) && <p className="section-row" role="alert">{error || messageLoadError}</p>}
+        <div className="chat-announcement-editor">
+          <label><input type="checkbox" style={{width:20,minHeight:20,marginRight:8}} checked={isAnnouncement} disabled={sending || !member} onChange={event=>setIsAnnouncement(event.target.checked)} />Stort meddelande till hela familjen</label>
+          {isAnnouncement && <><label>Rubrik<input value={announcementTitle} maxLength={140} disabled={sending} placeholder="T.ex. Jag har fått nytt jobb!" onChange={event=>setAnnouncementTitle(event.target.value)} /></label><small>Alla i familjen får en notis, även du. Push kräver att mottagarens enhet har push påslaget.</small></>}
+        </div>
         <form className="chat-composer" onSubmit={send}>
-          <input aria-label="Meddelande" value={body} onChange={event => setBody(event.target.value)} placeholder="Skriv ett meddelande" disabled={sending || !member} />
-          <button className="primary" type="submit" disabled={sending || !member || !body.trim()}>{sending ? "Skickar…" : "Skicka"}</button>
+          <input aria-label="Meddelande" value={body} onChange={event => setBody(event.target.value)} placeholder={isAnnouncement ? "Berätta för familjen…" : "Skriv ett meddelande"} disabled={sending || !member} />
+          <button className="primary" type="submit" disabled={sending || !member || !body.trim() || (isAnnouncement && !announcementTitle.trim())}>{sending ? "Skickar…" : isAnnouncement ? "Publicera" : "Skicka"}</button>
         </form>
       </section>
     </main>

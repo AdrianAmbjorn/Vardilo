@@ -61,7 +61,7 @@ test('task completion releases its button after a rejected update', async () => 
 test('chat preserves text and releases sending state when send cannot be confirmed', async () => {
   const state = {};
   const send = handler('app/chat/page.tsx', 'async function send', '\n  async function removeMessage', {
-    member: { id: 'me', family_id: 'family' }, body: 'Hej familjen', sending: false,
+    member: { id: 'me', family_id: 'family' }, body: 'Hej familjen', sending: false, isAnnouncement: false,
     setSending: value => state.sending = value, setError: value => state.error = value,
     setBody: value => state.body = value,
     supabase: { from: () => ({ insert: async () => { throw Error('offline'); } }) },
