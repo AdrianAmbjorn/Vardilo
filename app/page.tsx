@@ -11,6 +11,7 @@ import { useStockholmDate } from "@/lib/use-stockholm-date";
 import { navigationForRole } from "@/lib/app-navigation";
 import HomeLists from "./components/home-lists";
 import ChatNotificationBanner from "./components/chat-notification-banner";
+import { createChatRefresh } from "@/lib/chat-refresh";
 import { greetingForHour } from "@/lib/greeting";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -57,7 +58,39 @@ async function readCalendar(familyId:string){
  }
 }
 useEffect(()=>{let active=true;async function loadHome(){setLoading(true);try{const {data:a,error:authError}=await supabase.auth.getUser();if(authError&&authError.name!=="AuthSessionMissingError")throw authError;if(!a.user){router.replace("/login");return}const {data:me,error:memberError}=await supabase.from("family_members").select("id,family_id,display_name,role,xp_goal,xp_reward").eq("user_id",a.user.id).maybeSingle();if(memberError)throw memberError;if(!me){router.replace("/familj");return}if(me.role==="barn"){const {data:ownTasks}=await supabase.from("family_tasks").select("xp,completed_at,scheduled_date").eq("family_id",me.family_id).eq("assigned_member_id",me.id);if(active){setChildXp((ownTasks??[]).reduce((sum,t)=>sum+(t.completed_at?t.xp:0),0));setChildOpen((ownTasks??[]).filter(t=>taskIsCurrent(t,taskToday)&&!t.completed_at).length)}}const taskQuery=supabase.from("family_tasks").select("id,title,assigned_member_id,xp,completed_at,scheduled_date").eq("family_id",me.family_id).or(`scheduled_date.is.null,scheduled_date.eq.${taskToday}`);const [{data:ms,error:membersError},{data:events,error:eventsError},{data:menuRows,error:menuError},{data:ts,error:tasksError},{data:cs,error:chatError},{count,error:notificationsError},{count:wishlistsCount,error:wishlistsError}]=await Promise.all([supabase.from("family_members").select("id,family_id,display_name,role,xp_goal,xp_reward").eq("family_id",me.family_id).order("created_at"),readCalendar(me.family_id),supabase.from("family_meal_menu").select("id,menu_date,meal").eq("family_id",me.family_id).gte("menu_date",dateKey(weekStart)).lte("menu_date",dateKey(weekDates[6])).order("menu_date"),(me.role==="barn"?taskQuery.eq("assigned_member_id",me.id):taskQuery).order("completed_at",{ascending:true,nullsFirst:true}).order("created_at",{ascending:false}).limit(4),supabase.from("family_chat_messages").select("id,member_id,body,announcement_title,created_at").eq("family_id",me.family_id).order("created_at",{ascending:false}).limit(2),supabase.from("notifications").select("id",{count:"exact",head:true}).eq("recipient_member_id",me.id).is("read_at",null),supabase.from("family_wishlists").select("id",{count:"exact",head:true}).eq("family_id",me.family_id)]);if(!active)return;if(membersError||eventsError||menuError||tasksError||chatError||notificationsError||wishlistsError)setHomeError("Delar av startsidan kunde inte laddas. Uppdatera appen för att försöka igen.");setMember(me);setMembers(ms??[]);setCalendarEvents((events??[]) as CalendarEvent[]);setMenu(menuRows??[]);setTasks((me.role==="barn"?(ts??[]).filter(t=>t.assigned_member_id===me.id):(ts??[])).slice(0,4));setChats((cs??[]).reverse());setUnread(count??0);setWishlistCount(wishlistsError?null:wishlistsCount??0);setMenuEnabled((menuRows??[]).some(r=>r.meal?.trim()));setLoading(false)}catch{if(active)setHomeError("Kunde inte ladda startsidan. Försök att uppdatera appen.")}finally{if(active)setLoading(false)}}loadHome();return()=>{active=false}},[router,supabase,taskToday]);
-useEffect(()=>{if(!member)return;const c=supabase.channel(`home-notifications-${member.id}`).on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications",filter:`recipient_member_id=eq.${member.id}`},()=>setUnread(v=>v+1)).on("postgres_changes",{event:"UPDATE",schema:"public",table:"notifications",filter:`recipient_member_id=eq.${member.id}`},()=>{supabase.from("notifications").select("id",{count:"exact",head:true}).eq("recipient_member_id",member.id).is("read_at",null).then(({count})=>setUnread(count??0))}).subscribe();return()=>{supabase.removeChannel(c)}},[member,supabase]);
+useEffect(() => {
+  if (!member?.id) return;
+  let active = true;
+  const refresh = createChatRefresh(async () => {
+    const {count, error} = await supabase.from("notifications")
+      .select("id", {count:"exact", head:true})
+      .eq("recipient_member_id", member.id).is("read_at", null);
+    if (active && !error) setUnread(count ?? 0);
+  }, () => {});
+  const requestRefresh = () => { if (document.visibilityState === "visible") void refresh.refresh(); };
+  requestRefresh();
+  const channel = supabase.channel(`home-notifications-${member.id}`)
+    .on("postgres_changes", {event:"*", schema:"public", table:"notifications", filter:`recipient_member_id=eq.${member.id}`}, requestRefresh)
+    .subscribe(status => { if (status === "SUBSCRIBED") requestRefresh(); });
+  const timer = window.setInterval(requestRefresh, 15000);
+  window.addEventListener("focus", requestRefresh);
+  window.addEventListener("online", requestRefresh);
+  window.addEventListener("vardilo-notifications-read", requestRefresh);
+  window.addEventListener("vardilo-chat-read", requestRefresh);
+  document.addEventListener("visibilitychange", requestRefresh);
+  return () => {
+    active = false;
+    refresh.stop();
+    window.clearInterval(timer);
+    window.removeEventListener("focus", requestRefresh);
+    window.removeEventListener("online", requestRefresh);
+    window.removeEventListener("vardilo-notifications-read", requestRefresh);
+    window.removeEventListener("vardilo-chat-read", requestRefresh);
+    document.removeEventListener("visibilitychange", requestRefresh);
+    void supabase.removeChannel(channel);
+  };
+}, [member?.id, supabase]);
+
 const canEditMenu=member?.role==="admin"||member?.role==="förälder";useEffect(()=>{setMenuDraft(weekDates.map(d=>menu.find(r=>r.menu_date===dateKey(d))?.meal??""))},[menu]);
 async function saveMenu(){
   if(!member||!canEditMenu||menuSaveLock.current)return;
@@ -80,7 +113,9 @@ const displayName=member?.display_name??"familjen";const todayLabel=new Intl.Dat
 return <main className="shell"><style>{`.event strong{color:var(--text)!important}.event p{color:var(--muted)!important}.tasks .task-row strong,.tasks .task-row p,.chat .message strong,.chat .message p{color:var(--text)!important}
 .profile-photo { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .profile:has(.profile-photo) { padding: 0; }
-.profile-menu-link { display: block; padding: 9px; color: var(--accent); font-size: 13px; font-weight: 700; }
+.profile { position: relative; }
+.profile-unread-dot { position: absolute; top: -2px; right: -2px; width: 11px; height: 11px; border-radius: 50%; background: var(--red); border: 2px solid var(--surface); pointer-events: none; }
+.profile-menu-link { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 9px; color: var(--accent); font-size: 13px; font-weight: 700; }
 .mobile-home-menu { display: none; }
 @media (max-width: 850px) {
   .mobile-home-menu { display: block; margin-bottom: 16px; }
@@ -112,7 +147,7 @@ return <main className="shell"><style>{`.event strong{color:var(--text)!importan
       <Link className="nav-item" href="/familj/admin"><span>{t("Hantera familjen")}</span></Link>
     </nav>
   </details>
-  <header className="topbar"><div><p className="eyebrow">{todayLabel}</p><h1>{t(greeting)}, <span className="red-text">{displayName}.</span></h1></div><div className="profile-wrap"><button className="profile" type="button" aria-label={t("Öppna profilmeny")} aria-expanded={showProfile} onClick={()=>setShowProfile(v=>!v)}>{member && profilePhotos[member.id] ? <img className="profile-photo" src={profilePhotos[member.id]} alt="" /> : displayName.charAt(0).toUpperCase()}</button>{showProfile&&<div className="profile-menu"><div className="profile-menu-name"><strong>{displayName}</strong><span>{language === "en" ? ({admin:"Admin",förälder:"Parent",barn:"Child",familj:"Family member"}[member?.role??""]??member?.role) : member?.role}</span></div>{member && <Link className="profile-menu-link" href="/profil">{t("Min profil")}</Link>}<button type="button" onClick={handleSignOut} disabled={loggingOut}>{loggingOut?t("Loggar ut..."):t("Logga ut")}</button></div>}</div></header><div className="hero-actions"><button className="primary" type="button" onClick={()=>setShowAdd(v=>!v)}>{t("+ Lägg till")}</button></div>{showAdd&&<div className="quick-add" role="dialog" aria-label={t("Lägg till")}><strong>{t("Vad vill du lägga till?")}</strong><div><Link href="/kalender">{t("Händelse")}</Link><Link href="/uppgifter">{t("Uppgift")}</Link><Link href="/hjalp">{t("Hjälp")}</Link><Link href="/listor">{t("Listpunkt")}</Link></div></div>}
+  <header className="topbar"><div><p className="eyebrow">{todayLabel}</p><h1>{t(greeting)}, <span className="red-text">{displayName}.</span></h1></div><div className="profile-wrap"><button className="profile" type="button" aria-label={unread > 0 ? (language === "en" ? "Open profile menu, unread notifications" : "Öppna profilmeny, olästa notiser") : t("Öppna profilmeny")} aria-expanded={showProfile} onClick={()=>setShowProfile(v=>!v)}>{member && profilePhotos[member.id] ? <img className="profile-photo" src={profilePhotos[member.id]} alt="" /> : displayName.charAt(0).toUpperCase()}{unread > 0 && <span className="profile-unread-dot" aria-hidden="true" />}</button>{showProfile&&<div className="profile-menu"><div className="profile-menu-name"><strong>{displayName}</strong><span>{language === "en" ? ({admin:"Admin",förälder:"Parent",barn:"Child",familj:"Family member"}[member?.role??""]??member?.role) : member?.role}</span></div>{member && <Link className="profile-menu-link" href="/profil">{t("Min profil")}</Link>}{member && <Link className="profile-menu-link" href="/notiser" onClick={()=>setShowProfile(false)}>{t("Notiser")}{unread > 0 && <span style={{width:8,height:8,borderRadius:"50%",background:"var(--red)",flexShrink:0}} aria-label={language === "en" ? "Unread notifications" : "Olästa notiser"} />}</Link>}<button type="button" onClick={handleSignOut} disabled={loggingOut}>{loggingOut?t("Loggar ut..."):t("Logga ut")}</button></div>}</div></header><div className="hero-actions"><button className="primary" type="button" onClick={()=>setShowAdd(v=>!v)}>{t("+ Lägg till")}</button></div>{showAdd&&<div className="quick-add" role="dialog" aria-label={t("Lägg till")}><strong>{t("Vad vill du lägga till?")}</strong><div><Link href="/kalender">{t("Händelse")}</Link><Link href="/uppgifter">{t("Uppgift")}</Link><Link href="/hjalp">{t("Hjälp")}</Link><Link href="/listor">{t("Listpunkt")}</Link></div></div>}
 <HomePreferences memberId={member?.id ?? null} isChild={member?.role === "barn"}>
 <HomeSection id="budget">{(member?.role==="admin"||member?.role==="förälder")&&<section className="card" style={{marginTop:18}}><div className="card-heading"><h3>{t("💰 Vår budget")}</h3><Link href="/budget">{t("Öppna budgeten")}</Link></div><p className="muted">{t("Månadens intäkter, kostnader och det ni delar på.")}</p></section>}</HomeSection>
 <HomeSection id="meals"><section className="card meal-menu" style={{marginTop:18}}><div className="card-heading"><h3>{t("Veckans mat")}</h3>{canEditMenu&&<button type="button" className="secondary" disabled={savingMenu} onClick={()=>{if(showMenuEditor){setMenuDraft(weekDates.map(d=>menu.find(r=>r.menu_date===dateKey(d))?.meal??""));setMenuError("")}setShowMenuEditor(v=>!v)}}>{showMenuEditor?t("Stäng"):t("Redigera meny")}</button>}</div>{menuError&&<p role="alert" className="family-admin-error">{t(menuError)}</p>}{!menuEnabled&&!showMenuEditor?<div><p className="muted">{t("Ingen matmeny är upplagd ännu.")}</p>{canEditMenu&&<button type="button" className="primary" onClick={()=>setShowMenuEditor(true)}>{t("Lägg till veckans meny")}</button>}</div>:showMenuEditor?<div className="family-admin-form">{weekDays.map((day,i)=><label className="family-admin-field" key={day}><span>{t(day)}</span><input style={{color:"var(--red)"}} value={menuDraft[i]} onChange={e=>setMenuDraft(d=>d.map((v,j)=>j===i?e.target.value:v))} placeholder={t("T.ex. tacos")}/></label>)}<div className="hero-actions"><button className="primary" type="button" onClick={saveMenu} disabled={savingMenu}>{savingMenu?t("Sparar..."):t("Spara veckans meny")}</button><button className="secondary" type="button" disabled={savingMenu} onClick={()=>{setMenuDraft(weekDates.map(d=>menu.find(r=>r.menu_date===dateKey(d))?.meal??""));setMenuError("");setShowMenuEditor(false)}}>{t("Avbryt")}</button></div></div>:<><div className="home-meal-today"><small>{t("Idag")}</small><strong>{menuDraft[(today.getDay()+6)%7]||"Ingen maträtt planerad"}</strong></div><details className="home-meal-week"><summary>{t("Hela veckans meny")}</summary><div className="grid" style={{gridTemplateColumns:"repeat(2,minmax(0,1fr))"}}>{weekDays.map((day,i)=><div className="event" key={day}><div className="time">{t(day).slice(0,3)}</div><div><strong style={{color:"var(--red)"}}>{menuDraft[i]||"–"}</strong><p>{dateKey(weekDates[i])===dateKey(today)?t("Idag"):""}</p></div></div>)}</div></details></>}</section></HomeSection>
