@@ -4,6 +4,7 @@ const { readFileSync } = require('node:fs');
 const { stripTypeScriptTypes } = require('node:module');
 const source = stripTypeScriptTypes(readFileSync('lib/daily-tasks.ts','utf8')).replace(/export /g,'');
 const { stockholmDate, taskIsCurrent, canCompleteDailyTask } = new Function(`${source};return {stockholmDate,taskIsCurrent,canCompleteDailyTask}`)();
+const periodCode=stripTypeScriptTypes(readFileSync('lib/task-period.ts','utf8')).replaceAll('export ','');const periodHelpers=new Function(`${periodCode};return {taskPeriodDays,taskPeriodEnd}`)();
 const task={scheduled_date:'2026-11-06',completed_at:null,assigned_member_id:'child'};
 test('daily completion is limited to the assigned child and the current Stockholm day',()=>{
  assert.equal(canCompleteDailyTask(task,{id:'child',role:'barn'},'2026-11-06'),true);
@@ -31,7 +32,7 @@ function renderTasks(role,done=false){
  const states=[member,[{...member,display_name:'Test',xp_goal:500}],false,null,'500','',false,[{...task,id:'daily',title:'Bädda sängen',xp:20,due_at:'2026-11-06T12:00:00Z',daily_series_id:'series',series_start:'2026-11-06',series_end:'2026-11-08',completed_at:done?'2026-11-06T09:00:00Z':null}]];states[27]=false;
  let cursor=0;
  const hooks={...React,useMemo:fn=>fn(),useEffect:()=>{},useRef:value=>({current:value}),useState:initial=>[cursor in states?states[cursor++]: (cursor++,initial),()=>{}]};
- const Page=component('app/uppgifter/page.tsx',{react:hooks,'@/lib/supabase/client':{createClient:()=>({})},'@/lib/daily-tasks':{taskIsCurrent,canCompleteDailyTask},'@/lib/use-stockholm-date':{useStockholmDate:()=> '2026-11-06'}});
+ const Page=component('app/uppgifter/page.tsx',{react:hooks,'@/lib/supabase/client':{createClient:()=>({})},'@/lib/task-period':periodHelpers,'@/lib/daily-tasks':{taskIsCurrent,canCompleteDailyTask},'@/lib/use-stockholm-date':{useStockholmDate:()=> '2026-11-06'}});
  return renderToStaticMarkup(React.createElement(Page));
 }
 test('daily task UI gives parents status only and shows a green check for a completed day',()=>{
