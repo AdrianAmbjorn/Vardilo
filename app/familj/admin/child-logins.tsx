@@ -16,6 +16,7 @@ export default function ChildLogins({ members, onChanged }: { members: Child[]; 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [guardianConfirmed, setGuardianConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -40,11 +41,12 @@ export default function ChildLogins({ members, onChanged }: { members: Child[]; 
     event.preventDefault();
     if (lock.current) return;
     const login = logins.find(item => item.member_id === child.id);
+    if (!login && !guardianConfirmed) { setError("Bekräfta först att du är barnets vårdnadshavare."); return; }
     if (!login && !validChildUsername(username)) { setError("Användarnamnet ska vara 3–30 tecken: a–z, siffror, bindestreck eller understreck."); return; }
     if (password.length < 10 || password.length > 128 || password !== confirm) { setError("Ange samma lösenord i båda fälten, med 10–128 tecken."); return; }
     lock.current = true; setBusy(true); setError(""); setMessage("");
     try {
-      const { data, error } = await supabase.functions.invoke("manage-child-login", { body: { action: login ? "reset" : "create", memberId: child.id, username: normalizeChildUsername(username), password } });
+      const { data, error } = await supabase.functions.invoke("manage-child-login", { body: { action: login ? "reset" : "create", memberId: child.id, username: normalizeChildUsername(username), password, guardianConfirmed } });
       if (error) {
         const response = error.context;
         if (response instanceof Response) {
@@ -76,10 +78,11 @@ export default function ChildLogins({ members, onChanged }: { members: Child[]; 
         <p className="muted">{login ? `${login.username} · ${login.parent_email}` : child.user_id ? "Inloggning kopplad till ett annat konto." : "Ingen inloggning ännu."}</p>
         {editing === child.id ? <form onSubmit={event => void save(event, child)} style={{ display: "grid", gap: 12, maxWidth: 420 }}>
           {!login && <><p className="muted">Kopplas till {parentEmail}</p><label className="family-admin-field"><span>Barnets användarnamn</span><input value={username} disabled={busy} onChange={event => setUsername(event.target.value)} autoCapitalize="none" autoCorrect="off" autoComplete="off" maxLength={30} required /></label></>}
+          {!login && <label style={{display:"flex",gap:10,alignItems:"flex-start"}}><input type="checkbox" required checked={guardianConfirmed} disabled={busy} onChange={event=>setGuardianConfirmed(event.target.checked)} /><span>Jag är barnets vårdnadshavare och har läst <a href="/barn-och-integritet" target="_blank" rel="noopener noreferrer">informationen om barnkonton</a>. Jag har förklarat för barnet vilka uppgifter som delas med familjen.</span></label>}
           <label className="family-admin-field"><span>{login ? "Nytt lösenord" : "Barnets lösenord"}</span><input type="password" value={password} disabled={busy} onChange={event => setPassword(event.target.value)} minLength={10} maxLength={128} autoComplete="new-password" required /></label>
           <label className="family-admin-field"><span>Upprepa lösenordet</span><input type="password" value={confirm} disabled={busy} onChange={event => setConfirm(event.target.value)} minLength={10} maxLength={128} autoComplete="new-password" required /></label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}><button type="submit" className="primary" disabled={busy}>{busy ? "Sparar…" : login ? "Byt lösenord" : "Skapa barninloggning"}</button><button type="button" className="secondary" disabled={busy} onClick={() => { setEditing(null); setPassword(""); setConfirm(""); }}>Avbryt</button></div>
-        </form> : (login || canCreate) && <button type="button" className="secondary" disabled={busy} onClick={() => { setEditing(child.id); setUsername(login?.username ?? ""); setPassword(""); setConfirm(""); setError(""); setMessage(""); }}>{login ? "Byt barnets lösenord" : "Skapa barninloggning"}</button>}
+        </form> : (login || canCreate) && <button type="button" className="secondary" disabled={busy} onClick={() => { setGuardianConfirmed(false); setEditing(child.id); setUsername(login?.username ?? ""); setPassword(""); setConfirm(""); setError(""); setMessage(""); }}>{login ? "Byt barnets lösenord" : "Skapa barninloggning"}</button>}
       </div>;
     })}
     {!loading && !members.some(member => member.role === "barn") && <p className="muted">Lägg till en familjemedlem med rollen Barn för att skapa en barninloggning.</p>}

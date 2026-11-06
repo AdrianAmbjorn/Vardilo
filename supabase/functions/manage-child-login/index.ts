@@ -27,6 +27,7 @@ Deno.serve(async (request: Request) => {
       if (error) return response({ error: "Kunde inte ändra lösenordet. Försök igen." }, 400);
       return response({ message: "Barnets lösenord är ändrat." });
     }
+    if (raw.guardianConfirmed !== true) return response({ error: "Bekräfta att du är barnets vårdnadshavare och har läst barninformationen." }, 400);
     if (child.user_id) return response({ error: "Barnet har redan en inloggning." }, 409);
     const username = typeof raw.username === "string" ? normalizeChildUsername(raw.username) : "";
     if (!validChildUsername(username)) return response({ error: "Användarnamnet ska vara 3–30 tecken: a–z, siffror, bindestreck eller understreck." }, 400);
@@ -34,7 +35,7 @@ Deno.serve(async (request: Request) => {
     const email = await childLoginEmail(parentEmail, username);
     const { data: created, error: createError } = await admin.auth.admin.createUser({ email, password, email_confirm: true, app_metadata: { parent_managed_child: true }, user_metadata: { display_name: child.display_name } });
     if (createError || !created.user) return response({ error: "Kunde inte skapa inloggningen. Användarnamnet kan redan vara upptaget – prova ett annat." }, 400);
-    const { error: linkError } = await admin.rpc("link_parent_managed_child", { p_member_id: child.id, p_child_user_id: created.user.id, p_guardian_user_id: auth.user.id, p_parent_email: parentEmail, p_username: username });
+    const { error: linkError } = await admin.rpc("link_child_with_guardian_ack", { p_member_id: child.id, p_child_user_id: created.user.id, p_guardian_user_id: auth.user.id, p_parent_email: parentEmail, p_username: username, p_guardian_confirmed: true });
     if (linkError) {
       await admin.auth.admin.deleteUser(created.user.id);
       return response({ error: "Kunde inte koppla inloggningen. Ladda om familjen och försök igen." }, 409);

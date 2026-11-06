@@ -1,25 +1,41 @@
-# Vardilo – tredjepartslicenser (pågående inventering)
+# Vardilo – licensinventering 2026-11-06
 
-Senast kontrollerad: 2026-11-05. Denna fil är en intern inventering, **inte** en fullständig eller juridiskt godkänd licensförteckning.
+Status: teknisk inventering utförd; inte ett juridiskt godkännande av samtliga distributionsvillkor.
 
-| Direkt beroende | Angiven version i package.json | Licens / status | Källa |
-| --- | --- | --- | --- |
-| next | latest | MIT; exakt installerad version behöver låsas | https://github.com/vercel/next.js/blob/canary/license.md |
-| react | latest | MIT | https://github.com/facebook/react/blob/main/LICENSE |
-| react-dom | latest | MIT | https://github.com/facebook/react/blob/main/LICENSE |
-| @supabase/supabase-js | latest | MIT | https://github.com/supabase/supabase-js/blob/master/LICENSE |
-| @supabase/ssr | latest | MIT; kontrollera exakt version | https://github.com/supabase/ssr |
-| ical.js | 2.2.1 | MPL-2.0; kontrollera tillämpliga filbaserade skyldigheter | https://github.com/kewisch/ical.js |
-| heic-to | 1.6.7 | **LGPL-3.0**; kräver särskild granskning av webbundling, tillgänglig källkod, notiser och möjlighet att ersätta LGPL-komponenten | https://www.npmjs.com/package/heic-to |
-| @types/node, @types/react, @types/react-dom, typescript | latest | Utvecklingsberoenden; verifiera låsta versioner och licenser | respektive npm-paket |
+## Låsta direkta beroenden
 
-## Måste göras innan extern kommersiell distribution
+| Paket | Version | Licens enligt installerat paket |
+|---|---|---|
+| next | 16.4.5 | MIT |
+| react, react-dom | 19.3.1 | MIT |
+| @supabase/supabase-js | 2.119.0 | MIT |
+| @supabase/ssr | 0.12.7 | MIT |
+| ical.js | 2.2.1 | MPL-2.0 |
+| typescript | 7.0.2 | Apache-2.0 |
+| @types/node | 26.6.6 | MIT |
+| @types/react, @types/react-dom | 19.3.0 | MIT |
 
-1. Generera och checka in reproducerbar låsfil och lås direkta beroenden; gör ändringen på separat gren och verifiera byggning innan merge.
-2. Inventera **hela installerade beroendeträdet** inklusive transitive dependencies, WASM/binärfiler och tillhörande licenstexter. Skapa komplett NOTICES-fil.
-3. Granska hur `heic-to` (och inbäddade libheif/libde265) levereras till webbläsaren mot LGPL-3.0. Överväg ett annat bibliotek eller separat utbytbar distribution efter teknisk/juridisk bedömning.
-4. Kontrollera MPL-2.0-villkor för `ical.js`, särskilt om bibliotekets filer modifieras och distribueras.
-5. Inventera externa bilder, logotyper, ikoner, typsnitt, användargenererat material och tredjeparts-API:er separat.
-6. Kontrollera även Supabase Edge Functions och deras npm-/WASM-beroenden.
+`heic-to` är borttaget ur package.json, låsfil och klientkod. Ingen ersättande HEIC-konverterare har lagts till. Webbläsarens egna bildavkodning används; utan inbyggt HEIC-stöd visas instruktion att exportera som JPEG. Äldre immutable Vercel-deployments kan fortfarande innehålla biblioteket. Avlägsnandet innebär inte ett retroaktivt juridiskt godkännande av tidigare distributioner; behåll dessa versionsuppgifter för granskning och återställning.
 
-Vardilos egen källkod är inte automatiskt öppen källkod bara för att den använder open-source-paket. Avsaknad av en LICENSE-fil innebär inte att tredje parts licenser upphör att gälla.
+## Inventering och notiser
+
+- `dependency-licenses.json` innehåller npm-låsfilens paket, plattformsberoende paket, installerade Next.js-bundlar och separat npm-upplösning av Edge-beroenden.
+- `public/third-party-notices.txt` innehåller de licens- och NOTICE-filer som faktiskt följde med installationen, inklusive utvecklingsverktyg och serverkomponenter.
+- Generera om med `node scripts/license-inventory.mjs` efter `npm ci` och separat installation i `docs/edge-dependencies`.
+- Vissa av Next.js interna vendorpaket saknar fristående LICENSE-fil eller versionsuppgift. De är markerade i inventeringen och måste bedömas mot den levererade Next.js-källan; rapporten döljer inte dessa luckor.
+
+## Copyleft som finns kvar
+
+`ical.js` är oförändrat MPL-2.0-material som används vid kalenderimport i webbläsaren. Källan görs tillgänglig via `/vendor/ical.js-2.2.1/source-index.txt`, med ursprunglig LICENSE och package.json. Appens övriga kod ges inte automatiskt MPL-licens. Se Mozilla: https://www.mozilla.org/en-US/MPL/2.0/FAQ/
+
+Next.js har kvar server-/byggberoenden på `sharp`/`libvips`, inklusive LGPL-licensierade bibliotek och en valfri WASM-variant med sammansatta licenser. Dessa är inte den borttagna HEIC-konverteraren och ska inte beskrivas som att all LGPL är borta. Nexts ikonrenderare `@vercel/og` är MPL-2.0 och innehåller ytterligare tredjepartsmaterial. Serverdrift och leverans av klient-JavaScript är olika distributionsfall; eventuell vidareleverans av serverbinärer kräver ny bedömning. Licensinformationen från libvips-paketets README ingår i notiserna.
+
+## Edge Functions
+
+`manage-child-login` importerar @supabase/supabase-js 2.119.0. `calendar-push` importerar 2.106.2 och web-push 3.6.7 (MPL-2.0), med @types/web-push 3.6.4 som typberoende. Direktversionerna är fixerade.
+
+`docs/edge-dependencies/package-lock.json` är en separat npm-inventering/sårbarhetssnapshot. Den ska **inte** förväxlas med en Deno-låsfil som används i Supabases bundling. Lokal framtagning av en komplett Deno-låsfil kunde inte verifieras eftersom Deno nekades anslutning till npm-registret i arbetsmiljön. Ingen fabricerad låsfil har lagts in. En kontrollerad Deno-resolvermiljö och serverns bundlingsstöd behöver verifieras innan transienta Edge-beroenden kan kallas fullt reproducerbara.
+
+## Övriga tillgångar
+
+Appens husikon skapas i kod. Ingen extern bildbank, webbfontimport eller annonserings-SDK identifierades i granskad appkod. Profilbilder är användarinnehåll. Rättigheter till namn, varumärke, tidigare bidrag och överföring till ett framtida bolag behöver dokumenteras separat. Inventeringen är inte ett besked om varumärkesskydd eller slutlig licensförenlighet.

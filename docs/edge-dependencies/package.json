@@ -1,0 +1,1 @@
+{"name":"vardilo-edge-dependency-audit","version":"1.0.0","private":true,"dependencies":{"supabase-child":"npm:@supabase/supabase-js@2.119.0","supabase-push":"npm:@supabase/supabase-js@2.106.2","web-push":"3.6.7"}}

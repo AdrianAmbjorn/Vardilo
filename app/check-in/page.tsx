@@ -50,6 +50,7 @@ export default function CheckInPage() {
   const [selectedKnownPlaceId, setSelectedKnownPlaceId] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mapApproved, setMapApproved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -100,6 +101,8 @@ try {
   for (const item of checkIns) if (!latestByMember.has(item.member_id)) latestByMember.set(item.member_id, item);
   const visibleCheckIns = checkIns.filter((item) => currentMember?.role === "admin" || currentMember?.role === "förälder" || item.member_id === currentMember?.id);
   const latest = visibleCheckIns.find(item => item.member_id === currentMember?.id);
+
+  useEffect(() => { setMapApproved(false); }, [latest?.id]);
 
   function selectKnownPlace(placeId: string) {
     setSelectedKnownPlaceId(placeId);
@@ -253,7 +256,7 @@ try {
           <section className="card" style={{ marginTop: 20 }}>
             <div className="card-heading"><h3>Karta</h3><span>{memberById.get(latest.member_id)?.display_name ?? ""}</span></div>
             <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid var(--line)" }}>
-              <iframe title="Senaste check-in på karta" src={`https://www.openstreetmap.org/export/embed.html?bbox=${latest.longitude - 0.01}%2C${latest.latitude - 0.006}%2C${latest.longitude + 0.01}%2C${latest.latitude + 0.006}&layer=mapnik&marker=${latest.latitude}%2C${latest.longitude}`} style={{ width: "100%", height: 360, border: 0 }} loading="lazy" />
+              {mapApproved ? <><button className="secondary" type="button" onClick={()=>setMapApproved(false)}>Dölj kartan</button><iframe referrerPolicy="no-referrer" title="Senaste check-in på karta" src={`https://www.openstreetmap.org/export/embed.html?bbox=${latest.longitude - 0.01}%2C${latest.latitude - 0.006}%2C${latest.longitude + 0.01}%2C${latest.latitude + 0.006}&layer=mapnik&marker=${latest.latitude}%2C${latest.longitude}`} style={{ width: "100%", height: 360, border: 0 }} loading="lazy" /></> : <div style={{padding:20}}><p>Om du öppnar kartan skickas den här platsen och din IP-adress till OpenStreetMap. Din check-in är redan sparad i Vardilo.</p><button type="button" className="secondary" onClick={()=>setMapApproved(true)}>Visa karta från OpenStreetMap</button></div>}
             </div>
           </section>
         )}

@@ -44,3 +44,5 @@
 @media (max-height: 700px) {
   .login-page { align-items: start; }
 }
+
+.login-form select{width:100%;min-height:44px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd;color:var(--text);font:inherit}

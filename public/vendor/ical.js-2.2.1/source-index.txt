@@ -1,0 +1,26 @@
+Unmodified ical.js 2.2.1 preferred source files (MPL-2.0).
+Upstream: https://github.com/kewisch/ical.js
+
+/vendor/ical.js-2.2.1/LICENSE
+/vendor/ical.js-2.2.1/lib/ical/binary.js
+/vendor/ical.js-2.2.1/lib/ical/component.js
+/vendor/ical.js-2.2.1/lib/ical/component_parser.js
+/vendor/ical.js-2.2.1/lib/ical/design.js
+/vendor/ical.js-2.2.1/lib/ical/duration.js
+/vendor/ical.js-2.2.1/lib/ical/event.js
+/vendor/ical.js-2.2.1/lib/ical/helpers.js
+/vendor/ical.js-2.2.1/lib/ical/module.js
+/vendor/ical.js-2.2.1/lib/ical/parse.js
+/vendor/ical.js-2.2.1/lib/ical/period.js
+/vendor/ical.js-2.2.1/lib/ical/property.js
+/vendor/ical.js-2.2.1/lib/ical/recur.js
+/vendor/ical.js-2.2.1/lib/ical/recur_expansion.js
+/vendor/ical.js-2.2.1/lib/ical/recur_iterator.js
+/vendor/ical.js-2.2.1/lib/ical/stringify.js
+/vendor/ical.js-2.2.1/lib/ical/time.js
+/vendor/ical.js-2.2.1/lib/ical/timezone.js
+/vendor/ical.js-2.2.1/lib/ical/timezone_service.js
+/vendor/ical.js-2.2.1/lib/ical/types.js
+/vendor/ical.js-2.2.1/lib/ical/utc_offset.js
+/vendor/ical.js-2.2.1/lib/ical/vcard_time.js
+/vendor/ical.js-2.2.1/package.json

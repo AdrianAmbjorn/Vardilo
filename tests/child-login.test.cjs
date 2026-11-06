@@ -47,7 +47,7 @@ function edge(scenario = {}) {
   new Function('createClient','Deno','childLoginEmail','normalizeChildUsername','validChildUsername',source)(()=>admin,{ env:{get:()=> 'test'},serve:fn=>handler=fn },childLoginEmail,v=>v.trim().toLowerCase(),validChildUsername);
   return { calls, run: (body, token='valid') => handler(new Request('https://example.test', { method:'POST', headers: token ? {Authorization:`Bearer ${token}`,'Content-Type':'application/json'} : {'Content-Type':'application/json'},body:JSON.stringify(body) })) };
 }
-const createBody = { action:'create',memberId:'11111111-1111-4111-8111-111111111111',username:'Alice',password:'long-child-password' };
+const createBody = { action:'create',memberId:'11111111-1111-4111-8111-111111111111',username:'Alice',guardianConfirmed:true,password:'long-child-password' };
 
 test('anonymous, invalid session, child actor, foreign-family child are denied', async () => {
   for (const [scenario,token,status] of [[{},'',401],[{invalidToken:true},'bad',401],[{childActor:true},'valid',403],[{foreignChild:true},'valid',403]]) {
@@ -84,3 +84,5 @@ test('short passwords are rejected without creating an account', async () => {
   const e=edge(); assert.equal((await e.run({...createBody,password:'123'})).status,400);
   assert(!e.calls.some(call=>call[0]==='create'));
 });
+
+test('a child account is not created without an explicit guardian acknowledgement',async()=>{const e=edge();assert.equal((await e.run({...createBody,guardianConfirmed:false})).status,400);assert(!e.calls.some(call=>call[0]==='create'))});

@@ -4,3 +4,8 @@ out/
 .env
 .env.local
 .vercel/
+
+.audit/
+
+*.tsbuildinfo
+supabase/.temp/

@@ -14,21 +14,12 @@ async function loadPhoto(file: File) {
     throw new Error("Välj en JPEG-, PNG-, WebP-, HEIC- eller HEIF-bild på högst 12 MB.");
   }
 
-  let source: Blob = file;
-  if (heic) {
-    try {
-      const { heicTo } = await import("heic-to");
-      source = await heicTo({ blob: file, type: "image/jpeg", quality: 0.9 });
-    } catch {
-      throw new Error("Kunde inte läsa HEIC-bilden. Prova en annan bild.");
-    }
-  }
-
-  const url = URL.createObjectURL(source);
+  const url = URL.createObjectURL(file);
   try {
     const image = new Image();
     image.src = url;
-    await image.decode();
+    try { await image.decode(); }
+    catch { throw new Error(heic ? "Din webbläsare kan inte öppna den här HEIC-bilden. Välj en JPEG-, PNG- eller WebP-bild, eller exportera bilden som JPEG från Bilder." : "Kunde inte läsa bilden."); }
     if (!image.naturalWidth || !image.naturalHeight) throw new Error("Kunde inte läsa bilden.");
     return image;
   } finally {
@@ -181,6 +172,7 @@ export default function ProfilePage() {
             </div>
             <p>{member.display_name}</p>
             <LanguagePicker />
+            <p><Link href="/integritet">Integritet</Link> · <Link href="/villkor">Testvillkor</Link> · <Link href="/barn-och-integritet">Barnkonton</Link></p>
             <BirthdaySettings memberId={member.id} />
             {preparing && <p role="status">{t("Förbereder förhandsvisning…")}</p>}
             <p className="muted">{t("Bilden visas för familjen och beskärs till en kvadrat.")}</p>

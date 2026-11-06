@@ -1,0 +1,3049 @@
+{
+  "generated": "2026-11-06",
+  "lockfileVersion": 3,
+  "entries": [
+    {
+      "name": "@supabase/auth-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/@supabase/auth-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/auth-js"
+      }
+    },
+    {
+      "name": "@supabase/functions-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/@supabase/functions-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/functions-js"
+      }
+    },
+    {
+      "name": "@supabase/phoenix",
+      "version": "0.4.5",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/@supabase/phoenix",
+      "licenseFiles": [
+        "LICENSE.md"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/supabase/phoenix.git"
+      }
+    },
+    {
+      "name": "@supabase/postgrest-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/@supabase/postgrest-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/postgrest-js"
+      }
+    },
+    {
+      "name": "@supabase/realtime-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/@supabase/realtime-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/realtime-js"
+      }
+    },
+    {
+      "name": "@supabase/storage-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/@supabase/storage-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/storage-js"
+      }
+    },
+    {
+      "name": "agent-base",
+      "version": "7.1.4",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/agent-base",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/TooTallNate/proxy-agents.git",
+        "directory": "packages/agent-base"
+      }
+    },
+    {
+      "name": "asn1.js",
+      "version": "5.4.1",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/asn1.js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git@github.com:indutny/asn1.js"
+      }
+    },
+    {
+      "name": "bn.js",
+      "version": "4.12.5",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/bn.js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git@github.com:indutny/bn.js"
+      }
+    },
+    {
+      "name": "buffer-equal-constant-time",
+      "version": "1.0.1",
+      "license": "BSD-3-Clause",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/buffer-equal-constant-time",
+      "licenseFiles": [
+        "LICENSE.txt"
+      ],
+      "repository": "git@github.com:goinstant/buffer-equal-constant-time.git"
+    },
+    {
+      "name": "debug",
+      "version": "4.4.3",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/debug",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/debug-js/debug.git"
+      }
+    },
+    {
+      "name": "ecdsa-sig-formatter",
+      "version": "1.0.11",
+      "license": "Apache-2.0",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/ecdsa-sig-formatter",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/Brightspace/node-ecdsa-sig-formatter.git"
+      }
+    },
+    {
+      "name": "http_ece",
+      "version": "1.2.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/http_ece",
+      "licenseFiles": [],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/martinthomson/encrypted-content-encoding.git"
+      }
+    },
+    {
+      "name": "https-proxy-agent",
+      "version": "7.0.6",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/https-proxy-agent",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/TooTallNate/proxy-agents.git",
+        "directory": "packages/https-proxy-agent"
+      }
+    },
+    {
+      "name": "iceberg-js",
+      "version": "0.8.1",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/iceberg-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/iceberg-js"
+      }
+    },
+    {
+      "name": "inherits",
+      "version": "2.0.4",
+      "license": "ISC",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/inherits",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "git://github.com/isaacs/inherits"
+    },
+    {
+      "name": "jwa",
+      "version": "2.0.1",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/jwa",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/brianloveswords/node-jwa.git"
+      }
+    },
+    {
+      "name": "jws",
+      "version": "4.0.1",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/jws",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/brianloveswords/node-jws.git"
+      }
+    },
+    {
+      "name": "minimalistic-assert",
+      "version": "1.0.1",
+      "license": "ISC",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/minimalistic-assert",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/calvinmetcalf/minimalistic-assert.git"
+      }
+    },
+    {
+      "name": "minimist",
+      "version": "1.2.8",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/minimist",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/minimistjs/minimist.git"
+      }
+    },
+    {
+      "name": "ms",
+      "version": "2.1.3",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/ms",
+      "licenseFiles": [
+        "license.md"
+      ],
+      "repository": "vercel/ms"
+    },
+    {
+      "name": "safe-buffer",
+      "version": "5.2.1",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/safe-buffer",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/feross/safe-buffer.git"
+      }
+    },
+    {
+      "name": "safer-buffer",
+      "version": "2.1.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/safer-buffer",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ChALkeR/safer-buffer.git"
+      }
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-child",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/supabase-js"
+      }
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "version": "2.106.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-push",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/supabase-js"
+      }
+    },
+    {
+      "name": "@supabase/auth-js",
+      "version": "2.106.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-push/node_modules/@supabase/auth-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/auth-js"
+      }
+    },
+    {
+      "name": "@supabase/functions-js",
+      "version": "2.106.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-push/node_modules/@supabase/functions-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/functions-js"
+      }
+    },
+    {
+      "name": "@supabase/postgrest-js",
+      "version": "2.106.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-push/node_modules/@supabase/postgrest-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/postgrest-js"
+      }
+    },
+    {
+      "name": "@supabase/realtime-js",
+      "version": "2.106.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-push/node_modules/@supabase/realtime-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/realtime-js"
+      }
+    },
+    {
+      "name": "@supabase/storage-js",
+      "version": "2.106.2",
+      "license": "MIT",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/supabase-push/node_modules/@supabase/storage-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/storage-js"
+      }
+    },
+    {
+      "name": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/tslib",
+      "licenseFiles": [
+        "LICENSE.txt"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Microsoft/tslib.git"
+      }
+    },
+    {
+      "name": "web-push",
+      "version": "3.6.7",
+      "license": "MPL-2.0",
+      "kind": "edge-audit-resolution",
+      "path": "docs/edge-dependencies/node_modules/web-push",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/web-push-libs/web-push.git"
+      }
+    },
+    {
+      "name": "@emnapi/runtime",
+      "version": "1.11.3",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@emnapi/runtime",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/toyobayashi/emnapi.git"
+      }
+    },
+    {
+      "name": "@img/colour",
+      "version": "1.1.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@img/colour",
+      "licenseFiles": [
+        "LICENSE.md"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/colour.git"
+      }
+    },
+    {
+      "name": "@img/sharp-darwin-arm64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-darwin-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-darwin-x64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-darwin-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-freebsd-wasm32",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-freebsd-wasm32",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-darwin-arm64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-darwin-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-darwin-x64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-darwin-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linux-arm",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-linux-arm",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linux-arm64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-linux-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linux-ppc64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-linux-ppc64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linux-riscv64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-linux-riscv64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linux-s390x",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-linux-s390x",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linux-x64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "runtime",
+      "path": "node_modules/@img/sharp-libvips-linux-x64",
+      "licenseFiles": [
+        "README.md"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/sharp-libvips.git",
+        "directory": "npm/linux-x64"
+      }
+    },
+    {
+      "name": "@img/sharp-libvips-linuxmusl-arm64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-libvips-linuxmusl-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-libvips-linuxmusl-x64",
+      "version": "1.3.4",
+      "license": "LGPL-3.0-or-later",
+      "kind": "runtime",
+      "path": "node_modules/@img/sharp-libvips-linuxmusl-x64",
+      "licenseFiles": [
+        "README.md"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/sharp-libvips.git",
+        "directory": "npm/linuxmusl-x64"
+      }
+    },
+    {
+      "name": "@img/sharp-linux-arm",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-linux-arm",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-linux-arm64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-linux-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-linux-ppc64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-linux-ppc64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-linux-riscv64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-linux-riscv64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-linux-s390x",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-linux-s390x",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-linux-x64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "runtime",
+      "path": "node_modules/@img/sharp-linux-x64",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/sharp.git",
+        "directory": "npm/linux-x64"
+      }
+    },
+    {
+      "name": "@img/sharp-linuxmusl-arm64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-linuxmusl-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-linuxmusl-x64",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "runtime",
+      "path": "node_modules/@img/sharp-linuxmusl-x64",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/sharp.git",
+        "directory": "npm/linuxmusl-x64"
+      }
+    },
+    {
+      "name": "@img/sharp-wasm32",
+      "version": "0.35.5",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+      "kind": "runtime",
+      "path": "node_modules/@img/sharp-wasm32",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/sharp.git",
+        "directory": "npm/wasm32"
+      }
+    },
+    {
+      "name": "@img/sharp-webcontainers-wasm32",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-webcontainers-wasm32",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-win32-arm64",
+      "version": "0.35.5",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-win32-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-win32-ia32",
+      "version": "0.35.5",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-win32-ia32",
+      "licenseFiles": []
+    },
+    {
+      "name": "@img/sharp-win32-x64",
+      "version": "0.35.5",
+      "license": "Apache-2.0 AND LGPL-3.0-or-later",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@img/sharp-win32-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@next/env",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@next/env",
+      "licenseFiles": [],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/vercel/next.js",
+        "directory": "packages/next-env"
+      }
+    },
+    {
+      "name": "@next/swc-darwin-arm64",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@next/swc-darwin-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@next/swc-darwin-x64",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@next/swc-darwin-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@next/swc-linux-arm64-gnu",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@next/swc-linux-arm64-gnu",
+      "licenseFiles": []
+    },
+    {
+      "name": "@next/swc-linux-arm64-musl",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@next/swc-linux-arm64-musl",
+      "licenseFiles": []
+    },
+    {
+      "name": "@next/swc-linux-x64-gnu",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@next/swc-linux-x64-gnu",
+      "licenseFiles": [],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/vercel/next.js",
+        "directory": "crates/next-napi-bindings/npm/linux-x64-gnu"
+      }
+    },
+    {
+      "name": "@next/swc-linux-x64-musl",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@next/swc-linux-x64-musl",
+      "licenseFiles": [],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/vercel/next.js",
+        "directory": "crates/next-napi-bindings/npm/linux-x64-musl"
+      }
+    },
+    {
+      "name": "@next/swc-win32-arm64-msvc",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@next/swc-win32-arm64-msvc",
+      "licenseFiles": []
+    },
+    {
+      "name": "@next/swc-win32-x64-msvc",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@next/swc-win32-x64-msvc",
+      "licenseFiles": []
+    },
+    {
+      "name": "@supabase/auth-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/auth-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/auth-js"
+      }
+    },
+    {
+      "name": "@supabase/functions-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/functions-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/functions-js"
+      }
+    },
+    {
+      "name": "@supabase/phoenix",
+      "version": "0.4.5",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/phoenix",
+      "licenseFiles": [
+        "LICENSE.md"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/supabase/phoenix.git"
+      }
+    },
+    {
+      "name": "@supabase/postgrest-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/postgrest-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/postgrest-js"
+      }
+    },
+    {
+      "name": "@supabase/realtime-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/realtime-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/realtime-js"
+      }
+    },
+    {
+      "name": "@supabase/ssr",
+      "version": "0.12.7",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/ssr",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/supabase/ssr.git"
+      }
+    },
+    {
+      "name": "@supabase/storage-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/storage-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/storage-js"
+      }
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "version": "2.119.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/@supabase/supabase-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/supabase-js.git",
+        "directory": "packages/core/supabase-js"
+      }
+    },
+    {
+      "name": "@swc/helpers",
+      "version": "0.5.23",
+      "license": "Apache-2.0",
+      "kind": "runtime",
+      "path": "node_modules/@swc/helpers",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/swc-project/swc.git",
+        "directory": "packages/helpers"
+      }
+    },
+    {
+      "name": "@types/node",
+      "version": "26.6.6",
+      "license": "MIT",
+      "kind": "development",
+      "path": "node_modules/@types/node",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/node"
+      }
+    },
+    {
+      "name": "@types/react",
+      "version": "19.3.0",
+      "license": "MIT",
+      "kind": "development",
+      "path": "node_modules/@types/react",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/react"
+      }
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.3.0",
+      "license": "MIT",
+      "kind": "development",
+      "path": "node_modules/@types/react-dom",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+        "directory": "types/react-dom"
+      }
+    },
+    {
+      "name": "@typescript/typescript-aix-ppc64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-aix-ppc64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-darwin-arm64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-darwin-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-darwin-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-darwin-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-freebsd-arm64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-freebsd-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-freebsd-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-freebsd-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-arm",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-arm",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-arm64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-loong64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-loong64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-mips64el",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-mips64el",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-ppc64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-ppc64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-riscv64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-riscv64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-s390x",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-linux-s390x",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-linux-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "development",
+      "path": "node_modules/@typescript/typescript-linux-x64",
+      "licenseFiles": [
+        "LICENSE",
+        "NOTICE.txt"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/microsoft/TypeScript.git"
+      }
+    },
+    {
+      "name": "@typescript/typescript-netbsd-arm64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-netbsd-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-netbsd-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-netbsd-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-openbsd-arm64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-openbsd-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-openbsd-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-openbsd-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-sunos-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-sunos-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-win32-arm64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-win32-arm64",
+      "licenseFiles": []
+    },
+    {
+      "name": "@typescript/typescript-win32-x64",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "optional-not-installed",
+      "path": "node_modules/@typescript/typescript-win32-x64",
+      "licenseFiles": []
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "version": "2.11.35",
+      "license": "Apache-2.0",
+      "kind": "runtime",
+      "path": "node_modules/baseline-browser-mapping",
+      "licenseFiles": [
+        "LICENSE.txt"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/web-platform-dx/baseline-browser-mapping.git"
+      }
+    },
+    {
+      "name": "caniuse-lite",
+      "version": "1.0.30001823",
+      "license": "CC-BY-4.0",
+      "kind": "runtime",
+      "path": "node_modules/caniuse-lite",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "browserslist/caniuse-lite"
+    },
+    {
+      "name": "client-only",
+      "version": "0.0.1",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/client-only",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "cookie",
+      "version": "1.1.1",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/cookie",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "jshttp/cookie"
+    },
+    {
+      "name": "csstype",
+      "version": "3.2.3",
+      "license": "MIT",
+      "kind": "development",
+      "path": "node_modules/csstype",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "https://github.com/frenic/csstype"
+    },
+    {
+      "name": "detect-libc",
+      "version": "2.1.2",
+      "license": "Apache-2.0",
+      "kind": "runtime",
+      "path": "node_modules/detect-libc",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git://github.com/lovell/detect-libc.git"
+      }
+    },
+    {
+      "name": "ical.js",
+      "version": "2.2.1",
+      "license": "MPL-2.0",
+      "kind": "runtime",
+      "path": "node_modules/ical.js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kewisch/ical.js.git"
+      }
+    },
+    {
+      "name": "iceberg-js",
+      "version": "0.8.1",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/iceberg-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/supabase/iceberg-js"
+      }
+    },
+    {
+      "name": "nanoid",
+      "version": "3.3.20",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/nanoid",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "ai/nanoid"
+    },
+    {
+      "name": "next",
+      "version": "16.4.5",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/next",
+      "licenseFiles": [
+        "license.md"
+      ],
+      "repository": "vercel/next.js"
+    },
+    {
+      "name": "@babel/runtime",
+      "version": "7.27.0",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@babel/runtime",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/babel/babel.git",
+        "directory": "packages/babel-runtime"
+      }
+    },
+    {
+      "name": "node_modules/next/dist/compiled/@babel/runtime/helpers/esm",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@babel/runtime/helpers/esm",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "@edge-runtime/cookies",
+      "version": "6.0.0",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@edge-runtime/cookies",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "@edge-runtime/ponyfill",
+      "version": "4.0.0",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@edge-runtime/ponyfill",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "@edge-runtime/primitives",
+      "version": "6.0.0",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@edge-runtime/primitives",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "@hapi/accept",
+      "version": null,
+      "license": "BSD-3-Clause",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@hapi/accept",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@mswjs/interceptors",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@mswjs/interceptors/ClientRequest",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@napi-rs/triples",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@napi-rs/triples",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@next/font",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@next/font",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "@opentelemetry/api",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@opentelemetry/api",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@vercel/blob",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@vercel/blob",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@vercel/detect-agent",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@vercel/detect-agent",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@vercel/nft",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@vercel/nft",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@vercel/og",
+      "version": "1.0.1",
+      "license": "MPL-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@vercel/og",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "node_modules/next/dist/compiled/@vercel/og/satori",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@vercel/og/satori",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@vercel/routing-utils",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/@vercel/routing-utils",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "acorn",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/acorn",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "anser",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/anser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "assert",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/assert",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "async-retry",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/async-retry",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "async-sema",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/async-sema",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "@babel/core",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/babel",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "babel-packages",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/babel-packages",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "browserify-zlib",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/browserify-zlib",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "browserslist",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/browserslist",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "buffer",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/buffer",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "busboy",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/busboy",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "bytes",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/bytes",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "ci-info",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/ci-info",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "cli-select",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/cli-select",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "client-only",
+      "version": "0.0.1",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/client-only",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "commander",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/commander",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "comment-json",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/comment-json",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "compression",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/compression",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "conf",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/conf",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "constants-browserify",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/constants-browserify",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "content-disposition",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/content-disposition",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "content-type",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/content-type",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "cookie",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/cookie",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "cross-spawn",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/cross-spawn",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "crypto-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/crypto-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "css.escape",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/css.escape",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "data-uri-to-buffer",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/data-uri-to-buffer",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "debug",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/debug",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "devalue",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/devalue",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "domain-browser",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/domain-browser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "edge-runtime",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/edge-runtime",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "events",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/events",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "fast-jwt",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/fast-jwt",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "find-up",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/find-up",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "fresh",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/fresh",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "glob",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/glob",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "gzip-size",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/gzip-size",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "hash.js",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/hash.js/sha256",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "http-proxy-agent",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/http-proxy-agent",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "https-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/https-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "https-proxy-agent",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/https-proxy-agent",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "httpxy",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/httpxy",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "icss-utils",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/icss-utils",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "ignore-loader",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/ignore-loader",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "image-size",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/image-size",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "ipaddr.js",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/ipaddr.js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "is-animated",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/is-animated",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "is-docker",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/is-docker",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "is-wsl",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/is-wsl",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "jest-worker",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/jest-worker",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "json5",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/json5",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "loader-runner",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/loader-runner",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "loader-utils",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/loader-utils2",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "loader-utils",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/loader-utils3",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "lodash.curry",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/lodash.curry",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "lru-cache",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/lru-cache",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "mini-css-extract-plugin",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/mini-css-extract-plugin",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "nanoid",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/nanoid",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "native-url",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/native-url",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "neo-async",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/neo-async",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "node-html-parser",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/node-html-parser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "ora",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/ora",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "os-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/os-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "p-limit",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/p-limit",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "p-queue",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/p-queue",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "path-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/path-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "path-to-regexp",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/path-to-regexp",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "picomatch",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/picomatch",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-flexbugs-fixes",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-flexbugs-fixes",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-modules-extract-imports",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-modules-extract-imports",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-modules-local-by-default",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-modules-local-by-default",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-modules-scope",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-modules-scope",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-modules-values",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-modules-values",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-preset-env",
+      "version": null,
+      "license": "CC0-1.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-preset-env",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-safe-parser",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-safe-parser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-scss",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-scss",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "postcss-value-parser",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/postcss-value-parser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "process",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/process",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "punycode",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/punycode",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "querystring-es3",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/querystring-es3",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "raw-body",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/raw-body",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-dom-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-dom",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-dom-experimental-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-dom-experimental",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-experimental-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-experimental",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-is",
+      "version": "19.3.0-canary-278794d7-20261002",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-is",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/react/react.git",
+        "directory": "packages/react-is"
+      }
+    },
+    {
+      "name": "react-refresh",
+      "version": "0.12.0",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-refresh",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/facebook/react.git",
+        "directory": "packages/react"
+      }
+    },
+    {
+      "name": "react-server-dom-turbopack-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-server-dom-turbopack",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-server-dom-turbopack-experimental-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-server-dom-turbopack-experimental",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-server-dom-webpack-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-server-dom-webpack",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "react-server-dom-webpack-experimental-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/react-server-dom-webpack-experimental",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "regenerator-runtime",
+      "version": "0.13.4",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/regenerator-runtime",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/facebook/regenerator/tree/master/packages/regenerator-runtime"
+      }
+    },
+    {
+      "name": "safe-stable-stringify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/safe-stable-stringify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "sass-loader",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/sass-loader",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "scheduler-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/scheduler",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "scheduler-experimental-builtin",
+      "version": null,
+      "license": "SEE LICENSE FILE",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/scheduler-experimental",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "schema-utils",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/schema-utils2",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "schema-utils",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/schema-utils3",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "semver",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/semver",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "send",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/send",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "serve-handler",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/serve-handler",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "server-only",
+      "version": "0.0.1",
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/server-only",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "setimmediate",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/setimmediate",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "shell-quote",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/shell-quote",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "source-map",
+      "version": null,
+      "license": "BSD-3-Clause",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/source-map",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "source-map08",
+      "version": null,
+      "license": "BSD-3-Clause",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/source-map08",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "stacktrace-parser",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/stacktrace-parser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "stream-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/stream-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "stream-http",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/stream-http",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "string_decoder",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/string_decoder",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "string-hash",
+      "version": null,
+      "license": "CC0-1.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/string-hash",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "strip-ansi",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/strip-ansi",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "superstruct",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/superstruct",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "tar",
+      "version": null,
+      "license": "BlueOak-1.0.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/tar",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "terser",
+      "version": null,
+      "license": "BSD-2-Clause",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/terser",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "text-table",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/text-table",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "timers-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/timers-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "tty-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/tty-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "ua-parser-js",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/ua-parser-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "unistore",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/unistore",
+      "licenseFiles": [],
+      "repository": null
+    },
+    {
+      "name": "util",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/util",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "vm-browserify",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/vm-browserify",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "watchpack",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/watchpack",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "web-vitals",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/web-vitals",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "web-vitals",
+      "version": null,
+      "license": "Apache-2.0",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/web-vitals-attribution",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "webpack",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/webpack",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "webpack-sources",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/webpack-sources1",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "webpack-sources",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/webpack-sources3",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "write-file-atomic",
+      "version": null,
+      "license": "ISC",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/write-file-atomic",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "ws",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/ws",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "zod",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/zod",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "zod-validation-error",
+      "version": null,
+      "license": "MIT",
+      "kind": "next-bundled",
+      "path": "node_modules/next/dist/compiled/zod-validation-error",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": null
+    },
+    {
+      "name": "picocolors",
+      "version": "1.1.1",
+      "license": "ISC",
+      "kind": "runtime",
+      "path": "node_modules/picocolors",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "alexeyraspopov/picocolors"
+    },
+    {
+      "name": "postcss",
+      "version": "8.5.23",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/postcss",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "postcss/postcss"
+    },
+    {
+      "name": "react",
+      "version": "19.3.1",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/react",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/react/react.git",
+        "directory": "packages/react"
+      }
+    },
+    {
+      "name": "react-dom",
+      "version": "19.3.1",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/react-dom",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/react/react.git",
+        "directory": "packages/react-dom"
+      }
+    },
+    {
+      "name": "scheduler",
+      "version": "0.28.0",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/scheduler",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/react/react.git",
+        "directory": "packages/scheduler"
+      }
+    },
+    {
+      "name": "semver",
+      "version": "7.8.6",
+      "license": "ISC",
+      "kind": "runtime",
+      "path": "node_modules/semver",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/npm/node-semver.git"
+      }
+    },
+    {
+      "name": "sharp",
+      "version": "0.35.5",
+      "license": "Apache-2.0",
+      "kind": "runtime",
+      "path": "node_modules/sharp",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovell/sharp.git"
+      }
+    },
+    {
+      "name": "source-map-js",
+      "version": "1.2.2",
+      "license": "BSD-3-Clause",
+      "kind": "runtime",
+      "path": "node_modules/source-map-js",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": "7rulnik/source-map-js"
+    },
+    {
+      "name": "styled-jsx",
+      "version": "5.1.6",
+      "license": "MIT",
+      "kind": "runtime",
+      "path": "node_modules/styled-jsx",
+      "licenseFiles": [
+        "license.md"
+      ],
+      "repository": "vercel/styled-jsx"
+    },
+    {
+      "name": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "kind": "runtime",
+      "path": "node_modules/tslib",
+      "licenseFiles": [
+        "LICENSE.txt"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/Microsoft/tslib.git"
+      }
+    },
+    {
+      "name": "typescript",
+      "version": "7.0.2",
+      "license": "Apache-2.0",
+      "kind": "development",
+      "path": "node_modules/typescript",
+      "licenseFiles": [
+        "LICENSE",
+        "NOTICE.txt"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/microsoft/TypeScript.git"
+      }
+    },
+    {
+      "name": "undici-types",
+      "version": "8.9.0",
+      "license": "MIT",
+      "kind": "development",
+      "path": "node_modules/undici-types",
+      "licenseFiles": [
+        "LICENSE"
+      ],
+      "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nodejs/undici.git"
+      }
+    }
+  ]
+}
