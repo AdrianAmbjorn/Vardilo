@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { notificationDestination } from "@/lib/notification-destination";
+import { createChatRefresh } from "@/lib/chat-refresh";
 import CalendarPushSettings from "./calendar-push-settings";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,7 +41,9 @@ function formatDate(value: string) {
 export default function NotificationsPage() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const loadVersion = useRef(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [memberId, setMemberId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -48,12 +51,15 @@ export default function NotificationsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError("");
+    const version = ++loadVersion.current;
 
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (version !== loadVersion.current) return;
       if (!auth.user && (!authError || authError.name === "AuthSessionMissingError")) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setMemberId(null);
         router.replace("/login");
         return;
       }
@@ -65,56 +71,65 @@ export default function NotificationsPage() {
         .eq("user_id", auth.user.id)
         .maybeSingle();
 
+      if (version !== loadVersion.current) return;
       if (memberError) throw memberError;
       if (!member) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setMemberId(null);
         setLoadError("Ditt konto behöver vara kopplat till en familj för att visa notiser.");
         return;
       }
 
-      const { data, error } = await supabase
+      const [recent, unreadResult] = await Promise.all([supabase
         .from("notifications")
         .select("id,type,title,body,href,metadata,read_at,created_at")
         .eq("recipient_member_id", member.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(50),
+        supabase.from("notifications").select("id", { count: "exact", head: true })
+          .eq("recipient_member_id", member.id).is("read_at", null),
+      ]);
 
-      if (error) throw error;
-      setNotifications(data ?? []);
+      if (version !== loadVersion.current) return;
+      if (recent.error) throw recent.error;
+      if (unreadResult.error) throw unreadResult.error;
+      setLoadError("");
+      setNotifications(recent.data ?? []);
+      setUnreadCount(unreadResult.count ?? 0);
       setMemberId(member.id);
     } catch {
-      setLoadError("Kunde inte ladda notiserna.");
+      if (version === loadVersion.current) setLoadError("Kunde inte ladda notiserna.");
     } finally {
-      setLoading(false);
+      if (version === loadVersion.current) setLoading(false);
     }
   }, [router, supabase]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!memberId) return;
-    const channel = supabase
-      .channel(`notifications-${memberId}`)
+    const refresh = createChatRefresh(load, () => {});
+    const requestRefresh = () => { if (document.visibilityState === "visible") void refresh.refresh(); };
+    void refresh.refresh();
+    const interval = window.setInterval(requestRefresh, 15000);
+    window.addEventListener("focus", requestRefresh);
+    window.addEventListener("online", requestRefresh);
+    window.addEventListener("vardilo-notifications-read", requestRefresh);
+    document.addEventListener("visibilitychange", requestRefresh);
+    const channel = memberId ? supabase.channel(`notifications-${memberId}`)
       .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
+        event: "*", schema: "public", table: "notifications",
         filter: `recipient_member_id=eq.${memberId}`,
-      }, ({ new: row }) => {
-        const notification = row as Notification;
-        setNotifications(current => [
-          notification,
-          ...current.filter(item => item.id !== notification.id),
-        ].slice(0, 50));
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_member_id=eq.${memberId}` }, ({ new: row }) => {
-        const updated = row as Notification;
-        setNotifications(current => current.map(item => item.id === updated.id ? updated : item));
-      })
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [memberId, supabase]);
+      }, requestRefresh).subscribe() : null;
+    return () => {
+      ++loadVersion.current;
+      refresh.stop();
+      window.clearInterval(interval);
+      window.removeEventListener("focus", requestRefresh);
+      window.removeEventListener("online", requestRefresh);
+      window.removeEventListener("vardilo-notifications-read", requestRefresh);
+      document.removeEventListener("visibilitychange", requestRefresh);
+      if (channel) void supabase.removeChannel(channel);
+    };
+  }, [load, memberId, supabase]);
 
   async function markRead(id?: string) {
     if (!memberId || saving) return false;
@@ -132,6 +147,7 @@ export default function NotificationsPage() {
       const { data, error } = await update.select("id");
       if (error) throw error;
 
+      ++loadVersion.current;
       const updated = new Set((data ?? []).map(row => row.id));
       setNotifications(current => current.map(notification =>
         updated.has(notification.id) ? { ...notification, read_at: readAt } : notification
@@ -152,7 +168,7 @@ export default function NotificationsPage() {
     if (destination) router.push(destination);
   }
 
-  const unread = notifications.some(notification => !notification.read_at);
+  const unread = unreadCount > 0;
 
   return (
     <main className="section-shell notifications-page">
