@@ -117,7 +117,7 @@ export default function ChatPage() {
 
   async function send(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!member || !body.trim() || sending) return;
+    if (!member || (!isAnnouncement && !body.trim()) || sending) return;
     if (isAnnouncement && (!announcementTitle.trim() || announcementTitle.trim().length > 140)) { setError("Skriv en rubrik på högst 140 tecken."); return; }
     setSending(true);
     setError("");
@@ -214,7 +214,7 @@ export default function ChatPage() {
                   <div className={message.announcement_title ? "chat-message chat-announcement" : "chat-message"}>
                     <strong className="chat-sender">{own ? "Du" : sender?.display_name ?? "Familjemedlem"}</strong>
                     {message.announcement_title && <><span className="chat-sender">🎉 Stort meddelande</span><h2>{message.announcement_title}</h2></>}
-                    <p className="chat-bubble">{message.body}</p>
+                    {message.body && <p className="chat-bubble">{message.body}</p>}
                     <div className="chat-message-meta">
                       <time className="chat-time" dateTime={message.created_at}>{timeLabel.format(date)}</time>
                       {own && <button type="button" className="chat-remove" disabled={removingId !== null} onClick={() => void removeMessage(message)}>
@@ -233,8 +233,8 @@ export default function ChatPage() {
           {isAnnouncement && <><label>Rubrik<input value={announcementTitle} maxLength={140} disabled={sending} placeholder="T.ex. Jag har fått nytt jobb!" onChange={event=>setAnnouncementTitle(event.target.value)} /></label><small>Alla i familjen får en notis, även du. Push kräver att mottagarens enhet har push påslaget.</small></>}
         </div>
         <form className="chat-composer" onSubmit={send}>
-          <input aria-label="Meddelande" value={body} onChange={event => setBody(event.target.value)} placeholder={isAnnouncement ? "Berätta för familjen…" : "Skriv ett meddelande"} disabled={sending || !member} />
-          <button className="primary" type="submit" disabled={sending || !member || !body.trim() || (isAnnouncement && !announcementTitle.trim())}>{sending ? "Skickar…" : isAnnouncement ? "Publicera" : "Skicka"}</button>
+          <input aria-label={isAnnouncement ? "Tilläggstext (valfritt)" : "Meddelande"} value={body} onChange={event => setBody(event.target.value)} placeholder={isAnnouncement ? "Tilläggstext (valfritt)" : "Skriv ett meddelande"} disabled={sending || !member} />
+          <button className="primary" type="submit" disabled={sending || !member || (isAnnouncement ? !announcementTitle.trim() : !body.trim())}>{sending ? "Skickar…" : isAnnouncement ? "Publicera" : "Skicka"}</button>
         </form>
       </section>
     </main>

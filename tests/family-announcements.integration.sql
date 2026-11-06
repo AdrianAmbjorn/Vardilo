@@ -8,7 +8,7 @@ do $$ declare actor public.family_members; peer public.family_members; message_i
 end $$;
 set local role authenticated;
 do $$ declare message_id uuid; begin
- insert into public.family_chat_messages(family_id,member_id,body,announcement_title) values(current_setting('announcement.family')::uuid,current_setting('announcement.actor')::uuid,'TEST family news','TEST Nytt jobb!') returning id into message_id;
+ insert into public.family_chat_messages(family_id,member_id,body,announcement_title) values(current_setting('announcement.family')::uuid,current_setting('announcement.actor')::uuid,'','TEST Nytt jobb!') returning id into message_id;
  perform set_config('announcement.message',message_id::text,true);
  begin insert into public.family_chat_messages(family_id,member_id,body,announcement_title) values(current_setting('announcement.family')::uuid,current_setting('announcement.actor')::uuid,'TEST invalid',' ');raise exception 'Empty announcement accepted';exception when check_violation then null;end;
 end $$;
