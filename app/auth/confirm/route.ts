@@ -1,6 +1,6 @@
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import { loginDestination } from "@/lib/login-destination";
+import { loginDestination, recoveryDestination } from "@/lib/login-destination";
 import { confirmationFailureUrl } from "@/lib/auth-messages";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,11 +9,11 @@ export async function GET(request: NextRequest) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const recovery = type === "recovery";
-  const destination = recovery ? "/losenord?nytt=1" : loginDestination(searchParams.toString());
+  const destination = recovery ? recoveryDestination(searchParams.toString()) : loginDestination(searchParams.toString());
 
   if (!tokenHash || (type !== "email" && type !== "recovery")) {
     return NextResponse.redirect(
-      recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination),
+      recovery ? `${origin}${recoveryDestination(searchParams.toString(), true)}` : confirmationFailureUrl(origin, destination),
     );
   }
 
@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       return NextResponse.redirect(
-        recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination),
+        recovery ? `${origin}${recoveryDestination(searchParams.toString(), true)}` : confirmationFailureUrl(origin, destination),
       );
     }
 
     return NextResponse.redirect(`${origin}${destination}`);
   } catch {
-    return NextResponse.redirect(recovery ? `${origin}/losenord?error=expired` : confirmationFailureUrl(origin, destination));
+    return NextResponse.redirect(recovery ? `${origin}${recoveryDestination(searchParams.toString(), true)}` : confirmationFailureUrl(origin, destination));
   }
 }

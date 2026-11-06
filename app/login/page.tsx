@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { confirmationRedirect, emailRequestError } from "@/lib/auth-messages";
-import { loginDestination } from "@/lib/login-destination";
+import { loginDestination, invitationContinuation } from "@/lib/login-destination";
 import { childLoginEmail, validChildUsername } from "@/lib/child-login";
 import "./login.css";
 import { birthdayParts } from "@/lib/birthday-input";
@@ -38,9 +38,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [resendAt, setResendAt] = useState(0);
   const [clock, setClock] = useState(0);
+  const [continuation, setContinuation] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    setContinuation(invitationContinuation(window.location.search));
     if (new URLSearchParams(window.location.search).has("error")) { setMode("login"); setMessage("Länken kunde inte slutföra inloggningen. Om du just bekräftade din e-post kan du logga in här. Behöver du en ny bekräftelselänk finns valet nedan."); }
   }, []);
   useEffect(() => {
@@ -161,7 +163,7 @@ export default function LoginPage() {
 
         <footer className="login-footer">
           <p><Link href="/integritet">Integritet</Link> · <Link href="/villkor">Testvillkor</Link> · <Link href="/barn-och-integritet">Barnkonton</Link></p>
-          {mode === "login" && <p><Link href="/losenord">{t("Glömt lösenord?")}</Link></p>}
+          {mode === "login" && <p><Link href={`/losenord${continuation}`}>{t("Glömt lösenord?")}</Link></p>}
           {mode === "confirm" ? <p>{t("Har du bekräftat adressen?")} <button type="button" disabled={loading} onClick={() => changeMode("login")}>{t("Till inloggningen")}</button></p> : mode === "child" ? <p>{t("Glömt dina uppgifter? Be din förälder om hjälp.")}</p> : mode === "signup" ? <p>{t("Har du redan ett konto?")} <button type="button" disabled={loading} onClick={() => changeMode("login")}>{t("Logga in")}</button></p> : <p>{t("Ny på Vardilo?")} <button type="button" disabled={loading} onClick={() => changeMode("signup")}>{t("Skapa konto")}</button></p>}
           {mode === "login" && <p><button type="button" disabled={loading} onClick={() => changeMode("confirm")}>{t("Jag har inte fått mitt bekräftelsemejl")}</button></p>}
         </footer>

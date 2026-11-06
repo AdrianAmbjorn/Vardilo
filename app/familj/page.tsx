@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import "../login/login.css";
 import { createClient } from "@/lib/supabase/client";
 
 function HouseIcon() {
@@ -97,41 +98,43 @@ export default function FamilySetupPage() {
   }
 
   if (loading) {
-    return <main className="auth-shell"><p className="muted">Förbereder din familj...</p></main>;
+    return <main className="auth-shell login-page"><p className="muted">Förbereder din familj...</p></main>;
   }
 
   return (
-    <main className="auth-shell">
-      <section className="auth-card">
-        <div className="brand auth-brand">
-          <div className="brand-mark house-brand-mark" aria-label="Vardilo"><HouseIcon /></div>
+    <main className="auth-shell login-page">
+      <section className="auth-card login-card">
+        <div className="login-brand">
+          <div className="login-house" aria-label="Vardilo"><HouseIcon /></div>
           <div>
             <strong>VARDILO</strong>
-            <span>Family life, together.</span>
+            <span>Mer tid tillsammans.</span>
           </div>
         </div>
 
-        <div className="auth-heading">
+        <div className="login-heading">
           <p className="eyebrow">FAMILJEN</p>
           <h1>Skapa familjen</h1>
-          <p className="muted">Börja med familjens namn och ditt namn. Sedan bygger vi familjen tillsammans.</p>
+          <p className="muted">Du blir familjens administratör. Därefter kan du bjuda in andra vuxna och ordna barnens inloggningar.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className="auth-form login-form">
           <label>
             Familjens namn
             <input
+              disabled={saving || loadFailed}
               value={familyName}
               onChange={(event) => setFamilyName(event.target.value)}
               placeholder="Till exempel Familjen Andersson"
               required
-              autoFocus
             />
           </label>
 
           <label>
             Ditt namn
             <input
+              disabled={saving || loadFailed}
+              autoComplete="name"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Ditt namn"
@@ -139,10 +142,10 @@ export default function FamilySetupPage() {
             />
           </label>
 
-          {message && <p role="alert" className="auth-message">{message}</p>}
+          {message && <p role="alert" className="login-message">{message}</p>}
           {loadFailed && <button type="button" className="secondary" onClick={() => window.location.reload()}>Försök igen</button>}
 
-          <button className="primary auth-submit" type="submit" disabled={saving || loadFailed}>
+          <button className="primary auth-submit login-submit" type="submit" disabled={saving || loadFailed}>
             {saving ? "Skapar familjen..." : "Skapa familj"}
           </button>
         </form>
