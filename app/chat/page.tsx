@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [messageLoadError, setMessageLoadError] = useState("");
   const thread = useRef<HTMLDivElement>(null);
   const followLatest = useRef(true);
   const messageRequest = useRef(0);
@@ -34,32 +35,35 @@ export default function ChatPage() {
       .select("id,member_id,body,created_at").eq("family_id", id)
       .order("created_at", { ascending: false }).order("id", { ascending: false }).limit(100);
     if (request !== messageRequest.current) return;
-    if (error) setError("Kunde inte läsa meddelandena.");
-    else setMessages((data ?? []).reverse());
+    if (error) setMessageLoadError("Kunde inte läsa meddelandena.");
+    else { setMessages((data ?? []).reverse()); setMessageLoadError(""); }
     } catch {
-      if (request === messageRequest.current) setError("Kunde inte läsa meddelandena. Försök igen.");
+      if (request === messageRequest.current) setMessageLoadError("Kunde inte läsa meddelandena. Försök igen.");
     } finally { if (request === messageRequest.current) setLoading(false); }
   }, [supabase]);
 
   useEffect(() => {
     async function load() {
       try {
-      const { data: auth } = await supabase.auth.getUser();
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError && authError.name !== "AuthSessionMissingError") throw authError;
       if (!auth.user) {
         setError("Logga in för att öppna familjechatten.");
         setLoading(false);
         return;
       }
-      const { data } = await supabase.from("family_members")
+      const { data, error: memberError } = await supabase.from("family_members")
         .select("id,family_id,display_name").eq("user_id", auth.user.id).maybeSingle();
+      if (memberError) throw memberError;
       if (!data) {
         setError("Kunde inte hitta din familj.");
         setLoading(false);
         return;
       }
       setMember(data);
-      const { data: family } = await supabase.from("family_members")
+      const { data: family, error: familyError } = await supabase.from("family_members")
         .select("id,display_name").eq("family_id", data.family_id);
+      if (familyError) throw familyError;
       setMembers(family ?? []);
       } catch { setError("Kunde inte öppna chatten. Ladda om och försök igen."); setLoading(false); }
     }
@@ -214,7 +218,7 @@ export default function ChatPage() {
             );
           })}
         </div>
-        {error && <p className="section-row" role="alert">{error}</p>}
+        {(error || messageLoadError) && <p className="section-row" role="alert">{error || messageLoadError}</p>}
         <form className="chat-composer" onSubmit={send}>
           <input aria-label="Meddelande" value={body} onChange={event => setBody(event.target.value)} placeholder="Skriv ett meddelande" disabled={sending || !member} />
           <button className="primary" type="submit" disabled={sending || !member || !body.trim()}>{sending ? "Skickar…" : "Skicka"}</button>

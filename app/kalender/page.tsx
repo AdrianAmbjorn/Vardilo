@@ -1,4 +1,5 @@
 "use client";
+import { readCalendarPages } from "@/lib/calendar-event-pages";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -160,7 +161,9 @@ export default function CalendarPage() {
 
   async function loadCalendar() {
     setLoadError("");
-    const { data: auth } = await supabase.auth.getUser();
+    try {
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError && authError.name !== "AuthSessionMissingError") throw authError;
     if (!auth.user) { setLoadError("Logga in för att se familjens kalender."); return; }
     const { data: membership, error: membershipError } = await supabase.from("family_members").select("id,family_id,role").eq("user_id", auth.user.id).limit(1).single();
     if (membershipError || !membership) { setLoadError("Kunde inte hitta familjen för ditt konto."); return; }
@@ -169,7 +172,7 @@ export default function CalendarPage() {
     setFamilyId(membership.family_id);
     setCurrentMemberId(membership.id);
     const [eventResult, memberResult, breakResult] = await Promise.all([
-      supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,audience_member_ids,created_by,import_batch_id,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }),
+      readCalendarPages<CalendarEvent>((from, to) => supabase.from("calendar_events").select("id,title,description,location,starts_at,ends_at,all_day,visible_to_children,audience_member_ids,created_by,import_batch_id,responsible_member_id,target_member_id,category,reminder_minutes,assignment_status,assigned_at,assignment_responded_at,recurrence_enabled,recurrence_days,recurrence_end_date").eq("family_id", membership.family_id).order("starts_at", { ascending: true }).order("id").range(from, to)),
       supabase.from("family_members").select("id,display_name,color,role").eq("family_id", membership.family_id).order("display_name", { ascending: true }),
       supabase.from("calendar_breaks").select("id,title,break_type,starts_on,ends_on").eq("family_id", membership.family_id).order("starts_on", { ascending: true }),
     ]);
@@ -177,6 +180,7 @@ export default function CalendarPage() {
     if (!eventResult.error) setEvents((eventResult.data ?? []) as CalendarEvent[]);
     if (!memberResult.error) setMembers((memberResult.data ?? []) as FamilyMember[]);
     if (!breakResult.error) setBreaks((breakResult.data ?? []) as CalendarBreak[]);
+    } catch { setLoadError("Kunde inte hämta kalendern. Kontrollera anslutningen och försök igen."); }
   }
 
   useEffect(() => {
@@ -398,7 +402,9 @@ export default function CalendarPage() {
       audienceSelect.current?.focus();
       return;
     }
+    if (saving) return;
     setSaving(true); setError("");
+    try {
     const responsibleChanged = editingEvent ? editingEvent.responsible_member_id !== (form.responsible_member_id || null) : true;
     const payload: Record<string, unknown> = {
       title: form.title.trim(), description: form.description.trim() || null, location: form.location.trim() || null,
@@ -419,16 +425,19 @@ export default function CalendarPage() {
       : await supabase.from("calendar_events").insert({ ...payload, family_id: familyId, assignment_status: "pending", assigned_at: form.responsible_member_id ? new Date().toISOString() : null });
     if (result.error) setError(result.error.message);
     else { setShowForm(false); setEditingEvent(null); await loadCalendar(); }
-    setSaving(false);
+    } catch { setError("Kunde inte spara aktiviteten. Dina ändringar finns kvar – försök igen."); }
+    finally { setSaving(false); }
   }
 
   async function respondToAssignment(response: "accepted" | "declined") {
-    if (!editingEvent) return;
+    if (!editingEvent || responding) return;
     setResponding(true); setError("");
+    try {
     const { error: responseError } = await supabase.rpc("respond_to_calendar_assignment", { target_event_id: editingEvent.id, response });
     if (responseError) setError(responseError.message);
     else { setShowForm(false); setEditingEvent(null); await loadCalendar(); }
-    setResponding(false);
+    } catch { setError("Kunde inte spara svaret. Försök igen."); }
+    finally { setResponding(false); }
   }
 
   function requestDelete() {
@@ -470,22 +479,26 @@ export default function CalendarPage() {
 
   async function handleSaveBreak(event: React.FormEvent) {
     event.preventDefault();
-    if (!familyId || !breakForm.title.trim()) return;
+    if (!familyId || !breakForm.title.trim() || savingBreak) return;
     if (breakForm.ends_on < breakForm.starts_on) { setError("Slutdatum kan inte vara före startdatum."); return; }
     setSavingBreak(true); setError("");
+    try {
     const payload = { title: breakForm.title.trim(), break_type: breakForm.break_type, starts_on: breakForm.starts_on, ends_on: breakForm.ends_on };
     const result = editingBreak ? await supabase.from("calendar_breaks").update(payload).eq("id", editingBreak.id).eq("family_id", familyId) : await supabase.from("calendar_breaks").insert({ ...payload, family_id: familyId });
     if (result.error) setError(result.error.message); else { setShowBreakForm(false); setEditingBreak(null); await loadCalendar(); }
-    setSavingBreak(false);
+    } catch { setError("Kunde inte spara lovet eller studiedagen. Dina ändringar finns kvar – försök igen."); }
+    finally { setSavingBreak(false); }
   }
 
   async function handleDeleteBreak() {
-    if (!editingBreak || !familyId) return;
+    if (!editingBreak || !familyId || deletingBreak) return;
     if (!window.confirm(`Ta bort "${editingBreak.title}" från kalendern?`)) return;
     setDeletingBreak(true); setError("");
+    try {
     const { error: deleteError } = await supabase.from("calendar_breaks").delete().eq("id", editingBreak.id).eq("family_id", familyId);
     if (deleteError) setError(deleteError.message); else { setShowBreakForm(false); setEditingBreak(null); await loadCalendar(); }
-    setDeletingBreak(false);
+    } catch { setError("Kunde inte ta bort lovet eller studiedagen. Försök igen."); }
+    finally { setDeletingBreak(false); }
   }
 
   const todayKey = dateKey(new Date());

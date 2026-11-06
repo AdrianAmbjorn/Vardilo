@@ -47,6 +47,7 @@ export default function ListsPage() {
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const operation = useRef(false);
+  const itemDrafts = useRef<Record<string, string>>({});
   const openedFromHome = useRef(false);
 
   const load = useCallback(async () => {
@@ -119,6 +120,7 @@ export default function ListsPage() {
       setLists(current => [...current, data]);
       setSelected({ ...data, items: [] });
       setListName(data.name);
+      setItem("");
       setName("");
       setCategory("");
     }, "Kunde inte skapa listan. Försök igen.");
@@ -132,7 +134,7 @@ export default function ListsPage() {
       if (error) throw error;
       setSelected({ ...list, items: data ?? [] });
       setListName(list.name);
-      if (selected?.id !== list.id) setItem("");
+      if (selected?.id !== list.id) setItem(itemDrafts.current[list.id] ?? "");
     }, "Kunde inte öppna listan. Försök igen.");
   }
 
@@ -172,6 +174,7 @@ export default function ListsPage() {
         .select("id,text,completed,created_by_member_id,completed_by_member_id").single();
       if (error) throw error;
       setSelected({ ...selected, items: [...selected.items, data] });
+      delete itemDrafts.current[selected.id];
       setItem("");
     }, "Kunde inte lägga till listpunkten. Försök igen.");
   }
@@ -184,6 +187,7 @@ export default function ListsPage() {
       if (error) throw error;
       setLists(current => current.filter(entry => entry.id !== list.id));
       setSelected(null);
+      delete itemDrafts.current[list.id];
       setDeleteTarget(null);
       setItem("");
     }, "Kunde inte ta bort listan. Försök igen.");
@@ -365,7 +369,7 @@ export default function ListsPage() {
               ))}
             </div>
             <form className="family-admin-form reminders-add-item" onSubmit={addItem}>
-              <input aria-label="Ny listpunkt" value={item} onChange={event => setItem(event.target.value)} placeholder="Ny punkt" disabled={busy} />
+              <input aria-label="Ny listpunkt" value={item} onChange={event => { setItem(event.target.value); if (selected) itemDrafts.current[selected.id] = event.target.value; }} placeholder="Ny punkt" disabled={busy} />
               <button className="primary" disabled={busy || !item.trim()} aria-label="Lägg till listpunkt">＋ Lägg till</button>
             </form>
           </> : <div className="reminders-empty"><h2>Vad planerar familjen?</h2><p>Välj en lista till vänster för att se och lägga till punkter.</p></div>}
