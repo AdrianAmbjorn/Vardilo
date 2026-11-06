@@ -85,6 +85,7 @@ export default function NotificationsPage() {
         .from("notifications")
         .select("id,type,title,body,href,metadata,read_at,created_at")
         .eq("recipient_member_id", member.id)
+        .is("read_at", null)
         .order("created_at", { ascending: false })
         .limit(50),
         supabase.from("notifications").select("id", { count: "exact", head: true })
@@ -149,9 +150,7 @@ export default function NotificationsPage() {
 
       ++loadVersion.current;
       const updated = new Set((data ?? []).map(row => row.id));
-      setNotifications(current => current.map(notification =>
-        updated.has(notification.id) ? { ...notification, read_at: readAt } : notification
-      ));
+      setNotifications(current => current.filter(notification => !updated.has(notification.id)));
       window.dispatchEvent(new Event("vardilo-notifications-read"));
       return true;
     } catch {
@@ -225,7 +224,7 @@ export default function NotificationsPage() {
             )}
           </div>
         )) : (
-          <div className="section-row"><p className="muted">Inga notiser ännu.</p></div>
+          <div className="section-row"><p className="muted">Du har inga olästa notiser.</p></div>
         )}
       </section>
     </main>
