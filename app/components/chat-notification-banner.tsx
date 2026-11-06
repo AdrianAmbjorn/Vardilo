@@ -41,8 +41,10 @@ export default function ChatNotificationBanner({ variant = "banner" }: { variant
       if (document.visibilityState !== "visible") return;
       const id = ++request;
       try {
-        const { count, error } = await supabase.from("notifications").select("id", { count: "exact", head: true })
-          .eq("recipient_member_id", memberId).eq("type", "chat").is("read_at", null);
+        let query = supabase.from("notifications").select("id", { count: "exact", head: true })
+          .eq("recipient_member_id", memberId).is("read_at", null);
+        if (variant === "badge") query = query.eq("type", "chat");
+        const { count, error } = await query;
         if (active && id === request && !error) setUnread(count ?? 0);
       } catch { /* A transient connection failure keeps the last confirmed count. */ }
     };
@@ -56,5 +58,7 @@ export default function ChatNotificationBanner({ variant = "banner" }: { variant
   }, [memberId, supabase, variant]);
   if (!memberId || !unread) return null;
   if (variant === "badge") return <span className="home-chat-unread" role="status" aria-label={unread === 1 ? t("Ett oläst meddelande") : language === "en" ? `${unread} unread messages` : `${unread} olästa meddelanden`} title={t("Olästa meddelanden")}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></span>;
-  return <aside className="chat-notification-banner" aria-label={t("Olästa meddelanden")}><Link href="/chat"><span className="chat-unread-count" aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span role="status">{unread === 1 ? t("Du har ett oläst meddelande") : language === "en" ? `You have ${unread} unread messages` : `Du har ${unread} olästa meddelanden`}</span><strong>{t("Öppna chatten")} <span aria-hidden="true">›</span></strong></Link></aside>;
+  const label = language === "en" ? "Unread notifications" : "Olästa notiser";
+  const message = language === "en" ? `You have ${unread} unread notification${unread === 1 ? "" : "s"}` : unread === 1 ? "Du har en oläst notis" : `Du har ${unread} olästa notiser`;
+  return <aside className="chat-notification-banner" aria-label={label}><Link href="/notiser"><span className="chat-unread-count" aria-hidden="true">{unread > 99 ? "99+" : unread}</span><span role="status">{message}</span><strong>{language === "en" ? "View notifications" : "Visa notiser"} <span aria-hidden="true">›</span></strong></Link></aside>;
 }

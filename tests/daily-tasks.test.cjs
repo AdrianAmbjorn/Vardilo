@@ -39,8 +39,8 @@ test('daily task UI gives parents status only and shows a green check for a comp
  const child=renderTasks('barn');assert.match(child,/Markera klar idag/);
  const done=renderTasks('admin',true);assert.match(done,/class="daily-done" role="img" aria-label="Klar">✓/);assert.doesNotMatch(done,/>Ångra</);
 });
-test('global chat banner displays the unread count with a direct chat link',()=>{
+test('global banner displays all notifications while the chat badge remains chat-specific',()=>{
  let cursor=0;const hooks={...React,useMemo:fn=>fn(),useEffect:()=>{},useState:()=>[[2,'child'][cursor++],()=>{}]};
  const Banner=component('app/components/chat-notification-banner.tsx',{react:hooks,'./language-provider':{useLanguage:()=>({language:'sv',locale:'sv-SE',t:text=>text})},'next/navigation':{usePathname:()=>'/uppgifter'},'@/lib/supabase/client':{createClient:()=>({})}});
- const html=renderToStaticMarkup(React.createElement(Banner));assert.match(html,/2 olästa meddelanden/);assert.match(html,/href="\/chat"/);
+ const html=renderToStaticMarkup(React.createElement(Banner));assert.match(html,/2 olästa notiser/);assert.match(html,/href="\/notiser"/);cursor=0;const badge=renderToStaticMarkup(React.createElement(Banner,{variant:"badge"}));assert.match(badge,/2 olästa meddelanden/);assert.doesNotMatch(badge,/href=/);
 });
