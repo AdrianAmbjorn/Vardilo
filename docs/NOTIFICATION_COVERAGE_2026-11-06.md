@@ -8,7 +8,7 @@ Migration shared_activity_notifications (20261106174834) är applicerad i Supaba
 - Uppgift ändras från öppen till klar: föräldrar/admin i samma familj, utom den som utförde ändringen. Barnets syskon får inte denna notis.
 - Ingen notifiering för aktören själv. Ändringar utan en autentiserad familjemedlem skapar ingen aktivitetspush. Inga historiska händelser skickas retroaktivt.
 
-Notiserna använder befintlig privat notifications-tabell och dess RLS, befintlig notissida och global oläst-avisering. Pushkön har inte utökats för dessa nya aktiviteter; de visas i appen. Separat stöd och verifiering av pushleverans för dessa händelser återstår. Privata budgetar, sparplaner och presentreservationer omfattas inte av de nya triggerna.
+Notiserna använder befintlig privat notifications-tabell och dess RLS, befintlig notissida och global oläst-avisering. Pushkön har senare samma dag utökats genom migration 20261106203054. Dessa aktiviteter kan nu ge push på registrerade enheter. Fysisk visning/OS-leverans återstår att verifiera. Privata budgetar, sparplaner och presentreservationer omfattas inte av de nya triggerna.
 
 Verifiering: tests/shared-activity-notifications.integration.sql kördes i en transaktion med ROLLBACK och passerade. Kontrollerar listskapande, punkt/klarmarkering, ingen egen notis, ingen extra notis vid oförändrad uppdatering, föräldramottagare för klar uppgift och familjeavgränsning. Inga testposter eller testnotiser sparades. 100 befintliga kodtester passerar. Inga nya säkerhetsadvisories; tidigare öppna leverantörspunkter kvarstår.
 

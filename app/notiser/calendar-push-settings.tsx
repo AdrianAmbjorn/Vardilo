@@ -108,7 +108,7 @@ export default function CalendarPushSettings() {
     <section className="section-row" aria-label="Pushpåminnelser">
       <div>
         <strong>Pushpåminnelser</strong>
-        <p>Chattmeddelanden samt kalender- och födelsedagspåminnelser kan ge notiser även när Vardilo är stängd. Rubrik och text visas direkt i notisen och kan synas på låsskärmen. Långa texter kan förkortas av telefonen.</p>
+        <p>Liständringar, nya eller klarmarkerade uppgifter, chattmeddelanden samt kalender- och födelsedagspåminnelser kan ge notiser även när Vardilo är stängd. Rubrik och text visas direkt i notisen och kan synas på låsskärmen. Långa texter kan förkortas av telefonen.</p>
         {message && <p role="status">{message}</p>}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
