@@ -1,0 +1,25 @@
+begin;
+do $$ declare adult public.family_members; kid public.family_members; list_id uuid; item_id uuid; task_id uuid; n integer; begin
+ select a.* into adult from public.family_members a where a.role='admin' and a.user_id is not null and exists(select 1 from public.family_members k where k.family_id=a.family_id and k.role='barn' and k.user_id is not null) limit 1;
+ select * into kid from public.family_members where family_id=adult.family_id and role='barn' and user_id is not null limit 1;
+ if kid.id is null then raise exception 'Missing linked test actors'; end if;
+ perform set_config('request.jwt.claim.sub',adult.user_id::text,true);
+ insert into public.family_lists(family_id,name,category,created_by) values(adult.family_id,'TEST notification coverage','Mathandling',adult.user_id) returning id into list_id;
+ if not exists(select 1 from public.notifications where recipient_member_id=kid.id and metadata->>'entity_id'=list_id::text and metadata->>'action'='list_created') then raise exception 'List notification missing'; end if;
+ if exists(select 1 from public.notifications where recipient_member_id=adult.id and metadata->>'entity_id'=list_id::text) then raise exception 'Actor got own notification'; end if;
+ insert into public.family_list_items(list_id,text) values(list_id,'TEST item') returning id into item_id;
+ perform set_config('request.jwt.claim.sub',kid.user_id::text,true);
+ update public.family_list_items set completed=true where id=item_id;
+ select count(*) into n from public.notifications where recipient_member_id=adult.id and metadata->>'entity_id'=item_id::text and metadata->>'action'='list_item_completed';
+ if n<>1 then raise exception 'Completion notification missing'; end if;
+ update public.family_list_items set completed=true where id=item_id;
+ if (select count(*) from public.notifications where recipient_member_id=adult.id and metadata->>'entity_id'=item_id::text and metadata->>'action'='list_item_completed')<>1 then raise exception 'Duplicate no-op notification'; end if;
+ perform set_config('request.jwt.claim.sub',adult.user_id::text,true);
+ insert into public.family_tasks(family_id,title,assigned_member_id,xp,created_by) values(adult.family_id,'TEST completion notification',kid.id,0,adult.user_id) returning id into task_id;
+ perform set_config('request.jwt.claim.sub',kid.user_id::text,true);
+ update public.family_tasks set completed_at=now() where id=task_id;
+ if not exists(select 1 from public.notifications where recipient_member_id=adult.id and metadata->>'entity_id'=task_id::text and metadata->>'action'='task_completed') then raise exception 'Parent completion notification missing'; end if;
+ if exists(select 1 from public.notifications n join public.family_members m on m.id=n.recipient_member_id where n.metadata->>'entity_id'=task_id::text and n.metadata->>'action'='task_completed' and (m.role='barn' or m.family_id<>adult.family_id)) then raise exception 'Wrong notification recipient'; end if;
+ if exists(select 1 from public.notifications where metadata->>'entity_id' in(list_id::text,item_id::text,task_id::text) and family_id<>adult.family_id) then raise exception 'Cross-family notification'; end if;
+end $$;
+rollback;
