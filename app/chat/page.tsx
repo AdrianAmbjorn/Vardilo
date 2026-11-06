@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createChatRefresh } from "@/lib/chat-refresh";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useFamilyProfilePhotos } from "@/lib/use-family-profile-photos";
@@ -74,20 +75,26 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!familyId) return;
-    void loadMessages(familyId);
+    const updates = createChatRefresh(() => loadMessages(familyId), () => setMessageLoadError("Kunde inte uppdatera chatten. Försöker igen."));
+    void updates.refresh();
     const channel = supabase.channel(`family-chat-${familyId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "family_chat_messages", filter: `family_id=eq.${familyId}` },
-        () => void loadMessages(familyId))
-      .subscribe(status => { if (status === "SUBSCRIBED") void loadMessages(familyId); });
+        () => void updates.refresh())
+      .subscribe(status => { if (status === "SUBSCRIBED") void updates.refresh(); });
     const refreshVisible = () => {
-      if (document.visibilityState === "visible") void loadMessages(familyId);
+      if (document.visibilityState === "visible") void updates.refresh();
     };
-    const timer = window.setInterval(refreshVisible, 15_000);
+    const timer = window.setInterval(refreshVisible, 3_000);
     document.addEventListener("visibilitychange", refreshVisible);
+    window.addEventListener("focus", refreshVisible);
+    window.addEventListener("online", refreshVisible);
     return () => {
+      updates.stop();
       messageRequest.current++;
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", refreshVisible);
+      window.removeEventListener("focus", refreshVisible);
+      window.removeEventListener("online", refreshVisible);
       void supabase.removeChannel(channel);
     };
   }, [familyId, loadMessages, supabase]);
