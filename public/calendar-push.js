@@ -5,8 +5,8 @@ self.addEventListener("push", event => {
   } catch {
     // The notification remains useful without a tag.
   }
-  event.waitUntil(self.registration.showNotification("Påminnelse från Vardilo", {
-    body: "Öppna Vardilo för att se påminnelsen.",
+  event.waitUntil(self.registration.showNotification("Notis från Vardilo", {
+    body: "Öppna Vardilo för att se vad som hänt.",
     icon: "/app-icon/192",
     tag: typeof tag === "string" ? tag : undefined,
   }));
