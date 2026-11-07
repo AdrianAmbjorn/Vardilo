@@ -72,6 +72,21 @@ export default function Invitations({ members, onChanged }: { members: Member[];
     });
   }, [members]);
 
+  async function refreshStatus() {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      if (await load()) await changed.current();
+    } catch {
+      setLoadError("Inbjudningarna är uppdaterade, men familjevyn kunde inte hämtas. Försök igen.");
+    } finally {
+      lock.current = false;
+      setBusy(false);
+    }
+  }
+
   async function issue(targetId: string, address: string) {
     if (lock.current || !targetId || !address.trim()) return;
     lock.current = true; setBusy(true); setError(""); setNotice(""); setIssued(null);
@@ -130,7 +145,7 @@ export default function Invitations({ members, onChanged }: { members: Member[];
   }
 
   return <section style={{ padding: 22, borderBottom: "1px solid var(--line)" }}>
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}><h3>Bjud in till familjen</h3><button className="secondary" type="button" disabled={busy || loading} onClick={() => { setError(""); void load().then(() => changed.current()); }}>Uppdatera</button></div>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}><h3>Bjud in till familjen</h3><button className="secondary" type="button" disabled={busy || loading} onClick={() => void refreshStatus()}>Uppdatera</button></div>
     <p className="muted">Lägg först till personens familjeprofil och välj roll. Inbjudningen kan bara accepteras med den e-postadress du anger. Barn använder Barnens inloggningar.</p>
     {!available.length && <p className="muted">Alla vuxenprofiler har redan ett konto. Lägg till en ny familjeprofil ovan för att bjuda in någon mer.</p>}
     <form onSubmit={event => { event.preventDefault(); void issue(memberId, email); }} style={{ display: "grid", gap: 12, maxWidth: 480 }}>
