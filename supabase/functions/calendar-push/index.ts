@@ -38,16 +38,23 @@ Deno.serve(async request => {
           .select("title,body,type,metadata,family_id").eq("id", delivery.notification_id).is("read_at", null).maybeSingle();
         if (contentError) throw contentError;
         let text = notification?.body ?? "";
+        let title = notification?.title ?? "";
         let available = Boolean(notification);
         if (notification?.type === "chat") {
           const { data: message, error: messageError } = await database.from("family_chat_messages")
-            .select("body").eq("id", notification.metadata?.message_id).eq("family_id", notification.family_id).maybeSingle();
+            .select("body,member_id,announcement_title").eq("id", notification.metadata?.message_id).eq("family_id", notification.family_id).maybeSingle();
           if (messageError) throw messageError;
           available = Boolean(message); text = message?.body ?? "";
+          if (message && !message.announcement_title) {
+            const { data: sender, error: senderError } = await database.from("family_members")
+              .select("display_name").eq("id", message.member_id).eq("family_id", notification.family_id).maybeSingle();
+            if (senderError) throw senderError;
+            title = `${sender?.display_name?.trim() || "En familjemedlem"} skriver i chatten:`;
+          }
         }
         if (available) await webPush.sendNotification(
           { endpoint: delivery.endpoint, keys: { p256dh: delivery.p256dh, auth: delivery.auth_key } },
-          JSON.stringify(composePushPayload(delivery.notification_id, notification!.title, text)),
+          JSON.stringify(composePushPayload(delivery.notification_id, title, text)),
           { vapidDetails: { subject: "https://vardilo.vercel.app/", publicKey: keys.publicKey, privateKey: keys.privateKey }, TTL: 60, timeout: 5000 }
         );
       } catch (error) {
