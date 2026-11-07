@@ -1,4 +1,5 @@
 "use client";
+import { calendarFile as buildCalendarFile, downloadCalendar, nextCalendarDate, type CalendarExportEntry } from "@/lib/calendar-export";
 import { readCalendarPages } from "@/lib/calendar-event-pages";
 
 import Link from "next/link";
@@ -252,6 +253,24 @@ export default function CalendarPage() {
       return startsAt < nextDay && (startsAt >= dayStart || endsAt > dayStart);
     });
     if (dayEvents.length) eventMap.set(dateKey(day), dayEvents);
+  }
+  function exportVisibleCalendar() {
+    if (!familyId || loadError) return;
+    try {
+      const visible = [...new Map([...eventMap.values()].flat().map(event => [event.id, event])).values()];
+      const entries: CalendarExportEntry[] = visible.map(event => ({id:event.id,title:event.title,
+        start:event.all_day?dateKey(new Date(event.starts_at)):event.starts_at,
+        end:event.ends_at?(event.all_day?dateKey(new Date(event.ends_at)):event.ends_at):null,
+        allDay:event.all_day,description:event.description,location:event.location,reminderMinutes:event.reminder_minutes}));
+      const shownDays = view === "month" ? cells : currentWeek;
+      if (!hasFilters) for (const item of breaks) {
+        if (item.starts_on <= dateKey(shownDays[shownDays.length-1]) && item.ends_on >= dateKey(shownDays[0]))
+          entries.push({id:`break-${item.id}`,title:item.title,start:item.starts_on,end:nextCalendarDate(item.ends_on),allDay:true});
+      }
+      if (!entries.length) { setDeleteNotice("Det finns inga händelser att exportera i den här vyn."); return; }
+      downloadCalendar(buildCalendarFile(entries,"Vardilo · Familjens kalender"),`vardilo-kalender-${dateKey(shownDays[0])}.ics`);
+      setDeleteNotice("Öppna kalenderfilen i din kalender för att lägga till de visade händelserna. Exporten uppdateras inte automatiskt. Kalenderfilen kan innehålla privat familjeinformation – dela den med omsorg.");
+    } catch { setError("Kunde inte exportera kalendern. Försök igen."); }
   }
   const breaksForDate = (date: Date) => breaks.filter((item) => dateKey(date) >= item.starts_on && dateKey(date) <= item.ends_on);
   const memberById = new Map(members.map((member) => [member.id, member]));
@@ -533,7 +552,8 @@ export default function CalendarPage() {
         .calendar-page .calendar-toolbar h2 { font-size: 16px; }
       }
     `}</style>
-    <header className="section-header calendar-page-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div className="calendar-header-actions"><button className="secondary" type="button" disabled={!familyId} onClick={() => { setImportError(""); setCalendarFile(null); setShowImport(true); }}>Importera kalender</button><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
+    <header className="section-header calendar-page-header"><Link className="back-link" href="/">← Hem</Link><div><p className="eyebrow">KALENDER</p><h1>Familjens kalender</h1></div><div className="calendar-header-actions"><button className="secondary" type="button" disabled={!familyId || Boolean(loadError)} onClick={exportVisibleCalendar}>Till min kalender</button><button className="secondary" type="button" disabled={!familyId} onClick={() => { setImportError(""); setCalendarFile(null); setShowImport(true); }}>Importera kalender</button><button style={breakButtonStyle} type="button" onClick={() => openBreakForm()}>Lov & studiedagar</button><button className="primary" type="button" onClick={() => openAdd()}>+ Lägg till</button></div></header>
+    <p className="muted">Till min kalender exporterar visade händelser som en .ics-fil. Välj vecka eller månad och filtrera först om du vill.</p>
     {deleteNotice && <p role="status" className="section-row">{deleteNotice}</p>}
     {importResult && <p role="status" className="section-row">{importResult}</p>}
     {showImport && (
