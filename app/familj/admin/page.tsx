@@ -73,11 +73,12 @@ export default function FamilyAdminPage() {
   async function loadFamily() {
     setError("");
     try {
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError && authError.name !== "AuthSessionMissingError") throw authError;
     const user = authData.user;
     if (!user) { setCurrentRole("");setCanManageMembers(false);setMembers([]);setError("Logga in för att hantera familjen."); return; }
 
-    const { data: currentMember } = await supabase
+    const { data: currentMember, error: memberError } = await supabase
       .from("family_members")
       .select("id, family_id, role")
       .eq("user_id", user.id)
@@ -85,12 +86,12 @@ export default function FamilyAdminPage() {
       .limit(1)
       .maybeSingle();
 
+    if (memberError) throw memberError;
     if (!currentMember) { setCurrentRole("");setCanManageMembers(false);setMembers([]);setError("Kunde inte hitta din familj."); return; }
 
-    const [{ data: family }, { data: permissions }, { data: familyMembers, error: membersError }] =
+    const [{ data: family, error: familyError }, { data: familyMembers, error: membersError }] =
       await Promise.all([
         supabase.from("families").select("name").eq("id", currentMember.family_id).single(),
-        supabase.from("family_permissions").select("can_manage_members").eq("family_member_id", currentMember.id).single(),
         supabase
           .from("family_members")
           .select("id, display_name, role, family_role, user_id, color")
@@ -98,10 +99,7 @@ export default function FamilyAdminPage() {
           .order("created_at"),
       ]);
 
-    if (membersError) {
-      setError(membersError.message);
-      return;
-    }
+    if (familyError || membersError) throw familyError || membersError;
 
     setFamilyName(family?.name ?? "");
     setCurrentRole(currentMember.role);
@@ -202,7 +200,7 @@ export default function FamilyAdminPage() {
         </div>
       </div>
 
-      {error && <p className="family-admin-error" style={{ maxWidth: 1050, margin: "0 auto 16px" }}>{error}</p>}
+      {error && <div className="family-admin-error" role="alert" style={{ maxWidth: 1050, margin: "0 auto 16px" }}><p>{error}</p><button type="button" className="secondary" disabled={saving || savingRoleId!==null || savingColorId!==null || removingId!==null} onClick={()=>void loadFamily()}>Hämta familjen igen</button></div>}
 
       <section className="section-card">
         {canManageMembers && (

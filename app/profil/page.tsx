@@ -53,18 +53,24 @@ export default function ProfilePage() {
   const cropCanvas = useRef<HTMLCanvasElement>(null);
   const [preparing, setPreparing] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
 
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    setLoadError("");
     async function load() {
       try {
-        const { data: auth } = await supabase.auth.getUser();
+        const { data: auth, error: authError } = await supabase.auth.getUser();
+        if (authError && authError.name !== "AuthSessionMissingError") throw new Error("Kunde inte kontrollera inloggningen. Försök igen.");
         if (!auth.user) throw new Error("Logga in för att ändra din profilbild.");
-        const { data } = await supabase.from("family_members")
+        const { data, error: memberError } = await supabase.from("family_members")
           .select("id,family_id,display_name").eq("user_id", auth.user.id).maybeSingle();
+        if (memberError) throw new Error("Kunde inte läsa profilen. Försök igen.");
         if (!data) throw new Error("Ditt konto behöver vara kopplat till en familj.");
         if (!active) return;
         setMember(data);
@@ -77,14 +83,14 @@ export default function ProfilePage() {
           if (active) setPhoto(result.data);
         }
       } catch (error) {
-        if (active) setStatus(error instanceof Error ? error.message : "Kunde inte öppna profilen.");
+        if (active) setLoadError(error instanceof Error ? error.message : "Kunde inte öppna profilen.");
       } finally {
         if (active) setLoading(false);
       }
     }
     void load();
     return () => { active = false; };
-  }, [bucket, supabase]);
+  }, [bucket, supabase, attempt]);
 
   useEffect(() => {
     if (!file) return;
@@ -117,7 +123,7 @@ export default function ProfilePage() {
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!member || !draft || preparing || busy) return;
+    if (!member || !draft || preparing || busy || loading) return;
     const form = event.currentTarget;
     setBusy(true);
     setStatus("");
@@ -142,7 +148,7 @@ export default function ProfilePage() {
   }
 
   async function remove() {
-    if (!member || busy || !window.confirm(t("Ta bort din profilbild?"))) return;
+    if (!member || busy || loading || !window.confirm(t("Ta bort din profilbild?"))) return;
     setBusy(true);
     setStatus("");
     try {
@@ -164,8 +170,9 @@ export default function ProfilePage() {
         <div><p className="eyebrow">VARDILO</p><h1>{t("Min profil")}</h1></div>
       </header>
       <section className="section-card" style={{ padding: 20 }}>
+        {loadError && <div role="alert"><p>{t(loadError)}</p><button type="button" className="secondary" disabled={loading || busy || preparing} onClick={()=>setAttempt(value=>value+1)}>{t("Försök igen")}</button></div>}
         {loading && <p role="status">{t("Laddar profil…")}</p>}
-        {member && !loading && (
+        {member && (
           <>
             <div className="avatar" style={{ width: 72, height: 72, overflow: "hidden", fontSize: 24 }}>
               {preview ? <img src={preview} alt={t("Din sparade profilbild")} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : member.display_name.trim().charAt(0).toUpperCase()}
@@ -177,9 +184,9 @@ export default function ProfilePage() {
             {preparing && <p role="status">{t("Förbereder förhandsvisning…")}</p>}
             <p className="muted">{t("Bilden visas för familjen och beskärs till en kvadrat.")}</p>
             <form onSubmit={save} onReset={() => chooseFile(null)} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-              <input type="file" aria-label={t("Välj profilbild")} accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy} />
+              <input type="file" aria-label={t("Välj profilbild")} accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={event => chooseFile(event.target.files?.[0] ?? null)} disabled={busy || loading} />
               {draft && (
-                <fieldset disabled={busy} style={{ flexBasis: "100%", minWidth: 0, margin: "8px 0", border: "1px solid var(--line)", borderRadius: 10, padding: 12 }}>
+                <fieldset disabled={busy || loading} style={{ flexBasis: "100%", minWidth: 0, margin: "8px 0", border: "1px solid var(--line)", borderRadius: 10, padding: 12 }}>
                   <legend>{t("Beskär profilbild")}</legend>
                   <canvas ref={cropCanvas} width={256} height={256} role="img" aria-label={t("Förhandsvisning av beskuren profilbild")} style={{ display: "block", width: "min(100%, 256px)", height: "auto", borderRadius: "50%" }} />
                   <p className="muted">{t("Justera bilden innan du sparar.")}</p>
@@ -190,9 +197,9 @@ export default function ProfilePage() {
                   </div>
                 </fieldset>
               )}
-              <button className="primary" type="submit" disabled={!draft || preparing || busy}>{t("Spara profilbild")}</button>
-              {file && <button className="secondary" type="reset" disabled={busy}>{t("Avbryt bildval")}</button>}
-              {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy}>{t("Ta bort bild")}</button>}
+              <button className="primary" type="submit" disabled={!draft || preparing || busy || loading}>{t("Spara profilbild")}</button>
+              {file && <button className="secondary" type="reset" disabled={busy || loading}>{t("Avbryt bildval")}</button>}
+              {photo && !file && <button className="secondary" type="button" onClick={() => void remove()} disabled={busy || loading}>{t("Ta bort bild")}</button>}
             </form>
           </>
         )}
