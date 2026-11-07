@@ -27,7 +27,7 @@ function categoryOptions() {
 }
 type ListItem = { id: string; text: string; completed: boolean; created_by_member_id: string | null; completed_by_member_id: string | null };
 type OpenList = FamilyList & { items: ListItem[] };
-type Member = { id: string; family_id: string; userId: string };
+type Member = { id: string; family_id: string; role: string; userId: string };
 
 const typedText = { color: "#102a43", WebkitTextFillColor: "#102a43", caretColor: "#102a43" };
 
@@ -61,7 +61,7 @@ export default function ListsPage() {
       }
       if (authError || !auth.user) throw authError;
       const { data: profile, error: profileError } = await supabase.from("family_members")
-        .select("id,family_id").eq("user_id", auth.user.id).maybeSingle();
+        .select("id,family_id,role").eq("user_id", auth.user.id).maybeSingle();
       if (profileError) throw profileError;
       if (!profile) {
         setLoadError("Ditt konto behöver vara kopplat till en familj för att visa listor.");
@@ -180,7 +180,7 @@ export default function ListsPage() {
   }
 
   function removeList(list: OpenList) {
-    if (!member) return;
+    if (!member || member.role !== "admin") return;
     void run(async () => {
       const { error } = await supabase.from("family_lists").delete()
         .eq("id", list.id).eq("family_id", member.family_id).select("id").single();
@@ -343,10 +343,10 @@ export default function ListsPage() {
               </form>
               <div className="family-admin-form">
                 <label className="family-admin-field"><span>Byt kategori</span><select value={selected.category === "Övrigt" ? "" : selected.category} onChange={event => changeCategory(selected, event.target.value as Category)} disabled={busy}><option value="" disabled>Välj kategori</option>{categoryOptions()}</select></label>
-                <button className="secondary" type="button" onClick={() => setDeleteTarget({ listId: selected.id })} disabled={busy}>Ta bort listan</button>
+                {member?.role === "admin" && <button className="secondary" type="button" onClick={() => setDeleteTarget({ listId: selected.id })} disabled={busy}>Ta bort listan</button>}
               </div>
             </details>
-            {deleteTarget?.listId === selected.id && !deleteTarget.itemId && <div className="reminders-notice">{confirmRemoval(`Ta bort listan ”${selected.name}” och alla dess punkter?`, () => removeList(selected))}</div>}
+            {member?.role === "admin" && deleteTarget?.listId === selected.id && !deleteTarget.itemId && <div className="reminders-notice">{confirmRemoval(`Ta bort listan ”${selected.name}” och alla dess punkter?`, () => removeList(selected))}</div>}
             <div className="reminders-items">
               {!selected.items.length && <p className="reminders-empty">Listan är tom. Lägg till första punkten nedan.</p>}
               {selected.items.map(entry => (

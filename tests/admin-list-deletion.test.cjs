@@ -1,0 +1,3 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const {readFileSync}=require('node:fs');const {stripTypeScriptTypes}=require('node:module');
+const text=readFileSync('app/listor/page.tsx','utf8');const source=stripTypeScriptTypes(text.slice(text.indexOf('  function removeList('),text.indexOf('  function removeItem(')));
+test('only an Admin can invoke full-list deletion in the client',()=>{for(const role of ['barn','förälder','familj',undefined]){let calls=0;const remove=new Function('member','run',source+';return removeList')({role},()=>calls++);remove({id:'list'});assert.equal(calls,0)}let calls=0;const remove=new Function('member','run',source+';return removeList')({role:'admin'},()=>calls++);remove({id:'list'});assert.equal(calls,1)});
